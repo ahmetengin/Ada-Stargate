@@ -29,7 +29,20 @@ export const streamChatResponse = async (
     const ai = createClient();
     
     // Dynamic System Instruction with Real-time Data & User Auth
-    const dynamicSystemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile);
+    let dynamicSystemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile);
+
+    // STRICT ENFORCEMENT: If User is in LEGAL BREACH (RED), override instructions
+    if (userProfile.legalStatus === 'RED') {
+       dynamicSystemInstruction += `
+\n\n**🚨 CRITICAL LEGAL ALERT: USER IN BREACH**
+The current user (${userProfile.name}) has a **RED** Legal Clearance status.
+**PROTOCOL:**
+1. **DENY** all operational requests (e.g., "Move vessel", "Request Tender", "Check-out").
+2. **CITE** the breach (e.g., "Article H.2: Unpaid Debt" or "Article H.3: Contract Expired").
+3. **DEMAND** immediate resolution with the Marina Office.
+4. DO NOT provide any other assistance until status is GREEN.
+`;
+    }
 
     const chat: Chat = ai.chats.create({
       model: model,
@@ -43,7 +56,10 @@ export const streamChatResponse = async (
       },
     });
 
-    const messageParts: any[] = [{ text: newMessage }];
+    const messageParts: any[] = [];
+    if (newMessage.trim() !== "") {
+        messageParts.push({ text: newMessage });
+    }
     
     // Process new attachments
     if (attachments && attachments.length > 0) {
@@ -60,6 +76,10 @@ export const streamChatResponse = async (
              messageParts.push({ text: `[Attachment: ${a.name || 'File'}]\n\`\`\`\n${textContent}\n\`\`\`\n` });
           }
        });
+    }
+    
+    if (messageParts.length === 0) {
+       throw new Error("Message content cannot be empty.");
     }
 
     const result = await chat.sendMessageStream(

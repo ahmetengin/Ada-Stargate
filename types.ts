@@ -72,4 +72,6 @@ export interface UserProfile {
   name: string;
   role: UserRole;
   clearanceLevel: number; // 0: Public, 1: Own Asset, 5: God Mode
+  legalStatus?: 'GREEN' | 'AMBER' | 'RED'; // GREEN: Good, AMBER: Warning, RED: Breach/Debt
+  contractId?: string;
 }

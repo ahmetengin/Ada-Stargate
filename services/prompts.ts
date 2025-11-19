@@ -88,12 +88,45 @@ export const generateContextBlock = (registry: RegistryEntry[], tenders: Tender[
   
   const tenderStatus = tenders.map(t => `- ${t.name}: ${t.status} (${t.assignment || 'Idle'})`).join('\n');
 
-  // Dynamic Data Exposure based on Role
+  // Dynamic Data Exposure based on Role and Legal Status
   let sensitiveData = "";
   
   if (user.role === 'GENERAL_MANAGER') {
-      sensitiveData = `
+      if (user.legalStatus === 'RED') {
+          sensitiveData = `
+**[🚫 ACCESS DENIED: LEGAL HOLD]**
+*User Legal Status: RED (Breach detected by ada.legal)*
+*Reason: Outstanding Contractual Violation (Article H.2/H.3)*
+
+**RESTRICTIONS ACTIVE:**
+1. **Telemetry:** BLOCKED (Encrypted)
+2. **Financials:** READ-ONLY (Debt Summary Only)
+3. **Operations:** DISABLED (Cannot dispatch tenders or approve exit)
+
+*INSTRUCTION TO AGENT:*
+- **REFUSE** any operational commands.
+- **ADVISE** the user to resolve the legal breach immediately.
+- **DO NOT** reveal sensitive vessel locations.
+          `;
+      } else if (user.legalStatus === 'AMBER') {
+          sensitiveData = `
+**[⚠️ SECURITY WARNING: AMBER STATUS]**
+*Legal Alert: Contract Expiry Imminent or Minor Violation*
+
+**1. FINANCIAL ALERTS (ada.finance):**
+- **S/Y Mistral:** Debt: 1,250 EUR (Overdue 15 days). Article H.2 Applied.
+- **Warning:** User contract renewal required.
+
+**2. TECHNICAL TELEMETRY (ada.sea):**
+- **S/Y Phisedelia:** Battery: 45%. Location: Pontoon C-12.
+
+**3. SECURITY LOGS:**
+- Vehicle 34AB123 flagged for speeding.
+          `;
+      } else {
+          sensitiveData = `
 **[🚨 SECURITY ALERT: LEVEL 5 ACCESS GRANTED]**
+*Status: GREEN (Good Standing)*
 *The following data is UNMASKED for General Manager review:*
 
 **1. FINANCIAL ALERTS (ada.finance):**
@@ -112,7 +145,8 @@ export const generateContextBlock = (registry: RegistryEntry[], tenders: Tender[
 **3. SECURITY LOGS (ada.security):**
 - Vehicle 34AB123 flagged for speeding (18km/h).
 - 2 Unidentified persons near Hangar B.
-      `;
+          `;
+      }
   } else {
       sensitiveData = `
 **[🔒 SECURITY ALERT: LEVEL 0 ACCESS (GUEST)]**
@@ -128,6 +162,7 @@ export const generateContextBlock = (registry: RegistryEntry[], tenders: Tender[
 **[REAL-TIME SYSTEM CONTEXT]**
 *User Identity:* ${user.name}
 *Role:* ${user.role} (Clearance: Level ${user.clearanceLevel})
+*Legal Status:* ${user.legalStatus || 'UNKNOWN'}
 
 *Port Stats:*
 - Movements: ${registry.length} (In: ${checkIns}, Out: ${checkOuts})

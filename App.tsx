@@ -47,7 +47,8 @@ export default function App() {
     id: 'guest-01',
     name: 'Guest User',
     role: 'GUEST',
-    clearanceLevel: 0
+    clearanceLevel: 0,
+    legalStatus: 'GREEN'
   });
 
   // --- State: Simulation Data ---
@@ -271,13 +272,43 @@ export default function App() {
 
   const toggleAuth = () => {
     if (userProfile.role === 'GUEST') {
-        // Simulate Passkit Auth
+        // Simulate Passkit Auth + Strict Legal Clearance
+        
+        // Determine Random Legal Status for Demo Purposes
+        const rand = Math.random();
+        let legalStatus: 'GREEN' | 'AMBER' | 'RED' = 'GREEN';
+        let breachReason = "";
+        
+        if (rand > 0.85) {
+          legalStatus = 'RED'; // Breach
+          breachReason = "ARTICLE H.2 (UNPAID DEBT > 60 DAYS)";
+        }
+        else if (rand > 0.65) {
+          legalStatus = 'AMBER'; // Warning
+          breachReason = "CONTRACT EXPIRY < 30 DAYS";
+        }
+
         const seq = [
             { msg: "AUTHENTICATING...", type: 'info' },
             { msg: "DETECTED PASSKIT: PK-8821-X", type: 'warning' },
             { msg: "BIOMETRIC HANDSHAKE: RETINA_SCAN [OK]", type: 'success' },
-            { msg: "ACCESS GRANTED: LEVEL 5 (GM)", type: 'success' }
+            { msg: "CONNECTING TO ADA.LEGAL.WIM DATABASE...", type: 'info' }
         ];
+        
+        // Detailed Legal Check Sequence
+        if (legalStatus === 'GREEN') {
+             seq.push({ msg: "CHECKING CONTRACT STATUS... [ACTIVE]", type: 'success' });
+             seq.push({ msg: "CHECKING OUTSTANDING PENALTIES... [NONE]", type: 'success' });
+             seq.push({ msg: "LEGAL STANDING: VERIFIED.", type: 'success' });
+             seq.push({ msg: "ACCESS GRANTED: LEVEL 5 (GM)", type: 'success' });
+        } else if (legalStatus === 'AMBER') {
+             seq.push({ msg: `LEGAL ALERT: ${breachReason}`, type: 'warning' });
+             seq.push({ msg: "ACCESS GRANTED: LEVEL 5 (RESTRICTED)", type: 'warning' });
+        } else {
+             seq.push({ msg: `CRITICAL BREACH: ${breachReason}`, type: 'critical' });
+             seq.push({ msg: "ENFORCEMENT PROTOCOL: DEPARTURE BAN ACTIVE", type: 'critical' });
+             seq.push({ msg: "ACCESS RESTRICTED: READ-ONLY MODE", type: 'critical' });
+        }
         
         let delay = 0;
         seq.forEach(s => {
@@ -285,7 +316,7 @@ export default function App() {
                 setLogs(prev => [{
                     id: Math.random().toString(),
                     timestamp: new Date().toLocaleTimeString(),
-                    node: 'ada.passkit',
+                    node: s.msg.includes('LEGAL') || s.msg.includes('CONTRACT') ? 'ada.legal.wim' : 'ada.passkit',
                     message: s.msg,
                     type: s.type
                 }, ...prev]);
@@ -298,7 +329,8 @@ export default function App() {
                 id: 'ahmet-engin-01',
                 name: 'Ahmet Engin',
                 role: 'GENERAL_MANAGER',
-                clearanceLevel: 5
+                clearanceLevel: 5,
+                legalStatus: legalStatus
              });
         }, delay);
 
@@ -308,7 +340,8 @@ export default function App() {
             id: 'guest-01',
             name: 'Guest User',
             role: 'GUEST',
-            clearanceLevel: 0
+            clearanceLevel: 0,
+            legalStatus: 'GREEN'
         });
         setLogs(prev => [{
             id: Math.random().toString(),
@@ -346,9 +379,19 @@ export default function App() {
                      <Menu size={16} className="text-zinc-400" />
                   </div>
                   <div className="flex items-center gap-2">
-                     <ShieldAlert size={14} className={userProfile.role === 'GENERAL_MANAGER' ? 'text-indigo-500' : 'text-zinc-600'} />
-                     <span className="font-mono font-bold text-xs tracking-wider text-zinc-400">
-                        {userProfile.role === 'GENERAL_MANAGER' ? 'OPS COMMAND' : 'PUBLIC TERMINAL'}
+                     <ShieldAlert size={14} className={
+                        userProfile.legalStatus === 'RED' ? 'text-red-500 animate-pulse' :
+                        userProfile.legalStatus === 'AMBER' ? 'text-yellow-500' :
+                        userProfile.role === 'GENERAL_MANAGER' ? 'text-indigo-500' : 'text-zinc-600'
+                     } />
+                     <span className={`font-mono font-bold text-xs tracking-wider ${
+                        userProfile.legalStatus === 'RED' ? 'text-red-400' : 
+                        userProfile.legalStatus === 'AMBER' ? 'text-yellow-400' : 'text-zinc-400'
+                     }`}>
+                        {userProfile.role === 'GENERAL_MANAGER' 
+                           ? (userProfile.legalStatus === 'RED' ? 'OPS COMMAND [LOCKED - LEGAL]' : 
+                              userProfile.legalStatus === 'AMBER' ? 'OPS COMMAND [WARNING]' : 'OPS COMMAND') 
+                           : 'PUBLIC TERMINAL'}
                      </span>
                   </div>
                </div>
