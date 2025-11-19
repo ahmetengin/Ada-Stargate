@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Message, MessageRole, ModelType, GroundingSource } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -5,14 +6,14 @@ import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
 import { MessageBubble } from './components/MessageBubble';
 import { streamChatResponse, generateImage } from './services/geminiService';
-import { Menu } from 'lucide-react';
+import { Menu, Radio } from 'lucide-react';
 import { VoiceModal } from './components/VoiceModal';
 import { TypingIndicator } from './components/TypingIndicator';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
   role: MessageRole.Model,
-  text: "**System Initialization Sequence**\n\n`[SUCCESS]` Tenant Loaded: **wim.ada.network** (West Istanbul Marina)\n`[SUCCESS]` Node Discovery: 9 Nodes Active\n`[SUCCESS]` Distributed Memory: Synced\n\n---\n\n**Ada Orchestrator Online.**\n\nGreetings, Captain. I am connected to the WIM autonomous cluster.\nNodes `ada.sea.wim`, `ada.finance.wim`, and `ada.marina.wim` are standing by. \n\n**Privacy Protocol Active:** Vessel nodes are in silent mode. Telemetry is local-only.\n\nHow can we assist your operations today?",
+  text: "**System Initialization Sequence**\n\n`[SUCCESS]` Tenant Loaded: **wim.ada.network** (West Istanbul Marina)\n`[SUCCESS]` SEAL Core: **Synthetic Data Generation Active**\n`[SUCCESS]` Knowledge Base: WIM Regulations (Arts. E-H) Ingested\n`[SUCCESS]` Marshall Protocol: **ENFORCING**\n\n---\n\n**Ada Orchestrator Online.**\n\nGreetings, Captain. I am connected to the WIM autonomous cluster.\n\n**Operational Status:**\n- **🧠 SEAL Engine:** Learning from interactions (Self-Edit Mode)\n- **👮 Marshall:** Monitoring Speed (G.1) & Contracts (H.3)\n- **🚤 Assets:** Tenders Alpha, Bravo, Charlie (Ch 14) Standing By\n- **📡 VHF Sentinel:** Scanning Ch 16/73/12/13/14\n\n*State: Ready. Privacy Protocol Active.*",
   timestamp: Date.now()
 };
 
@@ -46,6 +47,7 @@ function App() {
     'ada.customer': 'connected',
     'ada.passkit': 'connected',
     'ada.legal': 'connected',
+    'ada.security': 'connected',
     'ada.weather': 'connected',
     'ada.vhf': 'connected'
   });
@@ -77,7 +79,7 @@ function App() {
       'odyssey', 'poseidon', 'neptune', 'mermaid', 'atlantis'
     ];
 
-    const serviceNodes = ['ada.marina.wim', 'ada.finance.wim', 'ada.weather.wim', 'ada.customer.wim', 'ada.legal.wim'];
+    const serviceNodes = ['ada.marina.wim', 'ada.finance.wim', 'ada.weather.wim', 'ada.customer.wim', 'ada.legal.wim', 'ada.security.wim'];
 
     const generateLog = () => {
       const rand = Math.random();
@@ -95,7 +97,10 @@ function App() {
          const msgs16 = ['Securite: Dredging ops.', 'Mayday Relay: Sector 4.', 'All stations: Gale warning.', 'Routine Check.'];
          const msgs73 = ['Phisedelia requesting pilot.', 'M/Y Blue Star at A-Pontoon.', 'Fuel dock status check.', 'Tender boat returning.'];
          const msgs06 = ['Switching to Ch 06.', 'Radio check, over.'];
-         
+         const msgs12 = ['Port Control: Operations normal.', 'Manager to Office.', 'Shift change acknowledged.'];
+         const msgs13 = ['Security Patrol: Sector B clear.', 'Gate 1: Access verified.', 'CCTV 4: Motion detected.'];
+         const msgs14 = ['Tender Alpha: Lines secured.', 'Travel Lift: Haul-out complete.', 'Technical team to Hangar 2.'];
+
          // Emergency scenarios
          if (rand < 0.02) {
              msg = `[CH 16] MAYDAY MAYDAY: Engine fire on ${vesselNames[Math.floor(Math.random() * vesselNames.length)]}.`;
@@ -105,24 +110,59 @@ function App() {
              type = 'warning';
          } else if (currentCh === '73') {
              msg = `[CH 73] ${msgs73[Math.floor(Math.random() * msgs73.length)]}`;
+         } else if (currentCh === '12') {
+             msg = `[CH 12] ${msgs12[Math.floor(Math.random() * msgs12.length)]}`;
+         } else if (currentCh === '13') {
+             msg = `[CH 13] ${msgs13[Math.floor(Math.random() * msgs13.length)]}`;
+         } else if (currentCh === '14') {
+             msg = `[CH 14] ${msgs14[Math.floor(Math.random() * msgs14.length)]}`;
          } else {
              msg = `[CH ${currentCh}] ${msgs06[Math.floor(Math.random() * msgs06.length)]}`;
          }
 
-      } else if (rand < 0.50) { // Vessel Ops
+      } else if (rand < 0.45) { // Vessel Ops (Privacy First)
+         // Vessels don't broadcast telemetry anymore unless critical
          const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
          nodeFull = `ada.sea.${vName}`;
          nodeBase = 'ada.sea';
-         const acts = ['Docking confirmed.', 'Shore power connected.', 'Bilge pump cycle.', 'Leaving marina.', 'Entering sector 4.'];
-         msg = acts[Math.floor(Math.random() * acts.length)];
-         type = 'success';
+         
+         // Simulation of Local Data Processing
+         const privacyActs = ['Local DB: Encrypted.', 'Privacy Shield: Query Blocked.', 'Auth Request: Check-in.', 'Handshake: ada.marina.wim'];
+         msg = privacyActs[Math.floor(Math.random() * privacyActs.length)];
+         type = 'info';
 
-      } else { // Marina Infrastructure
+      } else { // Marshall / Infrastructure Events
          const sNode = serviceNodes[Math.floor(Math.random() * serviceNodes.length)];
          nodeFull = sNode;
          nodeBase = sNode.split('.')[1] ? `ada.${sNode.split('.')[1]}` : 'ada.marina';
-         const sActs = ['Transaction verified.', 'Weather update: 15kt NW.', 'Gate sensor triggered.', 'Legal doc expiry check.', 'CRM Sync.'];
-         msg = sActs[Math.floor(Math.random() * sActs.length)];
+         
+         if (nodeBase === 'ada.legal' || nodeBase === 'ada.security') {
+            // Marshall Logic: Speeding Simulation
+            if (Math.random() < 0.15) {
+               const plate = Math.floor(Math.random() * 99) + 'AB' + Math.floor(Math.random() * 999);
+               msg = `CAM-04: Land Speed Violation [Plate: 34${plate}] 18km/h. (Limit: 10km/h)`;
+               type = 'critical';
+            } else {
+               msg = 'Contract Audit: Compliance 99%.';
+               type = 'success';
+            }
+         } else if (nodeBase === 'ada.finance') {
+            msg = `Ledger Sync: ${Math.floor(Math.random() * 5000)} EUR processed.`;
+         } else if (nodeBase === 'ada.marina') {
+             // Tender Ops Simulation (Ch 14)
+             if (Math.random() < 0.4) {
+                 const tenders = ['Tender Alpha', 'Tender Bravo', 'Tender Charlie'];
+                 const tName = tenders[Math.floor(Math.random() * tenders.length)];
+                 const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
+                 msg = `[CH 14] ${tName}: Assisting ${vName} at Pontoon C.`;
+                 type = 'info';
+             } else {
+                 msg = 'Gate sensor triggered.';
+             }
+         } else {
+            const sActs = ['Transaction verified.', 'Weather update: 15kt NW.', 'CRM Sync.'];
+            msg = sActs[Math.floor(Math.random() * sActs.length)];
+         }
       }
 
       // Update Node Status visually
@@ -135,7 +175,7 @@ function App() {
           ...prev,
           [nodeBase]: 'connected'
         }));
-      }, 800);
+      }, 400); // Faster blink for Enterprise Mode
 
       return {
         id: Math.random().toString(36).substr(2, 9),
@@ -149,9 +189,10 @@ function App() {
     const interval = setInterval(() => {
       const newLog = generateLog();
       if (newLog) {
-        setLogs(prev => [newLog, ...prev].slice(0, 200));
+        // Removed .slice() to prevent data loss in Canvas for short sessions, keep last 200
+        setLogs(prev => [newLog, ...prev].slice(0, 200)); 
       }
-    }, 2500);
+    }, 600); // Turbo Mode (600ms)
 
     return () => clearInterval(interval);
   }, []);
@@ -232,12 +273,17 @@ function App() {
         );
       }
 
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
+        let errorMessage = "Error: Could not connect to Ada Orchestrator.";
+        if (error.message === 'API_QUOTA_EXCEEDED') {
+           errorMessage = "⚠️ **SYSTEM ALERT: RESOURCE EXHAUSTED**\n\nThe API quota has been exceeded. Please check billing or wait before sending new requests.\n\n*Status: Standby Mode*";
+        }
+
         setMessages(prev => [...prev, {
             id: Date.now().toString(),
             role: MessageRole.System,
-            text: "Error: Could not connect to Ada Orchestrator. Please check your API key or quota.",
+            text: errorMessage,
             timestamp: Date.now()
         }]);
     } finally {
@@ -276,18 +322,31 @@ function App() {
         />
       </div>
 
-      {/* Canvas (Operations Deck) */}
-      <Canvas 
-        logs={logs} 
-        activeChannel={activeChannel}
-        isMonitoring={isMonitoring}
-      />
-
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-full relative min-w-0">
         
+        {/* Header with VHF Status */}
+        <div className="h-14 border-b border-zinc-900 bg-zinc-950/50 flex items-center justify-end px-4 gap-4">
+           <div className="flex items-center gap-2">
+              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Scanning</div>
+              <div className="flex gap-1">
+                 {['16', '73', '06'].map(ch => (
+                    <div key={ch} className={`w-1.5 h-1.5 rounded-full ${activeChannel === 'SCAN' ? 'bg-green-500 animate-pulse' : activeChannel === ch ? 'bg-green-500' : 'bg-zinc-800'}`} style={{ animationDelay: ch === '73' ? '100ms' : ch === '06' ? '200ms' : '0ms' }} />
+                 ))}
+              </div>
+           </div>
+           <div className="h-4 w-px bg-zinc-800" />
+           <button 
+             onClick={() => setIsVoiceModalOpen(true)}
+             className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 px-3 py-1.5 rounded text-xs font-bold font-mono tracking-wide transition-colors"
+           >
+             <Radio size={12} />
+             VHF {activeChannel === 'SCAN' ? 'SCAN' : activeChannel}
+           </button>
+        </div>
+
         {/* Chat History */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar pt-16 md:pt-6">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
           {messages.map((msg) => (
              <MessageBubble key={msg.id} message={msg} />
           ))}
@@ -313,10 +372,17 @@ function App() {
               onStartVoice={() => setIsVoiceModalOpen(true)}
            />
            <div className="text-center text-[10px] text-zinc-600 mt-2 select-none">
-              Use of Ada implies consent to maritime surveillance protocols.
+              MARSHALL PROTOCOL ACTIVE. VIOLATIONS ARE LOGGED AUTOMATICALLY.
            </div>
         </div>
       </div>
+
+      {/* Canvas (Operations Deck) */}
+      <Canvas 
+        logs={logs} 
+        activeChannel={activeChannel}
+        isMonitoring={isMonitoring}
+      />
 
       <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
 

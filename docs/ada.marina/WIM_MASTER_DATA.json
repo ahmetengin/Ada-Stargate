@@ -15,9 +15,19 @@
     },
     "vision": "To provide a clean, safe and agreeable living and working environment for Yachts and Owners.",
     "contact": {
-      "vhf_channels": ["73", "16"],
+      "vhf_channels": {
+        "public": ["73", "16"],
+        "internal_ops": ["14"]
+      },
       "call_sign": "West Istanbul Marina"
     }
+  },
+  "assets": {
+    "tenders": [
+      { "id": "T-01", "callsign": "Tender Alpha", "type": "Palamar Botu", "status": "Active" },
+      { "id": "T-02", "callsign": "Tender Bravo", "type": "Palamar Botu", "status": "Active" },
+      { "id": "T-03", "callsign": "Tender Charlie", "type": "Palamar Botu", "status": "Standby" }
+    ]
   },
   "legal_framework": {
     "governing_law": "Republic of Türkiye",
@@ -37,6 +47,11 @@
       "fishing": "Prohibited (Article F.10)",
       "water_sports": "Prohibited (Jet Ski, Diving)",
       "fire_safety": "Open fire/BBQ prohibited (Article F.12). Hot works require permit."
+    },
+    "tender_operations": {
+      "workflow": "Public contact Ch 73 -> Handover to Tender Ch 14",
+      "priority": ["Emergency", "Superyachts (>40m)", "Racing Yachts (VO65)", "Standard"],
+      "maneuver_assist": "Mandatory for vessels >20m or high wind conditions"
     },
     "environment": {
       "waste_disposal": "Designated areas only. Bilge discharge prohibited (Article F.13).",

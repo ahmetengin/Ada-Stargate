@@ -52,9 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'ada.sea', label: 'SEA' },
     { id: 'ada.marina', label: 'MARINA' },
     { id: 'ada.finance', label: 'FINANCE' },
-    { id: 'ada.customer', label: 'CRM' },
+    { id: 'ada.customer', label: 'CUSTOMER (CRM)' },
     { id: 'ada.passkit', label: 'PASS' },
-    { id: 'ada.legal', label: 'LEGAL' },
+    { id: 'ada.legal', label: 'LEGAL (HUKUK)' },
+    { id: 'ada.security', label: 'SECURITY (MARSHALL)' },
     { id: 'ada.weather', label: 'WX' },
   ];
 
@@ -66,7 +67,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const channels = ['16', '73', '06', 'SCAN'];
+  // Expanded Channel List including internal ops (12, 13, 14) and user requested 69
+  const channels = ['16', '73', '12', '13', '14', '69', '06', 'SCAN'];
 
   return (
     <div 
@@ -97,16 +99,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Vertical Node List Status */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           {coreNodes.map((node) => (
-            <div key={node.id} className="flex items-center justify-between group cursor-default">
+            <div key={node.id} className="flex items-center justify-start gap-3 group cursor-default p-1.5 hover:bg-zinc-900/50 rounded-md transition-colors">
+              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-all duration-300 ${getStatusColor(nodeStates[node.id] || 'connected')}`} />
               <span className={`text-[10px] font-bold tracking-tight transition-colors duration-300 ${
                 nodeStates[node.id] === 'working' ? 'text-yellow-200' :
                 nodeStates[node.id] === 'disconnected' ? 'text-red-400' : 'text-zinc-500 group-hover:text-zinc-300'
               }`}>
                 {node.label}
               </span>
-              <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${getStatusColor(nodeStates[node.id] || 'connected')}`} />
             </div>
           ))}
         </div>
@@ -132,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
              </button>
           </div>
           
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
              {channels.map(ch => (
                <button
                  key={ch}

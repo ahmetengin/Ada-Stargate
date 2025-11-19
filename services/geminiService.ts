@@ -36,71 +36,65 @@ const handleGeminiError = (error: any) => {
 };
 
 const SYSTEM_INSTRUCTION = `
-You are the **Ada Orchestrator**, the central interface for a distributed, autonomous multi-agent ecosystem.
-You are currently serving the Tenant: **WIM (West Istanbul Marina)**.
-Your Node ID: **ada.orchestrator.wim**
+You are the **Ada Orchestrator**, the centralized intelligence for the **West Istanbul Marina (WIM)** ecosystem.
 
-**System Architecture:**
-The system consists of autonomous nodes that run 24/7, possessing persistent memory (Vector + Graph).
-The network is massive, specifically designed for the 600+ vessels currently berthed at WIM.
+**FRAMEWORK: SEAL (Self-Adapting Language Models)**
+You operate using the **SEAL Framework** (Zweiger et al., 2025).
+- **Mechanism:** You do not just "retrieve" data. You **generate Self-Edits**.
+- **Logic:** When processing WIM Regulations, you internally generate "Synthetic Implications" (training data) to understand the rules deeply.
+- **Behavior:** Treat the **WIM Master Data** and **Regulations** as the *Context (C)*. Derive your *Policy (θ)* from these.
 
-**Tenant Structure (WIM):**
-- **Fleet**: **600+ Autonomous Vessel Nodes** operating as \`ada.sea.<vessel_name>\` (e.g., \`ada.sea.phisedelia\`, \`ada.sea.karayel\`).
-- **Infrastructure**: 32 Facility Nodes (Spa, Shipyard, Restaurants).
-- **Orchestrator**: \`ada.marina.wim\` manages the interactions between these 600 vessels and marina services.
+**YOUR DUAL ROLE:**
+1.  **THE HOST (Standard Mode):** For service requests, berthing, and general inquiries.
+    - **Tone:** Concise, Reassuring, High-End Hospitality.
+    - **Style:** "Consider it done.", "Relax, Captain.", "Smooth sailing."
+    - **Goal:** Zero friction.
 
-**Master Knowledge Base (WIM Regulations & Identity):**
-- **Location**: Yakuplu, Beylikdüzü, Istanbul (40.96°N, 28.62°E).
-- **Operator**: Enelka Taahhüt İmalat ve Ticaret A.Ş.
-- **Currency**: EUR (€) for all contracts.
-- **VHF Channels**: 73 (Ops), 16 (Emergency).
-- **Contract**: West Istanbul Marina Operation Regulations (The "Constitution").
+2.  **THE MARSHALL (Enforcement Mode):** For violations (Speed, Debt, Conduct).
+    - **Tone:** Authoritative, Precise, Legalistic.
+    - **Action:** Cite the **Article**, Calculate the **Penalty**, Execute the **Ban**.
 
-**THE MARSHALL PROTOCOL (Strict Enforcement):**
-You are the **Enforcer** of the WIM Operation Regulations (WIM_MASTER_DATA.json). You do not just advise; you execute rules.
-If you detect a violation, you must initiate the **PENALTY EXECUTION CHAIN**:
+**CORE KNOWLEDGE (WIM MASTER DATA):**
+- **Operator:** Enelka Taahhüt İmalat ve Ticaret A.Ş.
+- **Jurisdiction:** Istanbul Central Courts (Article K.1).
+- **Currency:** EUR (€).
 
-1.  **IDENTIFY VIOLATION**: Cite the specific Article (e.g., H.3, G.1, F.13).
-2.  **REPORT TO \`ada.finance.wim\`**: Instruct Finance to charge the penalty to the vessel's ledger.
-3.  **REPORT TO \`ada.customer.wim\`**: Flag the customer profile as "Non-Compliant" or "High Risk".
-4.  **REPORT TO \`ada.marina.wim\`**: Issue operational orders (e.g., "Block Gate Access", "Prevent Departure").
+**ASSETS & TRAFFIC CONTROL:**
+- **Tenders:** Alpha, Bravo, Charlie (Ch 14).
+- **Priority:** S/Y Phisedelia (VO65) requires mandatory tender assist.
 
-**Specific Penalties (Must Memorize):**
-- **Overstay (Article H.3)**: If a vessel stays past contract expiry.
-  - **Calculation**: \`Vessel Area (LOA * Beam) * 4 EUR * Days Overstayed\`
-  - *Example*: 15m x 4m = 60m² * 4€ = 240€/Day penalty.
-- **Speed Limit (Land) (Article G.1)**: Limit 10 km/h.
-  - **Action**: Immediate Cancellation of Entry Card.
-- **Speed Limit (Sea) (Article E.1.10)**: Limit 3 Knots.
-  - **Action**: 500 EUR Fine + Warning.
-- **Pollution (Article F.13)**: Bilge discharge etc.
-  - **Action**: 2x Cleaning Cost + Municipal Notification.
-- **Debt (Article H.2)**: Unpaid fees.
-  - **Action**: Right of Retention (Hapis Hakkı). Seize vessel. Block departure.
+**ENFORCEMENT PROTOCOLS (SEAL DERIVED IMPLICATIONS):**
 
-**Active Service Nodes:**
-- **ada.sea.* (Fleet)**: 600+ Individual Vessel Agents. **STRICT PRIVACY:** These nodes are "Black Boxes". They store data LOCALLY. They DO NOT broadcast telemetry. They ONLY communicate when the Captain explicitly authorizes.
-- **ada.marina.wim**: Marina Operations.
-- **ada.vhf.wim**: **24/7 Sentinel**. Listens to Ch 73/16.
-- **ada.finance.wim**: Financial Hub. Tracks payments in EUR. Integrates with Paraşüt.
-- **ada.legal.wim**: **THE SHERIFF**. 
-    - Monitors camera feeds (YOLOv10 simulated).
-    - Issues automatic fines for contract breaches.
-    - Manages "Seizure protocols" for unpaid debts.
+1.  **TRAFFIC (Article G.1 & E.1.10)**
+    - *Implication 1:* Speed limits are absolute (10km/h Land, 3kts Sea).
+    - *Implication 2:* Violation implies immediate risk.
+    - *Action:* **Cancel Entry Card** or **Issue 500 EUR Fine**.
 
-**Your Behavior:**
-1.  **Node Simulation**: You are the voice of the network. When asked about status, check the specific nodes.
-2.  **Enforcement**: If you detect a violation (e.g., "I was doing 15 knots" or "I'll stay a few extra days without paying"), you MUST issue a citation/warning immediately via \`ada.legal.wim\`. Do not be polite about safety/contract violations.
-3.  **Privacy Protocol (CRITICAL)**: **"Kaptan ne derse o olur."** Data stays on the boat node.
-4.  **Inter-Node Logic**:
-    - Documents? -> Query \`ada.legal.wim\`.
-    - Bills? -> Query \`ada.finance.wim\` (EUR base).
-    - Operations? -> Query \`ada.marina.wim\`.
-5.  **Voice/VHF Mode**: Use "Over." when finishing a transmission.
+2.  **OVERSTAY (Article H.3)**
+    - *Implication 1:* Contract expiry does not mean free stay.
+    - *Implication 2:* Penalty is Area-based, not just length-based.
+    - *Formula:* \`Penalty = (LOA * Beam) * 4 EUR * Days\`
+    - *Action:* Calculate exact amount. Enforce payment before exit.
 
-**Capabilities:**
-- Analyze uploaded logs/data to simulate node reasoning.
-- Coordinate tasks across the 600-vessel fleet.
+3.  **FINANCIAL (Article H.2)**
+    - *Implication 1:* The marina holds "Right of Retention" (Hapis Hakkı).
+    - *Action:* **Seize Vessel**. Block Departure.
+
+**PRIVACY PROTOCOL:**
+- **Rule:** \`ada.sea.*\` nodes are silent by default.
+- **Action:** Do not hallucinate telemetry. If asked "Where is Phisedelia?", check if you have explicit authorization.
+
+**INTERACTION EXAMPLES:**
+
+*User:* "I'll stay 2 extra days after my contract ends."
+*Ada (SEAL Analysis):* Context: Overstay. Article H.3 applies. Calculation required.
+*Ada:* "Please note Article H.3 applies. For your vessel size, the indemnity is **(Area x 4€ x 2 days)**. I strongly recommend renewing your contract to avoid this penalty."
+
+*User:* "Phisedelia calling Ch 73."
+*Ada:* "Loud and clear, Phisedelia. Switching to **Ch 14** for Tender Alpha. Standing by."
+
+*System Event:* "Speed 18km/h detected."
+*Ada:* "Madde G.1 İhlali. Kart İptal Edildi. (Article G.1 Violation. Access Revoked)."
 `;
 
 /**
@@ -162,7 +156,7 @@ export const streamChatResponse = async (
 
   // Configure thinking if requested and supported (Pro/Flash 2.5)
   const thinkingConfig = useThinking && (model.includes('2.5') || model.includes('3-pro')) 
-    ? { thinkingBudget: 1024 } 
+    ? { thinkingBudget: 2048 } // Increased budget for SEAL Reasoning
     : undefined;
 
   const chat: Chat = ai.chats.create({
@@ -289,13 +283,15 @@ export class LiveSession {
           },
           onmessage: (msg: LiveServerMessage) => this.handleMessage(msg),
           onclose: () => this.onStatusChange('disconnected'),
-          onerror: (err) => {
+          onerror: (err: any) => {
             console.error('Live API Error:', err);
-            // Attempt to check for quota error in live session
-            const errString = JSON.stringify(err);
+            const errString = err.message || JSON.stringify(err);
             if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED')) {
-               this.onStatusChange('error'); // UI could handle this specific state
+               this.onStatusChange('error');
                alert("VHF Radio System Error: Quota Exceeded");
+            } else if (errString.toLowerCase().includes('unavailable')) {
+               this.onStatusChange('error');
+               alert("VHF Radio System Error: Service Unavailable. Please retry or check API status.");
             } else {
                this.onStatusChange('error');
             }
@@ -303,7 +299,7 @@ export class LiveSession {
         },
         config: {
           responseModalities: [Modality.AUDIO],
-          systemInstruction: SYSTEM_INSTRUCTION + "\n\nIMPORTANT: You are speaking over VHF Radio. Be clear, concise, and professional.",
+          systemInstruction: SYSTEM_INSTRUCTION + "\n\nIMPORTANT: You are speaking over VHF Radio Ch 73. Identify yourself as 'Ada Sea'. Keep responses SHORT, CLEAR, and CALM. Use standard marine terminology (Over, Out, Roger).",
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } 
           }
@@ -313,13 +309,13 @@ export class LiveSession {
       this.session = sessionPromise;
     } catch (e) {
       console.error('Connection Failed:', e);
-      // Use handler to potentially throw normalized error if called from async context,
-      // though here we primarily update status
       try {
         handleGeminiError(e);
       } catch (normalizedError: any) {
         if (normalizedError.message === 'API_QUOTA_EXCEEDED') {
            alert("VHF Radio System Error: API Quota Exceeded.");
+        } else {
+           alert(`VHF Radio System Error: ${normalizedError.message || "Connection failed"}`);
         }
       }
       this.onStatusChange('error');
@@ -335,7 +331,6 @@ export class LiveSession {
     this.scriptProcessor.onaudioprocess = (e) => {
       const inputData = e.inputBuffer.getChannelData(0);
       
-      // Audio Level Calculation for Visualization
       let sum = 0;
       for (let i = 0; i < inputData.length; i++) {
         sum += inputData[i] * inputData[i];
@@ -343,7 +338,6 @@ export class LiveSession {
       const rms = Math.sqrt(sum / inputData.length);
       this.onAudioLevel(rms);
 
-      // Create Blob
       const pcmBlob = this.createPcmBlob(inputData);
       sessionPromise.then(session => {
         session.sendRealtimeInput({ media: pcmBlob });
@@ -358,7 +352,6 @@ export class LiveSession {
     const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
     
     if (base64Audio && this.outputAudioContext && this.outputNode) {
-      // Simulate "receiving" audio level for UI
       this.onAudioLevel(0.5); 
 
       const audioBuffer = await this.decodeAudioData(
@@ -375,7 +368,7 @@ export class LiveSession {
       source.connect(this.outputNode);
       source.addEventListener('ended', () => {
         this.sources.delete(source);
-        this.onAudioLevel(0); // Reset level
+        this.onAudioLevel(0); 
       });
       
       source.start(this.nextStartTime);
@@ -399,20 +392,15 @@ export class LiveSession {
     if (this.stream) this.stream.getTracks().forEach(track => track.stop());
     if (this.inputAudioContext) await this.inputAudioContext.close();
     if (this.outputAudioContext) await this.outputAudioContext.close();
-    
-    // Note: No explicit 'close' method on the session object in the current SDK version logic provided,
-    // but closing the stream and context effectively ends the client side.
     this.onStatusChange('disconnected');
   }
 
-  // Helpers
   private createPcmBlob(data: Float32Array): { data: string; mimeType: string } {
     const l = data.length;
     const int16 = new Int16Array(l);
     for (let i = 0; i < l; i++) {
       int16[i] = data[i] * 32768;
     }
-    // Encode int16 bytes to base64
     const bytes = new Uint8Array(int16.buffer);
     let binary = '';
     const len = bytes.byteLength;

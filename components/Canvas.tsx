@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Activity, Server, Radio, Zap, Anchor, Map, List, AlertTriangle, Search } from 'lucide-react';
+import { Activity, Server, Radio, Zap, Anchor, Map, List, AlertTriangle, Search, Filter, AlertCircle } from 'lucide-react';
 
 interface SystemLog {
   id: string;
@@ -18,6 +18,8 @@ interface CanvasProps {
 export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitoring }) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'fleet'>('feed');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showUrgentOnly, setShowUrgentOnly] = useState(false);
+  const [showWarningOnly, setShowWarningOnly] = useState(false);
   
   // Resizable Canvas State
   const [width, setWidth] = useState(400);
@@ -74,11 +76,26 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
     return 'text-zinc-400 group-hover:text-zinc-300';
   };
 
-  // Removed .reverse() so the logs (which come in as [Newest, ..., Oldest]) render Newest first.
-  const filteredLogs = logs.filter(log => 
-    log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    log.node.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter Logic: Search + Urgent + Warning Toggle
+  const filteredLogs = logs.filter(log => {
+    const matchesSearch = log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.node.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const isUrgent = log.type === 'critical' || log.type === 'alert' || log.message.includes('MAYDAY') || log.message.includes('PAN PAN');
+    const isWarning = log.type === 'warning' || log.message.includes('SECURITE');
+
+    let matchesType = true;
+    
+    if (showUrgentOnly && showWarningOnly) {
+        matchesType = isUrgent || isWarning;
+    } else if (showUrgentOnly) {
+        matchesType = isUrgent;
+    } else if (showWarningOnly) {
+        matchesType = isWarning;
+    }
+
+    return matchesSearch && matchesType;
+  });
 
   return (
     <div 
@@ -120,7 +137,7 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
         
         {activeTab === 'feed' && (
           <>
-             {/* Status Banner & Search */}
+             {/* Status Banner & Filters */}
             <div className="px-4 py-2 bg-zinc-900/50 border-b border-zinc-800 flex items-center justify-between select-none gap-2">
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className={`w-2 h-2 rounded-full ${isMonitoring ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
@@ -129,8 +146,38 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
                 </span>
               </div>
               
+              <div className="flex gap-1">
+                {/* Urgent Filter Button */}
+                <button 
+                  onClick={() => setShowUrgentOnly(!showUrgentOnly)}
+                  className={`p-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
+                    showUrgentOnly 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.2)]' 
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
+                  }`}
+                  title="Filter Critical/Urgent Events"
+                >
+                  <AlertTriangle size={12} className={showUrgentOnly ? "animate-pulse" : ""} />
+                  <span className="text-[10px] font-mono font-bold uppercase hidden 2xl:inline">Critical</span>
+                </button>
+
+                {/* Warning Filter Button */}
+                <button 
+                  onClick={() => setShowWarningOnly(!showWarningOnly)}
+                  className={`p-1.5 rounded-md border transition-all flex items-center gap-1.5 ${
+                    showWarningOnly
+                    ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.2)]' 
+                    : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800'
+                  }`}
+                  title="Filter Warning Events"
+                >
+                  <AlertCircle size={12} />
+                  <span className="text-[10px] font-mono font-bold uppercase hidden 2xl:inline">Warning</span>
+                </button>
+              </div>
+
               {/* Search Bar */}
-              <div className="relative flex-1 max-w-[180px]">
+              <div className="relative flex-1 max-w-[140px]">
                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
                  <input 
                    type="text" 
@@ -141,8 +188,8 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
                  />
               </div>
 
-              <span className="text-[10px] font-mono text-zinc-600 flex-shrink-0">
-                {filteredLogs.length} / {logs.length}
+              <span className="text-[10px] font-mono text-zinc-600 flex-shrink-0 w-12 text-right">
+                {filteredLogs.length}
               </span>
             </div>
 
@@ -174,8 +221,9 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
                 </div>
               ))}
               {filteredLogs.length === 0 && (
-                <div className="text-center text-zinc-600 py-8 italic">
-                   No logs matching "{searchQuery}"
+                <div className="text-center text-zinc-600 py-8 italic flex flex-col items-center gap-2">
+                   <Filter size={24} className="opacity-20" />
+                   <span>No events match criteria</span>
                 </div>
               )}
             </div>
