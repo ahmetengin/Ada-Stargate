@@ -72,7 +72,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
            <div className="mb-8 text-center">
              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest block mb-1">Priority Channel</span>
              <div className="text-6xl font-mono font-bold text-indigo-500 tracking-tighter flex items-center justify-center gap-2 text-shadow-glow">
-               16 <span className="text-xl text-zinc-600">INTL</span>
+               73 <span className="text-xl text-zinc-600">MARINA</span>
              </div>
            </div>
 
