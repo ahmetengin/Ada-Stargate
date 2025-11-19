@@ -344,7 +344,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
                      <Navigation size={12} /> Traffic Tower (ATC)
                    </span>
-                   <span className="text-[9px] text-indigo-400 font-mono">CH 12</span>
+                   <span className="text-[9px] text-indigo-400 font-mono">CH 73</span>
                 </div>
                 <div className="p-2 space-y-1">
                    {trafficQueue.length === 0 && (
