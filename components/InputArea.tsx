@@ -82,7 +82,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = 'en-US'; // Can be configurable
+    recognition.lang = 'en-US';
 
     recognition.onstart = () => setIsRecording(true);
     
@@ -122,107 +122,101 @@ export const InputArea: React.FC<InputAreaProps> = ({
   }, []);
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
+    <div className="w-full max-w-3xl mx-auto">
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-2 px-2">
         <div className="flex items-center gap-2">
           <button 
             onClick={() => onModelChange(ModelType.Flash)}
-            className={`text-xs px-3 py-1 rounded-full transition-colors border ${
+            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors border ${
               selectedModel === ModelType.Flash 
                 ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50' 
                 : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
             }`}
           >
-            Ada Flash
+            Flash
           </button>
           <button 
             onClick={() => onModelChange(ModelType.Pro)}
-            className={`text-xs px-3 py-1 rounded-full transition-colors border ${
+            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors border ${
               selectedModel === ModelType.Pro 
                 ? 'bg-purple-600/20 text-purple-300 border-purple-500/50' 
                 : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
             }`}
           >
-            Ada Pro
+            Pro
           </button>
            <button 
             onClick={() => onModelChange(ModelType.Image)}
-            className={`text-xs px-3 py-1 rounded-full transition-colors border ${
+            className={`text-[10px] px-2 py-0.5 rounded-full transition-colors border ${
               selectedModel === ModelType.Image 
                 ? 'bg-pink-600/20 text-pink-300 border-pink-500/50' 
                 : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
             }`}
           >
-            Generate Image
+            Image
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
              onClick={onToggleThinking}
-             title="Deep Thinking (Gemini 2.5)"
+             title="Deep Thinking"
              className={`p-1.5 rounded-md transition-colors ${
                useThinking ? 'text-sky-400 bg-sky-400/10' : 'text-zinc-500 hover:text-zinc-300'
              }`}
           >
-             <Brain size={16} />
+             <Brain size={14} />
           </button>
           <button
              onClick={onToggleSearch}
-             title="Google Search Grounding"
+             title="Search"
              className={`p-1.5 rounded-md transition-colors ${
                useSearch ? 'text-blue-400 bg-blue-400/10' : 'text-zinc-500 hover:text-zinc-300'
              }`}
           >
-             <Search size={16} />
+             <Search size={14} />
           </button>
         </div>
       </div>
 
-      <div className={`relative bg-zinc-800/50 backdrop-blur-md border ${isRecording ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-zinc-700'} rounded-2xl shadow-2xl p-2 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all`}>
+      <div className={`relative bg-zinc-900 border ${isRecording ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-zinc-800'} rounded-xl shadow-2xl p-1.5 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all`}>
         
-        {/* File Previews */}
         {files.length > 0 && (
-          <div className="flex gap-2 px-2 py-2 overflow-x-auto custom-scrollbar border-b border-zinc-700/50 mb-2">
+          <div className="flex gap-2 px-2 py-2 overflow-x-auto custom-scrollbar border-b border-zinc-800 mb-2">
             {files.map((file, idx) => (
               <div key={idx} className="relative group flex-shrink-0">
-                <div className="w-16 h-16 rounded-lg bg-zinc-700 flex items-center justify-center overflow-hidden border border-zinc-600">
+                <div className="w-12 h-12 rounded bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-700">
                   {file.type.startsWith('image/') ? (
                     <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="flex flex-col items-center justify-center w-full h-full p-1">
-                       <div className="text-zinc-400 mb-1"><FileText size={20} /></div>
-                       <span className="text-[8px] text-zinc-400 text-center leading-tight break-all w-full overflow-hidden line-clamp-2">
-                         {file.name}
-                       </span>
-                    </div>
+                    <FileText size={16} className="text-zinc-400" />
                   )}
                 </div>
                 <button 
                   onClick={() => removeFile(idx)}
-                  className="absolute -top-1 -right-1 bg-zinc-900 text-zinc-400 rounded-full p-0.5 hover:text-red-400 border border-zinc-700 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-1 -right-1 bg-zinc-900 text-zinc-400 rounded-full p-0.5 hover:text-red-400 border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <X size={12} />
+                  <X size={10} />
                 </button>
               </div>
             ))}
           </div>
         )}
 
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-1">
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 text-zinc-400 hover:text-zinc-200 transition-colors rounded-xl hover:bg-zinc-700/50"
-            title="Attach image, code, or data file"
+            className="p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-lg hover:bg-zinc-800"
+            title="Attach"
           >
-            <Paperclip size={20} />
+            <Paperclip size={18} />
           </button>
           <input 
             type="file" 
             ref={fileInputRef} 
             className="hidden" 
-            accept="image/*, .csv, .json, .txt, .md, .js, .ts, .tsx, .jsx, .py, .html, .css, .xml, .yml, .yaml" 
+            accept="image/*, .csv, .json, .txt, .md, .js, .ts, .tsx, .jsx, .py, .html, .css" 
             multiple 
             onChange={handleFileChange}
           />
@@ -232,47 +226,37 @@ export const InputArea: React.FC<InputAreaProps> = ({
             value={text}
             onChange={(e) => { setText(e.target.value); adjustHeight(); }}
             onKeyDown={handleKeyDown}
-            placeholder={isRecording ? "Listening..." : (selectedModel === ModelType.Image ? "Describe the image you want to create..." : "Ask Ada, attach files, or use Radio...")}
-            className={`flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 resize-none py-3 max-h-[200px] focus:outline-none custom-scrollbar ${isRecording ? 'animate-pulse text-zinc-300' : ''}`}
+            placeholder={isRecording ? "Listening..." : "Instructions..."}
+            className={`flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 resize-none py-2 text-sm max-h-[150px] focus:outline-none custom-scrollbar ${isRecording ? 'animate-pulse text-zinc-300' : ''}`}
             rows={1}
           />
 
-          {/* Dictation Button */}
           <button 
             onClick={toggleRecording}
-            className={`p-3 transition-colors rounded-xl ${isRecording ? 'text-red-500 bg-red-500/10' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'}`}
-            title={isRecording ? "Stop Recording" : "Dictation (STT)"}
+            className={`p-2 transition-colors rounded-lg ${isRecording ? 'text-red-500 bg-red-500/10' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`}
           >
-            {isRecording ? <StopCircle size={20} /> : <Mic size={20} />}
+            {isRecording ? <StopCircle size={18} /> : <Mic size={18} />}
           </button>
 
-          {/* VHF Radio Button */}
           <button 
             onClick={onStartVoice}
-            className="p-3 text-red-400 hover:text-red-300 transition-colors rounded-xl hover:bg-red-900/20"
-            title="VHF Radio (Gemini Live S2S)"
+            className="p-2 text-red-400 hover:text-red-300 transition-colors rounded-lg hover:bg-red-900/20"
           >
-             <Radio size={20} />
+             <Radio size={18} />
           </button>
 
           <button 
             onClick={handleSend}
             disabled={isLoading || (!text.trim() && files.length === 0)}
-            className={`p-3 rounded-xl transition-all flex items-center justify-center ${
+            className={`p-2 rounded-lg transition-all flex items-center justify-center ${
               isLoading || (!text.trim() && files.length === 0)
-                ? 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20'
+                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white'
             }`}
           >
-            {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
           </button>
         </div>
-      </div>
-      
-      <div className="text-center mt-2">
-         <p className="text-[10px] text-zinc-600">
-           Ada can make mistakes. Check important info.
-         </p>
       </div>
     </div>
   );

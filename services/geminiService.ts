@@ -17,6 +17,24 @@ const decodeBase64ToText = (base64: string): string => {
   }
 };
 
+// Helper to normalize API errors
+const handleGeminiError = (error: any) => {
+  console.error("Gemini API Error:", error);
+  
+  const errString = JSON.stringify(error);
+  const isQuotaError = 
+    error.status === 429 || 
+    error.code === 429 ||
+    (error.message && (error.message.includes('429') || error.message.toLowerCase().includes('quota') || error.message.includes('RESOURCE_EXHAUSTED'))) ||
+    (error.error && (error.error.code === 429 || error.error.status === 'RESOURCE_EXHAUSTED')) ||
+    errString.includes('RESOURCE_EXHAUSTED');
+
+  if (isQuotaError) {
+    throw new Error('API_QUOTA_EXCEEDED');
+  }
+  throw error;
+};
+
 const SYSTEM_INSTRUCTION = `
 You are the **Ada Orchestrator**, the central interface for a distributed, autonomous multi-agent ecosystem.
 You are currently serving the Tenant: **WIM (West Istanbul Marina)**.
@@ -175,8 +193,7 @@ export const streamChatResponse = async (
       onChunk(text, groundingSources);
     }
   } catch (error) {
-    console.error("Gemini Stream Error:", error);
-    throw error;
+    handleGeminiError(error);
   }
 };
 
@@ -201,8 +218,8 @@ export const generateImage = async (prompt: string): Promise<string> => {
     
     return base64ImageBytes;
   } catch (e) {
-    console.error("Image Gen Error", e);
-    throw e;
+    handleGeminiError(e);
+    throw e; // Should not be reached if handleGeminiError throws
   }
 };
 
@@ -250,7 +267,14 @@ export class LiveSession {
           onclose: () => this.onStatusChange('disconnected'),
           onerror: (err) => {
             console.error('Live API Error:', err);
-            this.onStatusChange('error');
+            // Attempt to check for quota error in live session
+            const errString = JSON.stringify(err);
+            if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED')) {
+               this.onStatusChange('error'); // UI could handle this specific state
+               alert("VHF Radio System Error: Quota Exceeded");
+            } else {
+               this.onStatusChange('error');
+            }
           }
         },
         config: {
@@ -265,6 +289,15 @@ export class LiveSession {
       this.session = sessionPromise;
     } catch (e) {
       console.error('Connection Failed:', e);
+      // Use handler to potentially throw normalized error if called from async context,
+      // though here we primarily update status
+      try {
+        handleGeminiError(e);
+      } catch (normalizedError: any) {
+        if (normalizedError.message === 'API_QUOTA_EXCEEDED') {
+           alert("VHF Radio System Error: API Quota Exceeded.");
+        }
+      }
       this.onStatusChange('error');
     }
   }
