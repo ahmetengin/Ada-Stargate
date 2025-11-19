@@ -1,5 +1,5 @@
-import React, { useState, useRef, ChangeEvent, KeyboardEvent } from 'react';
-import { Send, Image as ImageIcon, Loader2, X, Mic, StopCircle, Search, Brain, Paperclip, FileText } from 'lucide-react';
+import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
+import { Send, Image as ImageIcon, Loader2, X, Mic, StopCircle, Search, Brain, Paperclip, FileText, Radio } from 'lucide-react';
 import { ModelType } from '../types';
 
 interface InputAreaProps {
@@ -11,6 +11,7 @@ interface InputAreaProps {
   onToggleSearch: () => void;
   useThinking: boolean;
   onToggleThinking: () => void;
+  onStartVoice: () => void;
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({ 
@@ -21,12 +22,15 @@ export const InputArea: React.FC<InputAreaProps> = ({
   useSearch,
   onToggleSearch,
   useThinking,
-  onToggleThinking
+  onToggleThinking,
+  onStartVoice
 }) => {
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -61,6 +65,61 @@ export const InputArea: React.FC<InputAreaProps> = ({
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
     }
   };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US'; // Can be configurable
+
+    recognition.onstart = () => setIsRecording(true);
+    
+    recognition.onresult = (event: any) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        }
+      }
+      if (finalTranscript) {
+        setText(prev => prev + finalTranscript);
+        adjustHeight();
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Speech recognition error', event.error);
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
@@ -121,7 +180,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
         </div>
       </div>
 
-      <div className="relative bg-zinc-800/50 backdrop-blur-md border border-zinc-700 rounded-2xl shadow-2xl p-2 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
+      <div className={`relative bg-zinc-800/50 backdrop-blur-md border ${isRecording ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-zinc-700'} rounded-2xl shadow-2xl p-2 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all`}>
         
         {/* File Previews */}
         {files.length > 0 && (
@@ -173,10 +232,28 @@ export const InputArea: React.FC<InputAreaProps> = ({
             value={text}
             onChange={(e) => { setText(e.target.value); adjustHeight(); }}
             onKeyDown={handleKeyDown}
-            placeholder={selectedModel === ModelType.Image ? "Describe the image you want to create..." : "Ask Ada to explain data, write code, or chat..."}
-            className="flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 resize-none py-3 max-h-[200px] focus:outline-none custom-scrollbar"
+            placeholder={isRecording ? "Listening..." : (selectedModel === ModelType.Image ? "Describe the image you want to create..." : "Ask Ada, attach files, or use Radio...")}
+            className={`flex-1 bg-transparent text-zinc-100 placeholder-zinc-500 resize-none py-3 max-h-[200px] focus:outline-none custom-scrollbar ${isRecording ? 'animate-pulse text-zinc-300' : ''}`}
             rows={1}
           />
+
+          {/* Dictation Button */}
+          <button 
+            onClick={toggleRecording}
+            className={`p-3 transition-colors rounded-xl ${isRecording ? 'text-red-500 bg-red-500/10' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'}`}
+            title={isRecording ? "Stop Recording" : "Dictation (STT)"}
+          >
+            {isRecording ? <StopCircle size={20} /> : <Mic size={20} />}
+          </button>
+
+          {/* VHF Radio Button */}
+          <button 
+            onClick={onStartVoice}
+            className="p-3 text-red-400 hover:text-red-300 transition-colors rounded-xl hover:bg-red-900/20"
+            title="VHF Radio (Gemini Live S2S)"
+          >
+             <Radio size={20} />
+          </button>
 
           <button 
             onClick={handleSend}

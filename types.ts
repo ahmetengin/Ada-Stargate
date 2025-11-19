@@ -39,3 +39,10 @@ export interface AppState {
   useSearch: boolean;
   useThinking: boolean;
 }
+
+export enum LiveConnectionState {
+  Disconnected = 'disconnected',
+  Connecting = 'connecting',
+  Connected = 'connected',
+  Error = 'error'
+}

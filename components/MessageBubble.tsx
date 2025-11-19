@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole } from '../types';
-import { User, Bot, Sparkles, Globe, FileText } from 'lucide-react';
+import { User, Bot, Sparkles, Globe, FileText, Volume2, StopCircle } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -9,6 +9,24 @@ interface MessageBubbleProps {
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const isUser = message.role === MessageRole.User;
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const handleSpeak = () => {
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    } else {
+      const utterance = new SpeechSynthesisUtterance(message.text);
+      // Optional: select a voice based on browser availability or persona (e.g., Google US English)
+      // utterance.lang = 'en-US'; 
+      
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      
+      window.speechSynthesis.speak(utterance);
+      setIsSpeaking(true);
+    }
+  };
 
   return (
     <div className={`flex w-full mb-6 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -88,10 +106,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             )}
           </div>
 
-          {/* Grounding / Sources */}
-          {message.groundingSources && message.groundingSources.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {message.groundingSources.map((source, idx) => (
+          {/* Action Row: Sources & TTS */}
+          <div className="mt-2 flex items-center justify-between w-full px-1">
+            
+            {/* Grounding Sources */}
+            <div className="flex flex-wrap gap-2">
+              {message.groundingSources && message.groundingSources.map((source, idx) => (
                 <a 
                   key={idx} 
                   href={source.uri} 
@@ -104,7 +124,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 </a>
               ))}
             </div>
-          )}
+
+            {/* TTS Button (Only for non-empty text) */}
+            {message.text && (
+              <button 
+                onClick={handleSpeak}
+                className={`p-1 rounded-full transition-colors ml-auto ${
+                  isSpeaking ? 'text-indigo-400 bg-indigo-500/10 animate-pulse' : 'text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800'
+                }`}
+                title={isSpeaking ? "Stop Speaking" : "Read Aloud"}
+              >
+                {isSpeaking ? <StopCircle size={14} /> : <Volume2 size={14} />}
+              </button>
+            )}
+          </div>
           
           <div className="text-[10px] text-zinc-500 mt-1 px-1">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

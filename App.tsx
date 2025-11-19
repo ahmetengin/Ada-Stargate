@@ -5,6 +5,7 @@ import { InputArea } from './components/InputArea';
 import { MessageBubble } from './components/MessageBubble';
 import { streamChatResponse, generateImage } from './services/geminiService';
 import { Menu } from 'lucide-react';
+import { VoiceModal } from './components/VoiceModal';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
@@ -20,6 +21,7 @@ function App() {
   const [useSearch, setUseSearch] = useState(false);
   const [useThinking, setUseThinking] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -115,6 +117,9 @@ function App() {
 
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-100 font-inter overflow-hidden">
+      {/* Voice Modal (VHF Radio) */}
+      <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
+
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setMobileMenuOpen(false)} />
@@ -163,6 +168,7 @@ function App() {
             onToggleSearch={() => setUseSearch(!useSearch)}
             useThinking={useThinking}
             onToggleThinking={() => setUseThinking(!useThinking)}
+            onStartVoice={() => setIsVoiceModalOpen(true)}
           />
         </div>
       </div>
