@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole } from '../types';
-import { User, Bot, Sparkles, Globe, FileText, Volume2, StopCircle } from 'lucide-react';
+import { User, Anchor, Sparkles, Globe, FileText, Volume2, StopCircle } from 'lucide-react';
 
 interface MessageBubbleProps {
   message: Message;
@@ -33,19 +34,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       <div className={`flex max-w-[85%] md:max-w-[75%] ${isUser ? 'flex-row-reverse' : 'flex-row'} gap-3`}>
         
         {/* Avatar */}
-        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-          isUser ? 'bg-zinc-700' : 'bg-indigo-600'
+        <div className={`flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center border ${
+          isUser 
+            ? 'bg-zinc-800 text-zinc-400 border-zinc-700' 
+            : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
         }`}>
-          {isUser ? <User size={16} /> : <Bot size={16} />}
+          {isUser ? <User size={14} /> : <Anchor size={14} />}
         </div>
 
         {/* Content */}
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-          <div className={`px-4 py-3 rounded-2xl text-sm md:text-base shadow-md ${
+          <div className={`px-4 py-3 rounded-2xl text-sm md:text-base shadow-sm ${
             isUser 
-              ? 'bg-zinc-700 text-white rounded-tr-none' 
-              : 'bg-zinc-800/80 text-zinc-100 rounded-tl-none border border-zinc-700/50'
-          }`}>
+              ? 'bg-zinc-800 text-zinc-200 rounded-tr-none border border-zinc-700/50' 
+              : 'bg-transparent text-zinc-300 rounded-tl-none px-0 py-0' // Minimalist for bot: Remove bg bubble for pure text look or keep subtle? Let's keep subtle bubble for readability but darker.
+          } ${!isUser && 'bg-zinc-900/40 border border-zinc-800/50'}`}> 
+          
             {/* Attachments */}
             {message.attachments && message.attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
@@ -92,22 +96,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
             {/* Text Content */}
             {message.text && (
-              <div className="prose prose-invert prose-sm max-w-none prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-700">
+              <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-zinc-800">
                 <ReactMarkdown>{message.text}</ReactMarkdown>
               </div>
             )}
             
             {/* Thinking Indicator */}
             {!message.text && !message.generatedImage && message.role === MessageRole.Model && (
-              <div className="flex items-center gap-2 text-zinc-400 italic">
-                <Sparkles size={14} className="animate-pulse" />
-                <span>Thinking...</span>
+              <div className="flex items-center gap-2 text-zinc-500 text-xs italic">
+                <Anchor size={12} className="animate-spin duration-3000" />
+                <span>Processing...</span>
               </div>
             )}
           </div>
 
           {/* Action Row: Sources & TTS */}
-          <div className="mt-2 flex items-center justify-between w-full px-1">
+          <div className="mt-1.5 flex items-center justify-between w-full px-1 opacity-0 group-hover:opacity-100 transition-opacity">
             
             {/* Grounding Sources */}
             <div className="flex flex-wrap gap-2">
@@ -117,7 +121,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                   href={source.uri} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs bg-zinc-800 hover:bg-zinc-700 text-indigo-300 px-2 py-1 rounded-full transition-colors border border-zinc-700"
+                  className="flex items-center gap-1 text-[10px] bg-zinc-900 hover:bg-zinc-800 text-indigo-400 px-2 py-0.5 rounded border border-zinc-800 transition-colors"
                 >
                   <Globe size={10} />
                   <span className="truncate max-w-[150px]">{source.title || 'Source'}</span>
@@ -129,17 +133,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             {message.text && (
               <button 
                 onClick={handleSpeak}
-                className={`p-1 rounded-full transition-colors ml-auto ${
-                  isSpeaking ? 'text-indigo-400 bg-indigo-500/10 animate-pulse' : 'text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800'
+                className={`p-1 rounded transition-colors ml-auto ${
+                  isSpeaking ? 'text-indigo-400 bg-indigo-500/10 animate-pulse' : 'text-zinc-600 hover:text-zinc-400'
                 }`}
                 title={isSpeaking ? "Stop Speaking" : "Read Aloud"}
               >
-                {isSpeaking ? <StopCircle size={14} /> : <Volume2 size={14} />}
+                {isSpeaking ? <StopCircle size={12} /> : <Volume2 size={12} />}
               </button>
             )}
           </div>
           
-          <div className="text-[10px] text-zinc-500 mt-1 px-1">
+          <div className="text-[9px] text-zinc-600 mt-0.5 px-1 font-mono">
             {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
