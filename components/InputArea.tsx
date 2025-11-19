@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
-import { Send, Image as ImageIcon, Loader2, X, Mic, StopCircle, Search, Brain, Paperclip, FileText, Radio } from 'lucide-react';
+import { Send, Loader2, X, Mic, StopCircle, Search, Brain, Paperclip, FileText, Radio } from 'lucide-react';
 import { ModelType } from '../types';
 
 interface InputAreaProps {

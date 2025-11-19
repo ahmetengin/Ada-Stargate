@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, MessageRole, ModelType, GroundingSource, RegistryEntry, Tender, UserProfile, UserRole } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, UserRole } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
 import { MessageBubble } from './components/MessageBubble';
 import { streamChatResponse, generateImage } from './services/geminiService';
-import { Menu, Radio, Anchor, ShieldAlert } from 'lucide-react';
+import { Menu, Radio, Anchor, ShieldAlert, Plus } from 'lucide-react';
 import { VoiceModal } from './components/VoiceModal';
 import { TypingIndicator } from './components/TypingIndicator';
+import { StatusBar } from './components/StatusBar';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
@@ -92,7 +93,6 @@ export default function App() {
       // 1. VHF Traffic Simulation (Ch 16/73/12/13/14)
       if (random > 0.7) {
          const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
-         // Generate realistic traffic based on active channel context or random
          if (random > 0.95) {
              newLog = {
                  node: 'ada.vhf.wim',
@@ -125,7 +125,7 @@ export default function App() {
              };
          }
       } 
-      // 2. Marshall Protocol / Traffic Enforcement
+      // 2. Marshall Protocol
       else if (random < 0.05) {
          newLog = {
             node: 'ada.legal.wim',
@@ -133,7 +133,7 @@ export default function App() {
             type: 'critical'
          };
       }
-      // 3. Operational Updates (Weather/Finance)
+      // 3. Operational Updates
       else if (random < 0.15) {
           newLog = {
             node: 'ada.weather.wim',
@@ -148,10 +148,9 @@ export default function App() {
             timestamp: new Date().toLocaleTimeString(),
             ...newLog
          };
-         setLogs(prev => [logEntry, ...prev].slice(0, 100)); // Keep last 100
+         setLogs(prev => [logEntry, ...prev].slice(0, 100));
          
-         // Flash node status
-         const nodeKey = newLog.node.split('.')[0] + '.' + newLog.node.split('.')[1]; // e.g. ada.vhf
+         const nodeKey = newLog.node.split('.')[0] + '.' + newLog.node.split('.')[1]; 
          if (nodeStates[nodeKey]) {
              setNodeStates(prev => ({ ...prev, [nodeKey]: 'working' }));
              setTimeout(() => {
@@ -160,7 +159,7 @@ export default function App() {
          }
       }
 
-      // 4. Registry Simulation (Check-in/Out)
+      // 4. Registry Simulation
       if (Math.random() > 0.92) {
           const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
           const action = Math.random() > 0.5 ? 'CHECK-IN' : 'CHECK-OUT';
@@ -177,7 +176,7 @@ export default function App() {
 
       // 5. Tender Ops Simulation
       if (Math.random() > 0.85) {
-         const tenderIdx = Math.floor(Math.random() * 3); // 0, 1, 2
+         const tenderIdx = Math.floor(Math.random() * 3); 
          const newStatus = Math.random() > 0.6 ? 'Busy' : 'Idle';
          const assignment = newStatus === 'Busy' ? `Assist ${VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)]}` : undefined;
          
@@ -190,7 +189,7 @@ export default function App() {
          });
       }
 
-    }, 1200); // Simulation tick
+    }, 1200);
 
     return () => clearInterval(interval);
   }, [isMonitoring, nodeStates]);
@@ -198,7 +197,6 @@ export default function App() {
   // --- Handlers ---
 
   const handleSend = async (text: string, attachments: File[]) => {
-    // 1. Add User Message
     const newMessage: Message = {
       id: Date.now().toString(),
       role: MessageRole.User,
@@ -219,10 +217,8 @@ export default function App() {
     setMessages(prev => [...prev, newMessage]);
     setIsLoading(true);
 
-    // 2. Prepare Context
     const processedAttachments = newMessage.attachments || [];
 
-    // 3. Image Generation Check
     if (selectedModel === ModelType.Image) {
        const imageBase64 = await generateImage(text);
        setMessages(prev => [
@@ -239,11 +235,9 @@ export default function App() {
        return;
     }
 
-    // 4. Stream Response
     let currentResponse = "";
     const responseId = (Date.now() + 1).toString();
     
-    // Add placeholder message
     setMessages(prev => [...prev, {
        id: responseId,
        role: MessageRole.Model,
@@ -261,7 +255,7 @@ export default function App() {
       useThinking,
       registry,
       tenders,
-      userProfile, // Pass Auth Context
+      userProfile,
       (chunk, grounding) => {
          currentResponse += chunk;
          setMessages(prev => prev.map(m => 
@@ -275,9 +269,9 @@ export default function App() {
     setIsLoading(false);
   };
 
-  const handleRoleChange = (role: UserRole) => {
-    if (role === 'GENERAL_MANAGER') {
-        // Simulate Passkit Auth Sequence
+  const toggleAuth = () => {
+    if (userProfile.role === 'GUEST') {
+        // Simulate Passkit Auth
         const seq = [
             { msg: "AUTHENTICATING...", type: 'info' },
             { msg: "DETECTED PASSKIT: PK-8821-X", type: 'warning' },
@@ -327,109 +321,107 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-zinc-950 text-zinc-200">
+    <div className="flex flex-col h-screen w-full bg-zinc-950 text-zinc-200 overflow-hidden">
       
-      {/* 1. Sidebar (Controls) */}
-      <Sidebar 
-         onClear={() => setMessages([INITIAL_MESSAGE])}
-         nodeStates={nodeStates}
-         activeChannel={activeChannel}
-         onChannelChange={setActiveChannel}
-         isMonitoring={isMonitoring}
-         onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
-         userProfile={userProfile}
-         onRoleChange={handleRoleChange}
-      />
+      {/* MAIN WORKSPACE (Flex Row) */}
+      <div className="flex flex-1 overflow-hidden min-h-0">
+          
+          {/* 1. Sidebar (Controls) */}
+          <Sidebar 
+             nodeStates={nodeStates}
+             activeChannel={activeChannel}
+             onChannelChange={setActiveChannel}
+             isMonitoring={isMonitoring}
+             onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
+             userProfile={userProfile}
+          />
 
-      {/* 2. Main Chat Area */}
-      <div className="flex flex-col flex-1 relative min-w-0">
-        
-        {/* Header */}
-        <header className="h-14 border-b border-zinc-900 bg-zinc-950/80 backdrop-blur flex items-center justify-between px-4 flex-shrink-0 z-10">
-           <div className="flex items-center gap-3">
-              <div className="md:hidden">
-                 <Menu size={20} className="text-zinc-400" />
-              </div>
-              <div className="flex items-center gap-2">
-                 <ShieldAlert size={16} className={userProfile.role === 'GENERAL_MANAGER' ? 'text-indigo-500' : 'text-zinc-600'} />
-                 <span className="font-mono font-bold text-sm tracking-wider">
-                    {userProfile.role === 'GENERAL_MANAGER' ? 'OPS COMMAND' : 'PUBLIC TERMINAL'}
-                 </span>
-              </div>
-           </div>
-
-           <div className="flex items-center gap-4">
-               {/* VHF Status Widget */}
-               <div className="flex items-center gap-3 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
-                   <div className="flex flex-col items-end leading-none">
-                       <span className="text-[10px] text-zinc-500 font-bold">VHF ACTIVE</span>
-                       <span className={`text-sm font-mono font-bold ${activeChannel === '16' ? 'text-red-500' : 'text-green-400'}`}>
-                           CH {activeChannel}
-                       </span>
-                   </div>
-                   <button 
-                     onClick={() => setIsVoiceModalOpen(true)}
-                     className="w-8 h-8 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-indigo-400 transition-colors"
-                   >
-                       <Radio size={16} />
-                   </button>
+          {/* 2. Main Chat Area */}
+          <div className="flex flex-col flex-1 relative min-w-0 border-r border-zinc-900/50">
+            
+            {/* Header */}
+            <header className="h-10 border-b border-zinc-900 bg-zinc-950/50 flex items-center justify-between px-3 flex-shrink-0">
+               <div className="flex items-center gap-3">
+                  <div className="md:hidden">
+                     <Menu size={16} className="text-zinc-400" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                     <ShieldAlert size={14} className={userProfile.role === 'GENERAL_MANAGER' ? 'text-indigo-500' : 'text-zinc-600'} />
+                     <span className="font-mono font-bold text-xs tracking-wider text-zinc-400">
+                        {userProfile.role === 'GENERAL_MANAGER' ? 'OPS COMMAND' : 'PUBLIC TERMINAL'}
+                     </span>
+                  </div>
                </div>
 
-               {/* Deck Toggle (Mobile/Tablet) */}
-               <button 
-                  onClick={() => setIsCanvasOpen(!isCanvasOpen)}
-                  className="lg:hidden p-2 text-zinc-400 hover:text-zinc-200"
-               >
-                  <Anchor size={20} />
-               </button>
-           </div>
-        </header>
+               <div className="flex items-center gap-3">
+                   <button 
+                      onClick={() => setMessages([INITIAL_MESSAGE])}
+                      title="Reset Session"
+                      className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+                   >
+                      <Plus size={14} />
+                   </button>
+                   
+                   {/* Deck Toggle (Mobile/Tablet) */}
+                   <button 
+                      onClick={() => setIsCanvasOpen(!isCanvasOpen)}
+                      className="lg:hidden p-1 text-zinc-400 hover:text-zinc-200"
+                   >
+                      <Anchor size={16} />
+                   </button>
+               </div>
+            </header>
 
-        {/* Messages Scroll Area */}
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          <div className="max-w-3xl mx-auto">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} message={msg} />
-            ))}
-            {isLoading && messages[messages.length - 1]?.role === MessageRole.User && (
-               <TypingIndicator />
-            )}
-            <div ref={messagesEndRef} />
+            {/* Messages Scroll Area */}
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+              <div className="max-w-3xl mx-auto">
+                {messages.map((msg) => (
+                  <MessageBubble key={msg.id} message={msg} />
+                ))}
+                {isLoading && messages[messages.length - 1]?.role === MessageRole.User && (
+                   <TypingIndicator />
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Input Area */}
+            <div className="p-3 bg-zinc-950 border-t border-zinc-900">
+               <InputArea 
+                 onSend={handleSend}
+                 isLoading={isLoading}
+                 selectedModel={selectedModel}
+                 onModelChange={setSelectedModel}
+                 useSearch={useSearch}
+                 onToggleSearch={() => setUseSearch(!useSearch)}
+                 useThinking={useThinking}
+                 onToggleThinking={() => setUseThinking(!useThinking)}
+                 onStartVoice={() => setIsVoiceModalOpen(true)}
+               />
+            </div>
           </div>
-        </div>
 
-        {/* Input Area */}
-        <div className="p-4 bg-zinc-950 border-t border-zinc-900">
-           <InputArea 
-             onSend={handleSend}
-             isLoading={isLoading}
-             selectedModel={selectedModel}
-             onModelChange={setSelectedModel}
-             useSearch={useSearch}
-             onToggleSearch={() => setUseSearch(!useSearch)}
-             useThinking={useThinking}
-             onToggleThinking={() => setUseThinking(!useThinking)}
-             onStartVoice={() => setIsVoiceModalOpen(true)}
-           />
-           <div className="text-center mt-2">
-              <span className="text-[10px] text-zinc-600 font-mono">
-                 Ada Maritime Intelligence v2.5.0 • {userProfile.role} SESSION
-              </span>
-           </div>
-        </div>
+          {/* 3. Operations Deck (Canvas) */}
+          {isCanvasOpen && (
+            <Canvas 
+               logs={logs} 
+               registry={registry}
+               tenders={tenders}
+               activeChannel={activeChannel}
+               isMonitoring={isMonitoring}
+               userProfile={userProfile}
+            />
+          )}
       </div>
 
-      {/* 3. Operations Deck (Canvas) */}
-      {isCanvasOpen && (
-        <Canvas 
-           logs={logs} 
-           registry={registry}
-           tenders={tenders}
-           activeChannel={activeChannel}
-           isMonitoring={isMonitoring}
-           userProfile={userProfile}
-        />
-      )}
+      {/* GLOBAL STATUS BAR (Footer) */}
+      <StatusBar 
+         userProfile={userProfile}
+         onToggleAuth={toggleAuth}
+         nodeHealth="working"
+         latency={12}
+         activeChannel={activeChannel}
+      />
 
       {/* Modals */}
       <VoiceModal 
