@@ -1,5 +1,7 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
-import { Activity, Server, Radio, Zap, Anchor, Map, List, AlertTriangle, Search, Filter, AlertCircle } from 'lucide-react';
+import { Activity, Server, Radio, Zap, Anchor, Map, List, AlertTriangle, Search, Filter, AlertCircle, ClipboardList, Ship } from 'lucide-react';
+import { RegistryEntry, Tender } from '../types';
 
 interface SystemLog {
   id: string;
@@ -11,11 +13,13 @@ interface SystemLog {
 
 interface CanvasProps {
   logs: SystemLog[];
+  registry: RegistryEntry[];
+  tenders: Tender[];
   activeChannel: string;
   isMonitoring: boolean;
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitoring }) => {
+export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeChannel, isMonitoring }) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'fleet'>('feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
@@ -125,7 +129,7 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
           <button 
             onClick={() => setActiveTab('fleet')}
             className={`p-1.5 rounded-md transition-all ${activeTab === 'fleet' ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}
-            title="Fleet Map (Simulated)"
+            title="Registry & Fleet"
           >
             <Map size={14} />
           </button>
@@ -231,25 +235,96 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
         )}
 
         {activeTab === 'fleet' && (
-          <div className="flex-1 flex items-center justify-center flex-col p-8 text-center select-none">
-             <div className="w-32 h-32 border-2 border-zinc-800 rounded-full flex items-center justify-center relative mb-4">
-                <div className="absolute inset-0 border border-zinc-800 rounded-full animate-ping opacity-20"></div>
-                <Anchor className="text-zinc-700" size={32} />
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+             {/* Fleet Stats */}
+             <div className="grid grid-cols-2 gap-4 mb-6 select-none">
+               <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 flex flex-col items-center">
+                 <span className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Occupancy</span>
+                 <span className="text-2xl font-mono text-indigo-400 font-bold">92%</span>
+               </div>
+               <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 flex flex-col items-center">
+                 <span className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">Active Vessels</span>
+                 <span className="text-2xl font-mono text-green-400 font-bold">602</span>
+               </div>
              </div>
-             <h3 className="text-zinc-400 font-medium">Fleet Visualization</h3>
-             <p className="text-zinc-600 text-sm mt-2">
-               602 Active Vessels<br/>
-               WIM Tenant Map
-             </p>
-             <div className="mt-8 grid grid-cols-2 gap-4 w-full">
-               <div className="bg-zinc-900 p-3 rounded border border-zinc-800">
-                 <div className="text-xs text-zinc-500 uppercase">Occupancy</div>
-                 <div className="text-xl font-mono text-indigo-400">92%</div>
-               </div>
-               <div className="bg-zinc-900 p-3 rounded border border-zinc-800">
-                 <div className="text-xs text-zinc-500 uppercase">Traffic</div>
-                 <div className="text-xl font-mono text-green-400">High</div>
-               </div>
+
+             {/* Tender Operations (Ch 14) */}
+             <div className="mb-6">
+                <div className="px-2 mb-2 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                    <Ship size={12} /> Tender Ops (Ch 14)
+                  </h3>
+                </div>
+                <div className="grid gap-3">
+                  {tenders.map(tender => (
+                    <div key={tender.id} className="bg-zinc-900/40 border border-zinc-800 p-3 rounded-lg flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          tender.status === 'Idle' ? 'bg-green-500' : 
+                          tender.status === 'Busy' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
+                        }`} />
+                        <div>
+                           <div className="text-xs font-bold text-zinc-200">{tender.name}</div>
+                           <div className="text-[10px] text-zinc-500">{tender.status}</div>
+                        </div>
+                      </div>
+                      {tender.assignment && (
+                        <div className="text-[10px] font-mono text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+                           {tender.assignment}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+             </div>
+
+             {/* Port Registry Table */}
+             <div className="bg-zinc-900/30 border border-zinc-800 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-zinc-800 flex items-center gap-2 bg-zinc-900/50">
+                   <ClipboardList size={14} className="text-zinc-400" />
+                   <span className="text-xs font-bold text-zinc-300 uppercase tracking-wide">Daily Port Registry</span>
+                </div>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-[10px] font-mono">
+                    <thead className="bg-zinc-900/80 text-zinc-500 uppercase tracking-wider">
+                      <tr>
+                        <th className="px-4 py-2 font-medium">Time</th>
+                        <th className="px-4 py-2 font-medium">Vessel</th>
+                        <th className="px-4 py-2 font-medium">Action</th>
+                        <th className="px-4 py-2 font-medium">Loc</th>
+                        <th className="px-4 py-2 font-medium text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/50">
+                      {registry.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-8 text-center text-zinc-600 italic">
+                            No entries recorded today.
+                          </td>
+                        </tr>
+                      ) : (
+                        registry.map((entry) => (
+                          <tr key={entry.id} className="hover:bg-zinc-800/30 transition-colors">
+                            <td className="px-4 py-2 text-zinc-400">{entry.timestamp}</td>
+                            <td className="px-4 py-2 text-zinc-200 font-semibold">{entry.vessel}</td>
+                            <td className="px-4 py-2">
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                entry.action === 'CHECK-IN' ? 'bg-green-500/10 text-green-400' : 'bg-blue-500/10 text-blue-400'
+                              }`}>
+                                {entry.action}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-zinc-400">{entry.location}</td>
+                            <td className="px-4 py-2 text-right">
+                              <span className="text-zinc-500">{entry.status}</span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
              </div>
           </div>
         )}

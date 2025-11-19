@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, MessageRole, ModelType, GroundingSource } from './types';
+import { Message, MessageRole, ModelType, GroundingSource, RegistryEntry, Tender, UserProfile, UserRole } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
@@ -13,7 +13,7 @@ import { TypingIndicator } from './components/TypingIndicator';
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
   role: MessageRole.Model,
-  text: "**System Initialization Sequence**\n\n`[SUCCESS]` Tenant Loaded: **wim.ada.network** (West Istanbul Marina)\n`[SUCCESS]` SEAL Core: **Synthetic Data Generation Active**\n`[SUCCESS]` Knowledge Base: WIM Regulations (Arts. E-H) Ingested\n`[SUCCESS]` Marshall Protocol: **ENFORCING**\n\n---\n\n**Ada Orchestrator Online.**\n\nGreetings, Captain. I am connected to the WIM autonomous cluster.\n\n**Operational Status:**\n- **🧠 SEAL Engine:** Learning from interactions (Self-Edit Mode)\n- **👮 Marshall:** Monitoring Speed (G.1) & Contracts (H.3)\n- **🚤 Assets:** Tenders Alpha, Bravo, Charlie (Ch 14) Standing By\n- **📡 VHF Sentinel:** Scanning Ch 16/73/12/13/14\n\n*State: Ready. Privacy Protocol Active.*",
+  text: "**System Initialization Sequence**\n\n`[SUCCESS]` Tenant Loaded: **wim.ada.network** (West Istanbul Marina)\n`[SUCCESS]` SEAL Core: **Synthetic Data Generation Active**\n`[SUCCESS]` Auth Node: **ada.passkit** (IAM Active)\n`[SUCCESS]` Marshall Protocol: **ENFORCING**\n\n---\n\n**Ada Orchestrator Online.**\n\nGreetings, Captain. I am connected to the WIM autonomous cluster.\n\n**Operational Status:**\n- **🧠 SEAL Engine:** Learning from interactions (Self-Edit Mode)\n- **👮 Marshall:** Monitoring Speed (G.1) & Contracts (H.3)\n- **🛡️ Auth:** KVKK/GDPR Protocols Active\n- **📡 VHF Sentinel:** Scanning Ch 16/73/12/13/14\n\n*State: Ready. Privacy Protocol Active.*",
   timestamp: Date.now()
 };
 
@@ -36,8 +36,22 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   
+  // User Identity / Auth State
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+     id: 'guest-1',
+     name: 'Guest User',
+     role: 'GUEST',
+     clearanceLevel: 0
+  });
+
   // Simulation State
   const [logs, setLogs] = useState<SystemLog[]>([]);
+  const [registry, setRegistry] = useState<RegistryEntry[]>([]);
+  const [tenders, setTenders] = useState<Tender[]>([
+    { id: 't1', name: 'Tender Alpha', status: 'Idle' },
+    { id: 't2', name: 'Tender Bravo', status: 'Idle' },
+    { id: 't3', name: 'Tender Charlie', status: 'Maintenance' }
+  ]);
   const [activeChannel, setActiveChannel] = useState<string>('73');
   const [isMonitoring, setIsMonitoring] = useState<boolean>(true);
   const [nodeStates, setNodeStates] = useState<Record<string, NodeStatus>>({
@@ -71,12 +85,71 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
+  // Helper to add log manually
+  const addSystemLog = (node: string, msg: string, type: SystemLog['type']) => {
+    setLogs(prev => [{
+      id: Date.now().toString() + Math.random(),
+      timestamp: new Date().toLocaleTimeString(),
+      node,
+      message: msg,
+      type
+    }, ...prev].slice(0, 200));
+    
+    // Blink the node
+    const nodeName = node.includes('wim') ? node.split('.')[1] ? 'ada.' + node.split('.')[1] : 'ada.passkit' : 'ada.passkit';
+    setNodeStates(prev => ({ ...prev, [nodeName]: 'working' }));
+    setTimeout(() => setNodeStates(prev => ({ ...prev, [nodeName]: 'connected' })), 400);
+  };
+
+  // Handle Role Switch with "Passkit Authentication Sequence"
+  const handleRoleChange = (role: UserRole) => {
+     if (role === 'GENERAL_MANAGER') {
+        // Cinematic Auth Sequence
+        addSystemLog('ada.passkit.wim', 'Initiating Secure Handshake (Protocol v2)...', 'warning');
+
+        setTimeout(() => {
+           addSystemLog('ada.passkit.wim', 'Device Passkit Found: [PK-8821-AE]', 'info');
+        }, 800);
+
+        setTimeout(() => {
+           addSystemLog('ada.passkit.wim', 'Biometric Verification: RETINA_SCAN [MATCH]', 'success');
+        }, 1800);
+
+        setTimeout(() => {
+           addSystemLog('ada.passkit.wim', 'Decryption Key: 0x7F... Loaded. Level 5 Access Granted.', 'critical'); // Green critical style
+           setUserProfile({
+              id: 'gm-01',
+              name: 'Ahmet Engin',
+              role: 'GENERAL_MANAGER',
+              clearanceLevel: 5
+           });
+           // Optional: Add a welcome message to chat
+           setMessages(prev => [...prev, {
+              id: Date.now().toString(),
+              role: MessageRole.System,
+              text: "**AUTHENTICATION SUCCESSFUL**\n\nWelcome back, General Manager. Access Level 5 unlocked. All telemetry streams are now unmasked.",
+              timestamp: Date.now()
+           }]);
+        }, 2800);
+
+     } else {
+        // Immediate Logout
+        setUserProfile({
+           id: 'guest-1',
+           name: 'Guest User',
+           role: 'GUEST',
+           clearanceLevel: 0
+        });
+        addSystemLog('ada.passkit.wim', 'Session Terminated. Reverting to Public Access.', 'warning');
+     }
+  };
+
   // System Simulation Effect
   useEffect(() => {
     const vesselNames = [
-      'phisedelia', 'blue_horizon', 'karayel', 'mistral', 'aegean_queen', 
-      'marmara_star', 'sirocco', 'levante', 'poyraz', 'meltem', 
-      'odyssey', 'poseidon', 'neptune', 'mermaid', 'atlantis'
+      'Phisedelia', 'Blue Horizon', 'Karayel', 'Mistral', 'Aegean Queen', 
+      'Marmara Star', 'Sirocco', 'Levante', 'Poyraz', 'Meltem', 
+      'Odyssey', 'Poseidon', 'Neptune', 'Mermaid', 'Atlantis'
     ];
 
     const serviceNodes = ['ada.marina.wim', 'ada.finance.wim', 'ada.weather.wim', 'ada.customer.wim', 'ada.legal.wim', 'ada.security.wim'];
@@ -88,7 +161,29 @@ function App() {
       let msg = '';
       let type: SystemLog['type'] = 'info';
 
-      if (rand < 0.30) { // VHF Traffic (High frequency)
+      // Registry Simulation (Check-In / Check-Out) - 5% chance
+      if (rand < 0.05) {
+          const action = Math.random() > 0.5 ? 'CHECK-IN' : 'CHECK-OUT';
+          const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
+          const loc = action === 'CHECK-IN' ? 'Gate 1' : `Pontoon ${String.fromCharCode(65 + Math.floor(Math.random() * 5))}`;
+          
+          const entry: RegistryEntry = {
+            id: Math.random().toString(36).substr(2, 9),
+            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }),
+            vessel: `S/Y ${vName}`,
+            action,
+            location: loc,
+            status: 'AUTHORIZED'
+          };
+          
+          setRegistry(prev => [entry, ...prev].slice(0, 50)); // Keep last 50 entries
+          
+          nodeFull = 'ada.passkit.wim';
+          nodeBase = 'ada.passkit';
+          msg = `Registry Update: ${action} - ${vName} @ ${loc}`;
+          type = 'success';
+      } 
+      else if (rand < 0.35) { // VHF Traffic (High frequency)
          if (!monitoringRef.current) return null;
          nodeFull = 'ada.vhf.wim';
          nodeBase = 'ada.vhf';
@@ -120,10 +215,10 @@ function App() {
              msg = `[CH ${currentCh}] ${msgs06[Math.floor(Math.random() * msgs06.length)]}`;
          }
 
-      } else if (rand < 0.45) { // Vessel Ops (Privacy First)
+      } else if (rand < 0.50) { // Vessel Ops (Privacy First)
          // Vessels don't broadcast telemetry anymore unless critical
          const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
-         nodeFull = `ada.sea.${vName}`;
+         nodeFull = `ada.sea.${vName.toLowerCase().replace(' ', '_')}`;
          nodeBase = 'ada.sea';
          
          // Simulation of Local Data Processing
@@ -149,12 +244,29 @@ function App() {
          } else if (nodeBase === 'ada.finance') {
             msg = `Ledger Sync: ${Math.floor(Math.random() * 5000)} EUR processed.`;
          } else if (nodeBase === 'ada.marina') {
-             // Tender Ops Simulation (Ch 14)
+             // Tender Ops Simulation (Ch 14) & State Update
              if (Math.random() < 0.4) {
-                 const tenders = ['Tender Alpha', 'Tender Bravo', 'Tender Charlie'];
-                 const tName = tenders[Math.floor(Math.random() * tenders.length)];
                  const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
-                 msg = `[CH 14] ${tName}: Assisting ${vName} at Pontoon C.`;
+                 
+                 // Randomly assign a task to a tender
+                 setTenders(prev => {
+                    const newTenders = [...prev];
+                    const idleTenderIdx = newTenders.findIndex(t => t.status === 'Idle');
+                    if (idleTenderIdx >= 0 && Math.random() > 0.5) {
+                        newTenders[idleTenderIdx] = { ...newTenders[idleTenderIdx], status: 'Busy', assignment: `Assisting ${vName}` };
+                        msg = `[CH 14] ${newTenders[idleTenderIdx].name}: Assisting ${vName} at Pontoon C.`;
+                    } else {
+                        // Randomly free up a tender
+                        const busyTenderIdx = newTenders.findIndex(t => t.status === 'Busy');
+                        if (busyTenderIdx >= 0) {
+                            msg = `[CH 14] ${newTenders[busyTenderIdx].name}: Task complete. Returning to base.`;
+                            newTenders[busyTenderIdx] = { ...newTenders[busyTenderIdx], status: 'Idle', assignment: undefined };
+                        } else {
+                             msg = 'Gate sensor triggered.';
+                        }
+                    }
+                    return newTenders;
+                 });
                  type = 'info';
              } else {
                  msg = 'Gate sensor triggered.';
@@ -164,6 +276,8 @@ function App() {
             msg = sActs[Math.floor(Math.random() * sActs.length)];
          }
       }
+
+      if (!msg) return null;
 
       // Update Node Status visually
       setNodeStates(prev => ({
@@ -175,7 +289,7 @@ function App() {
           ...prev,
           [nodeBase]: 'connected'
         }));
-      }, 400); // Faster blink for Enterprise Mode
+      }, 400);
 
       return {
         id: Math.random().toString(36).substr(2, 9),
@@ -189,7 +303,6 @@ function App() {
     const interval = setInterval(() => {
       const newLog = generateLog();
       if (newLog) {
-        // Removed .slice() to prevent data loss in Canvas for short sessions, keep last 200
         setLogs(prev => [newLog, ...prev].slice(0, 200)); 
       }
     }, 600); // Turbo Mode (600ms)
@@ -261,6 +374,9 @@ function App() {
           selectedModel,
           useSearch,
           useThinking,
+          registry, // Pass latest registry
+          tenders,  // Pass latest tenders
+          userProfile, // Pass latest User Identity (Auth)
           (chunkText, grounding) => {
             fullText += chunkText;
             setMessages(prev => prev.map(m => m.id === botMsgId ? {
@@ -294,6 +410,7 @@ function App() {
   const handleClear = () => {
     setMessages([INITIAL_MESSAGE]);
     setLogs([]);
+    setRegistry([]);
   };
 
   return (
@@ -319,6 +436,8 @@ function App() {
            onChannelChange={setActiveChannel}
            isMonitoring={isMonitoring}
            onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
+           userProfile={userProfile}
+           onRoleChange={handleRoleChange}
         />
       </div>
 
@@ -380,6 +499,8 @@ function App() {
       {/* Canvas (Operations Deck) */}
       <Canvas 
         logs={logs} 
+        registry={registry}
+        tenders={tenders}
         activeChannel={activeChannel}
         isMonitoring={isMonitoring}
       />

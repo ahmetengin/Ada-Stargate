@@ -1,4 +1,5 @@
-{
+
+export const wimMasterData = {
   "identity": {
     "name": "West Istanbul Marina",
     "code": "WIM",
@@ -117,4 +118,4 @@
     "pollution": "2x cost of cleaning + Municipal Fine (Article F.13)",
     "contract_breach": "Immediate Termination without refund"
   }
-}
+};

@@ -1,5 +1,7 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
-import { Plus, Github, Anchor, Radio, Power } from 'lucide-react';
+import { Plus, Github, Anchor, Radio, Power, Shield, User, LogOut } from 'lucide-react';
+import { UserProfile, UserRole } from '../types';
 
 interface SidebarProps {
   onClear: () => void;
@@ -8,6 +10,8 @@ interface SidebarProps {
   onChannelChange: (ch: string) => void;
   isMonitoring: boolean;
   onMonitoringToggle: () => void;
+  userProfile: UserProfile;
+  onRoleChange: (role: UserRole) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -16,7 +20,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeChannel, 
   onChannelChange, 
   isMonitoring, 
-  onMonitoringToggle 
+  onMonitoringToggle,
+  userProfile,
+  onRoleChange
 }) => {
   // Resizable Sidebar State
   const [sidebarWidth, setSidebarWidth] = useState(240); 
@@ -53,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'ada.marina', label: 'MARINA' },
     { id: 'ada.finance', label: 'FINANCE' },
     { id: 'ada.customer', label: 'CUSTOMER (CRM)' },
-    { id: 'ada.passkit', label: 'PASS' },
+    { id: 'ada.passkit', label: 'PASS (IAM)' },
     { id: 'ada.legal', label: 'LEGAL (HUKUK)' },
     { id: 'ada.security', label: 'SECURITY (MARSHALL)' },
     { id: 'ada.weather', label: 'WX' },
@@ -67,7 +73,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // Expanded Channel List including internal ops (12, 13, 14) and user requested 69
   const channels = ['16', '73', '12', '13', '14', '69', '06', 'SCAN'];
 
   return (
@@ -116,6 +121,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Spacer */}
       <div className="flex-1"></div>
+
+      {/* Identity / Auth Card (ada.passkit) */}
+      <div className="px-3 pb-3">
+          <div className={`rounded-lg border p-3 transition-colors ${userProfile.role === 'GENERAL_MANAGER' ? 'bg-indigo-900/20 border-indigo-500/50' : 'bg-zinc-900 border-zinc-800'}`}>
+             <div className="flex items-center justify-between mb-2">
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Identity (Auth)</span>
+                 <Shield size={12} className={userProfile.role === 'GENERAL_MANAGER' ? "text-indigo-400" : "text-zinc-600"} />
+             </div>
+             
+             <div className="flex items-center gap-2 mb-3">
+                <div className={`w-8 h-8 rounded bg-zinc-800 flex items-center justify-center ${userProfile.role === 'GENERAL_MANAGER' ? 'border border-indigo-400 text-indigo-400' : 'text-zinc-500'}`}>
+                    <User size={16} />
+                </div>
+                <div className="flex flex-col overflow-hidden">
+                    <span className="text-xs font-bold text-zinc-200 truncate">{userProfile.name}</span>
+                    <span className="text-[9px] text-zinc-400 truncate">{userProfile.role}</span>
+                </div>
+             </div>
+
+             <div className="flex gap-1">
+                <button 
+                   onClick={() => onRoleChange('GUEST')}
+                   className={`flex-1 text-[9px] py-1 rounded border transition-all ${userProfile.role === 'GUEST' ? 'bg-zinc-700 text-white border-zinc-600' : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:bg-zinc-900'}`}
+                >
+                   GUEST
+                </button>
+                <button 
+                   onClick={() => onRoleChange('GENERAL_MANAGER')}
+                   className={`flex-1 text-[9px] py-1 rounded border transition-all ${userProfile.role === 'GENERAL_MANAGER' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:bg-zinc-900'}`}
+                >
+                   GM (SECURE)
+                </button>
+             </div>
+          </div>
+      </div>
       
       {/* VHF Control Panel */}
       <div className="px-3 pb-3">

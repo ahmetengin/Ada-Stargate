@@ -1,3 +1,4 @@
+
 export enum MessageRole {
   User = 'user',
   Model = 'model',
@@ -45,4 +46,30 @@ export enum LiveConnectionState {
   Connecting = 'connecting',
   Connected = 'connected',
   Error = 'error'
+}
+
+export interface RegistryEntry {
+  id: string;
+  timestamp: string;
+  vessel: string;
+  action: 'CHECK-IN' | 'CHECK-OUT';
+  location: string;
+  status: 'AUTHORIZED' | 'PENDING' | 'DENIED';
+}
+
+export interface Tender {
+  id: string;
+  name: string;
+  status: 'Idle' | 'Busy' | 'Maintenance';
+  assignment?: string;
+}
+
+// NEW: Identity & Access Management
+export type UserRole = 'GUEST' | 'CAPTAIN' | 'GENERAL_MANAGER';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  role: UserRole;
+  clearanceLevel: number; // 0: Public, 1: Own Asset, 5: God Mode
 }
