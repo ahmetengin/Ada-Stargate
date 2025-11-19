@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Activity, List, Map, AlertTriangle, Search, Filter, AlertCircle, ClipboardList, Ship, CloudRain, Wind, Anchor, ArrowDown, ArrowUp, Clock } from 'lucide-react';
-import { RegistryEntry, Tender, UserProfile } from '../types';
+import { Activity, List, Map, AlertTriangle, Search, Filter, AlertCircle, ClipboardList, Ship, CloudRain, Wind, Anchor, ArrowDown, ArrowUp, Clock, Cloud, Sun, Thermometer, Navigation, Radar } from 'lucide-react';
+import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast } from '../types';
 
 interface SystemLog {
   id: string;
@@ -15,13 +15,24 @@ interface CanvasProps {
   logs: SystemLog[];
   registry: RegistryEntry[];
   tenders: Tender[];
+  trafficQueue: TrafficEntry[];
+  weatherData: WeatherForecast[];
   activeChannel: string;
   isMonitoring: boolean;
   userProfile: UserProfile;
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeChannel, isMonitoring, userProfile }) => {
-  const [activeTab, setActiveTab] = useState<'feed' | 'fleet'>('feed');
+export const Canvas: React.FC<CanvasProps> = ({ 
+  logs, 
+  registry, 
+  tenders, 
+  trafficQueue,
+  weatherData,
+  activeChannel, 
+  isMonitoring, 
+  userProfile 
+}) => {
+  const [activeTab, setActiveTab] = useState<'feed' | 'fleet' | 'cloud' | 'ais'>('feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [showWarningOnly, setShowWarningOnly] = useState(false);
@@ -37,7 +48,7 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
     (mouseMoveEvent: MouseEvent) => {
       if (isResizing) {
         const newWidth = window.innerWidth - mouseMoveEvent.clientX;
-        if (newWidth > 300 && newWidth < 800) {
+        if (newWidth > 300 && newWidth < 900) {
           setWidth(newWidth);
         }
       }
@@ -96,6 +107,16 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
     return matchesSearch && matchesType;
   });
 
+  // Icons mapping for weather
+  const getWeatherIcon = (condition: string) => {
+    switch(condition) {
+      case 'Rain': case 'Storm': return <CloudRain size={16} className="text-blue-400" />;
+      case 'Cloudy': return <Cloud size={16} className="text-zinc-400" />;
+      case 'Windy': return <Wind size={16} className="text-zinc-400" />;
+      default: return <Sun size={16} className="text-yellow-400" />;
+    }
+  };
+
   return (
     <div 
       className="hidden lg:flex flex-col h-full bg-zinc-950 border-l border-zinc-900 flex-shrink-0 relative"
@@ -124,9 +145,23 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
           <button 
             onClick={() => setActiveTab('fleet')}
             className={`p-1 rounded transition-all ${activeTab === 'fleet' ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-            title="Fleet & Weather"
+            title="Fleet & Tenders"
           >
-            <Map size={12} />
+            <Ship size={12} />
+          </button>
+          <button 
+            onClick={() => setActiveTab('cloud')}
+            className={`p-1 rounded transition-all ${activeTab === 'cloud' ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            title="Weather & ATC"
+          >
+            <Cloud size={12} />
+          </button>
+          <button 
+            onClick={() => setActiveTab('ais')}
+            className={`p-1 rounded transition-all ${activeTab === 'ais' ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
+            title="AIS Radar"
+          >
+            <Radar size={12} />
           </button>
         </div>
       </div>
@@ -134,6 +169,7 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
       {/* Content Area */}
       <div className="flex-1 overflow-hidden flex flex-col bg-zinc-900/10">
         
+        {/* --- TAB 1: LIVE FEED --- */}
         {activeTab === 'feed' && (
           <>
              {/* Filters */}
@@ -205,79 +241,15 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
           </>
         )}
 
+        {/* --- TAB 2: FLEET (Registry & Tenders) --- */}
         {activeTab === 'fleet' && (
           <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-4">
              
-             {/* 1. WEATHER STATION (ada.weather.wim) */}
-             <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
-                     <CloudRain size={12} /> Weather Stn
-                   </span>
-                   <span className="text-[9px] text-green-500 font-mono">ONLINE</span>
-                </div>
-                <div className="p-3 flex items-center justify-between">
-                   <div className="text-center">
-                      <div className="text-[10px] text-zinc-500">TODAY</div>
-                      <div className="text-xl text-zinc-200 font-bold">22°C</div>
-                      <div className="text-[10px] text-zinc-400 flex items-center justify-center gap-1"><Wind size={10}/> 12kt NW</div>
-                   </div>
-                   <div className="h-8 w-[1px] bg-zinc-800"></div>
-                   <div className="text-center">
-                      <div className="text-[10px] text-zinc-500">TOMORROW</div>
-                      <div className="text-xl text-yellow-200 font-bold">19°C</div>
-                      <div className="text-[10px] text-yellow-500 font-bold flex items-center justify-center gap-1"><AlertTriangle size={8}/> 28kt N</div>
-                   </div>
-                   <div className="h-8 w-[1px] bg-zinc-800"></div>
-                   <div className="text-center">
-                      <div className="text-[10px] text-zinc-500">DAY 3</div>
-                      <div className="text-xl text-zinc-200 font-bold">20°C</div>
-                      <div className="text-[10px] text-zinc-400 flex items-center justify-center gap-1"><Wind size={10}/> 15kt NE</div>
-                   </div>
-                </div>
-             </div>
-
-             {/* 2. TRAFFIC TOWER (ATC Logic) */}
-             <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
-                     <Anchor size={12} /> Traffic Control (Tower)
-                   </span>
-                   <span className="text-[9px] text-indigo-400 font-mono">CH 12</span>
-                </div>
-                <div className="p-2 space-y-1">
-                   {/* Inbound */}
-                   <div className="flex items-center justify-between bg-zinc-900/50 p-1.5 rounded border border-zinc-800/50">
-                      <div className="flex items-center gap-2">
-                         <ArrowDown size={12} className="text-green-400" />
-                         <span className="text-[10px] text-zinc-300 font-medium">M/Y Blue Horizon</span>
-                      </div>
-                      <span className="text-[9px] bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded">CLEARED</span>
-                   </div>
-                   {/* Outbound */}
-                   <div className="flex items-center justify-between bg-zinc-900/50 p-1.5 rounded border border-zinc-800/50">
-                      <div className="flex items-center gap-2">
-                         <ArrowUp size={12} className="text-blue-400" />
-                         <span className="text-[10px] text-zinc-300 font-medium">S/Y Mistral</span>
-                      </div>
-                      <span className="text-[9px] bg-zinc-800 text-zinc-500 px-1.5 py-0.5 rounded">TAXIING</span>
-                   </div>
-                   {/* Holding */}
-                   <div className="flex items-center justify-between bg-yellow-900/10 p-1.5 rounded border border-yellow-500/20">
-                      <div className="flex items-center gap-2">
-                         <Clock size={12} className="text-yellow-500 animate-pulse" />
-                         <span className="text-[10px] text-yellow-200 font-medium">Tender Bravo (Towing)</span>
-                      </div>
-                      <span className="text-[9px] text-yellow-500 px-1.5 py-0.5 rounded font-bold">HOLDING</span>
-                   </div>
-                </div>
-             </div>
-
-             {/* 3. TENDER STATUS */}
+             {/* TENDER OPERATIONS */}
              <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
                 <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
-                    <Ship size={10} /> Tenders (Ch 14)
+                    <Anchor size={10} /> Tenders (Ch 14)
                   </span>
                 </div>
                 <div className="grid gap-1 p-2">
@@ -290,17 +262,20 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
                         }`} />
                         <span className="text-[10px] font-medium text-zinc-300">{tender.name}</span>
                       </div>
-                      <span className="text-[9px] font-mono text-zinc-500 uppercase">{tender.status}</span>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-mono text-zinc-500 uppercase">{tender.status}</span>
+                        {tender.assignment && <span className="text-[8px] text-indigo-400">{tender.assignment}</span>}
+                      </div>
                     </div>
                   ))}
                 </div>
              </div>
 
-             {/* 4. REGISTRY TABLE */}
+             {/* REGISTRY TABLE */}
              <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg overflow-hidden">
                 <div className="px-3 py-2 border-b border-zinc-800 flex items-center gap-2 bg-zinc-900/50">
                    <ClipboardList size={12} className="text-zinc-400" />
-                   <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-wide">Registry</span>
+                   <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-wide">Port Registry</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-[10px] font-mono">
@@ -312,13 +287,13 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-800/30">
-                      {registry.slice(0, 6).map((entry) => (
+                      {registry.slice(0, 15).map((entry) => (
                         <tr key={entry.id} className="hover:bg-zinc-800/30 transition-colors">
                           <td className="px-2 py-1 text-zinc-500">{entry.timestamp}</td>
                           <td className="px-2 py-1 text-zinc-300">{entry.vessel}</td>
                           <td className="px-2 py-1 text-right">
                             <span className={`px-1 py-0.5 rounded-[2px] text-[8px] font-bold ${
-                              entry.action === 'CHECK-IN' ? 'text-green-400' : 'text-blue-400'
+                              entry.action === 'CHECK-IN' ? 'text-green-400 bg-green-900/20' : 'text-blue-400 bg-blue-900/20'
                             }`}>
                               {entry.action === 'CHECK-IN' ? 'IN' : 'OUT'}
                             </span>
@@ -329,8 +304,94 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
                   </table>
                 </div>
              </div>
+          </div>
+        )}
+
+        {/* --- TAB 3: CLOUD (Weather & Traffic Tower) --- */}
+        {activeTab === 'cloud' && (
+          <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-4">
+             
+             {/* WEATHER STATION DASHBOARD */}
+             <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
+                <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
+                     <CloudRain size={12} /> Weather Station
+                   </span>
+                   <span className="text-[9px] text-green-500 font-mono">LIVE</span>
+                </div>
+                {/* Main Weather Display */}
+                <div className="p-3 flex items-center justify-between">
+                   {weatherData.map((w, idx) => (
+                     <div key={idx} className="flex flex-col items-center w-1/3 relative">
+                        {/* Vertical Separator */}
+                        {idx > 0 && <div className="absolute left-0 top-2 bottom-2 w-[1px] bg-zinc-800"></div>}
+                        
+                        <span className="text-[9px] text-zinc-500 uppercase mb-1">{w.day}</span>
+                        <div className="mb-1">{getWeatherIcon(w.condition)}</div>
+                        <div className="text-lg font-bold text-zinc-200">{w.temp}°</div>
+                        <div className="flex items-center gap-1 text-[9px] text-zinc-400 mt-1">
+                           <Wind size={8} /> 
+                           <span className={w.windSpeed > 25 ? 'text-red-400 font-bold' : ''}>{w.windSpeed}kt {w.windDir}</span>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
+
+             {/* TRAFFIC CONTROL TOWER (ATC) */}
+             <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
+                <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
+                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
+                     <Navigation size={12} /> Traffic Tower (ATC)
+                   </span>
+                   <span className="text-[9px] text-indigo-400 font-mono">CH 12</span>
+                </div>
+                <div className="p-2 space-y-1">
+                   {trafficQueue.length === 0 && (
+                      <div className="text-center text-[10px] text-zinc-600 py-4">Fairway Clear. No active traffic.</div>
+                   )}
+                   {trafficQueue.map((t) => (
+                      <div key={t.id} className={`flex items-center justify-between p-1.5 rounded border ${
+                          t.status === 'HOLDING' ? 'bg-yellow-900/10 border-yellow-500/20' : 
+                          t.status === 'TAXIING' ? 'bg-blue-900/10 border-blue-500/20' :
+                          'bg-zinc-900/50 border-zinc-800/50'
+                      }`}>
+                          <div className="flex items-center gap-2">
+                             {t.status === 'INBOUND' && <ArrowDown size={12} className="text-green-400" />}
+                             {t.status === 'OUTBOUND' && <ArrowUp size={12} className="text-blue-400" />}
+                             {t.status === 'HOLDING' && <Clock size={12} className="text-yellow-500 animate-pulse" />}
+                             <span className="text-[10px] text-zinc-300 font-medium">{t.vessel}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[9px] text-zinc-500">{t.sector}</span>
+                             <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${
+                                 t.status === 'HOLDING' ? 'text-yellow-500 bg-yellow-900/20' : 
+                                 t.status === 'TAXIING' ? 'text-blue-400 bg-blue-900/20' : 'text-zinc-400 bg-zinc-800'
+                             }`}>
+                                {t.status}
+                             </span>
+                          </div>
+                      </div>
+                   ))}
+                </div>
+             </div>
 
           </div>
+        )}
+
+        {/* --- TAB 4: AIS MAP (Placeholder) --- */}
+        {activeTab === 'ais' && (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-zinc-600">
+                <div className="relative w-32 h-32 mb-4">
+                    <div className="absolute inset-0 border-2 border-zinc-800 rounded-full"></div>
+                    <div className="absolute inset-4 border border-zinc-800 rounded-full opacity-50"></div>
+                    <div className="absolute inset-0 border-t-2 border-green-500/50 rounded-full animate-spin duration-[3000ms]"></div>
+                    <div className="absolute top-1/2 left-1/2 w-1 h-1 bg-green-500 rounded-full"></div>
+                </div>
+                <span className="text-xs font-mono font-bold">AIS RADAR SYSTEM</span>
+                <span className="text-[10px] mt-2">Scanning Marine Traffic...</span>
+                <span className="text-[10px] text-zinc-700 mt-1">Integration pending valid API Key</span>
+            </div>
         )}
 
       </div>

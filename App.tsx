@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, UserRole } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, UserRole, TrafficEntry, WeatherForecast } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
@@ -26,7 +26,7 @@ const INITIAL_MESSAGE: Message = {
 };
 
 // Mock Data Generators
-const VESSEL_NAMES = ['S/Y Phisedelia', 'M/Y Blue Horizon', 'S/Y Mistral', 'M/Y Poseidon', 'Catamaran Lir', 'S/Y Aegeas', 'Tender Bravo'];
+const VESSEL_NAMES = ['S/Y Phisedelia', 'M/Y Blue Horizon', 'S/Y Mistral', 'M/Y Poseidon', 'Catamaran Lir', 'S/Y Aegeas', 'Tender Bravo', 'M/Y Grand Turk'];
 const LOCATIONS = ['Pontoon A-12', 'Pontoon C-05', 'Fuel Station', 'Dry Dock', 'Entrance Beacon', 'Technical Quay'];
 
 export default function App() {
@@ -61,6 +61,17 @@ export default function App() {
     { id: 't3', name: 'Tender Charlie', status: 'Maintenance' },
   ]);
   
+  // New Simulation States
+  const [trafficQueue, setTrafficQueue] = useState<TrafficEntry[]>([
+      { id: 'tr-1', vessel: 'M/Y Blue Horizon', status: 'INBOUND', priority: 5, sector: 'Approach Channel' }
+  ]);
+  
+  const [weatherData, setWeatherData] = useState<WeatherForecast[]>([
+      { day: 'Today', temp: 22, condition: 'Sunny', windSpeed: 12, windDir: 'NW' },
+      { day: 'Tomorrow', temp: 19, condition: 'Windy', windSpeed: 28, windDir: 'N', alertLevel: 'WARNING' },
+      { day: 'Day 3', temp: 20, condition: 'Cloudy', windSpeed: 15, windDir: 'NE' },
+  ]);
+  
   // Node Statuses for Sidebar
   const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({
     'ada.vhf': 'connected',
@@ -93,67 +104,58 @@ export default function App() {
       let newLog = null;
 
       // 1. VHF Traffic Simulation (Ch 16/73/12/13/14)
-      if (random > 0.7) {
+      if (random > 0.75) {
          const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
-         if (random > 0.96) {
-             newLog = {
-                 node: 'ada.vhf.wim',
-                 message: `[CH 16] MAYDAY RELAY - Vessel ${vessel} reporting engine fire at 40.9N 28.8E`,
-                 type: 'critical'
-             };
-         } else if (random > 0.94) {
-             newLog = {
-                 node: 'ada.marina.wim',
-                 message: `[BROADCAST] ATTENTION ALL STATIONS. TRAFFIC CONGESTION AT ENTRANCE. HOLD POSITION.`,
-                 type: 'alert'
-             };
-         } else if (random > 0.9) {
-             newLog = {
-                 node: 'ada.vhf.wim',
-                 message: `[CH 16] PAN PAN - Medical assistance required on Pontoon B`,
-                 type: 'alert'
-             };
-         } else if (random > 0.88) {
-             newLog = {
-                 node: 'ada.security',
-                 message: `[CH 13] Security Patrol: Unauthorized drone detected near Hangar A.`,
-                 type: 'warning'
-             };
-         } else if (random > 0.86) {
-             newLog = {
-                 node: 'ada.marina.wim',
-                 message: `[CH 14] Tender Alpha: Towing S/Y Phisedelia to Pontoon C.`,
-                 type: 'info'
-             };
+         if (random > 0.98) {
+             newLog = { node: 'ada.vhf.wim', message: `[CH 16] MAYDAY RELAY - Vessel ${vessel} reporting fire.`, type: 'critical' };
+         } else if (random > 0.96) {
+             newLog = { node: 'ada.marina.wim', message: `[BROADCAST] ATTENTION ALL STATIONS. TRAFFIC CONGESTION. HOLD.`, type: 'alert' };
+         } else if (random > 0.92) {
+             newLog = { node: 'ada.security', message: `[CH 13] Security: Unidentified drone over Hangar B.`, type: 'warning' };
          } else {
-             newLog = {
-                 node: 'ada.vhf.wim',
-                 message: `[CH 73] ${vessel}: Requesting radio check. Signal 5/5.`,
-                 type: 'info'
-             };
+             newLog = { node: 'ada.vhf.wim', message: `[CH 73] ${vessel}: Requesting radio check.`, type: 'info' };
          }
       } 
-      // 2. Marshall Protocol & Traffic Control
-      else if (random < 0.05) {
-         newLog = {
-            node: 'ada.legal.wim',
-            message: `MARSHALL ALERT: Speeding detected (Land). Vehicle 34AB123 at 18km/h. Article G.1 Enforcement: Card Cancelled.`,
-            type: 'critical'
-         };
+      // 2. Marshall Protocol (Traffic)
+      else if (random < 0.03) {
+         newLog = { node: 'ada.legal.wim', message: `MARSHALL ALERT: Speeding (Land). 34AB123 at 18km/h. Article G.1: Card Cancelled.`, type: 'critical' };
       }
-      // 3. Weather Updates (ada.weather.wim)
-      else if (random < 0.10) {
-          const forecasts = [
-              "Forecast Day 1: Sunny, Wind NW 12kts. Sea slight.",
-              "Forecast Day 2: GALE WARNING. Wind increasing N 35kts.",
-              "Poseidon: Barometer dropping 1012 -> 1005 hPa.",
-              "Windy: Thunderstorm cells detected West of Marmara."
-          ];
-          newLog = {
-            node: 'ada.weather.wim',
-            message: forecasts[Math.floor(Math.random() * forecasts.length)],
-            type: 'warning'
-          };
+      // 3. Weather Updates
+      else if (random > 0.10 && random < 0.15) {
+          // Occasionally update weather visuals too
+          if (Math.random() > 0.5) {
+             setWeatherData(prev => {
+                 const newWind = prev[0].windSpeed + (Math.random() > 0.5 ? 2 : -2);
+                 return [{ ...prev[0], windSpeed: Math.max(0, newWind) }, prev[1], prev[2]];
+             });
+          }
+          newLog = { node: 'ada.weather.wim', message: `Windy Update: Gusts increasing to ${weatherData[0].windSpeed + 5} knots.`, type: 'warning' };
+      }
+      // 4. Traffic Tower Simulation
+      else if (random > 0.30 && random < 0.35) {
+          const actionVessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
+          // 50% chance to add to queue, 50% chance to move existing
+          if (Math.random() > 0.5 && trafficQueue.length < 5) {
+             const newStatus = Math.random() > 0.5 ? 'INBOUND' : 'OUTBOUND';
+             setTrafficQueue(prev => [...prev, { 
+                 id: Math.random().toString(), 
+                 vessel: actionVessel, 
+                 status: newStatus, 
+                 priority: 5, 
+                 sector: newStatus === 'INBOUND' ? 'Approach' : 'Marina' 
+             }]);
+             newLog = { node: 'ada.marina.wim', message: `ATC: ${actionVessel} requesting ${newStatus} clearance.`, type: 'info' };
+          } else if (trafficQueue.length > 0) {
+             // Move a ship
+             setTrafficQueue(prev => {
+                 const next = [...prev];
+                 const ship = next[0];
+                 if (ship.status === 'INBOUND') ship.status = 'TAXIING';
+                 else if (ship.status === 'OUTBOUND') ship.status = 'HOLDING';
+                 else return next.slice(1); // Remove cleared ships
+                 return next;
+             });
+          }
       }
 
       if (newLog) {
@@ -167,14 +169,12 @@ export default function App() {
          const nodeKey = newLog.node.split('.')[0] + '.' + newLog.node.split('.')[1]; 
          if (nodeStates[nodeKey]) {
              setNodeStates(prev => ({ ...prev, [nodeKey]: 'working' }));
-             setTimeout(() => {
-                 setNodeStates(prev => ({ ...prev, [nodeKey]: 'connected' }));
-             }, 800);
+             setTimeout(() => setNodeStates(prev => ({ ...prev, [nodeKey]: 'connected' })), 800);
          }
       }
 
-      // 4. Registry Simulation
-      if (Math.random() > 0.92) {
+      // 5. Registry & Tender Sim (Existing logic retained)
+      if (Math.random() > 0.95) {
           const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
           const action = Math.random() > 0.5 ? 'CHECK-IN' : 'CHECK-OUT';
           const entry: RegistryEntry = {
@@ -187,18 +187,13 @@ export default function App() {
           };
           setRegistry(prev => [entry, ...prev].slice(0, 50));
       }
-
-      // 5. Tender Ops Simulation
-      if (Math.random() > 0.85) {
+      if (Math.random() > 0.90) {
          const tenderIdx = Math.floor(Math.random() * 3); 
          const newStatus = Math.random() > 0.6 ? 'Busy' : 'Idle';
          const assignment = newStatus === 'Busy' ? `Assist ${VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)]}` : undefined;
-         
          setTenders(prev => {
             const next = [...prev];
-            if (next[tenderIdx].status !== 'Maintenance') {
-                next[tenderIdx] = { ...next[tenderIdx], status: newStatus, assignment };
-            }
+            if (next[tenderIdx].status !== 'Maintenance') next[tenderIdx] = { ...next[tenderIdx], status: newStatus, assignment };
             return next;
          });
       }
@@ -206,7 +201,7 @@ export default function App() {
     }, 1200);
 
     return () => clearInterval(interval);
-  }, [isMonitoring, nodeStates]);
+  }, [isMonitoring, nodeStates, trafficQueue, weatherData]);
 
   // --- Handlers ---
 
@@ -233,17 +228,12 @@ export default function App() {
 
     const processedAttachments = newMessage.attachments || [];
 
+    // Image Generation
     if (selectedModel === ModelType.Image) {
        const imageBase64 = await generateImage(text);
        setMessages(prev => [
          ...prev,
-         {
-           id: (Date.now() + 1).toString(),
-           role: MessageRole.Model,
-           text: "",
-           generatedImage: imageBase64,
-           timestamp: Date.now()
-         }
+         { id: (Date.now() + 1).toString(), role: MessageRole.Model, text: "", generatedImage: imageBase64, timestamp: Date.now() }
        ]);
        setIsLoading(false);
        return;
@@ -252,13 +242,7 @@ export default function App() {
     let currentResponse = "";
     const responseId = (Date.now() + 1).toString();
     
-    setMessages(prev => [...prev, {
-       id: responseId,
-       role: MessageRole.Model,
-       text: "",
-       timestamp: Date.now(),
-       isThinking: true
-    }]);
+    setMessages(prev => [...prev, { id: responseId, role: MessageRole.Model, text: "", timestamp: Date.now(), isThinking: true }]);
 
     await streamChatResponse(
       messages.concat(newMessage),
@@ -273,9 +257,7 @@ export default function App() {
       (chunk, grounding) => {
          currentResponse += chunk;
          setMessages(prev => prev.map(m => 
-           m.id === responseId 
-             ? { ...m, text: currentResponse, isThinking: false, groundingSources: grounding }
-             : m
+           m.id === responseId ? { ...m, text: currentResponse, isThinking: false, groundingSources: grounding } : m
          ));
       }
     );
@@ -286,20 +268,12 @@ export default function App() {
   const toggleAuth = () => {
     if (userProfile.role === 'GUEST') {
         // Simulate Passkit Auth + Strict Legal Clearance
-        
-        // Determine Random Legal Status for Demo Purposes
         const rand = Math.random();
         let legalStatus: 'GREEN' | 'AMBER' | 'RED' = 'GREEN';
         let breachReason = "";
         
-        if (rand > 0.85) {
-          legalStatus = 'RED'; // Breach
-          breachReason = "ARTICLE H.2 (UNPAID DEBT > 60 DAYS)";
-        }
-        else if (rand > 0.65) {
-          legalStatus = 'AMBER'; // Warning
-          breachReason = "CONTRACT EXPIRY < 30 DAYS";
-        }
+        if (rand > 0.85) { legalStatus = 'RED'; breachReason = "ARTICLE H.2 (UNPAID DEBT > 60 DAYS)"; }
+        else if (rand > 0.65) { legalStatus = 'AMBER'; breachReason = "CONTRACT EXPIRY < 30 DAYS"; }
 
         const seq = [
             { msg: "AUTHENTICATING...", type: 'info' },
@@ -308,7 +282,6 @@ export default function App() {
             { msg: "CONNECTING TO ADA.LEGAL.WIM DATABASE...", type: 'info' }
         ];
         
-        // Detailed Legal Check Sequence
         if (legalStatus === 'GREEN') {
              seq.push({ msg: "CHECKING CONTRACT STATUS... [ACTIVE]", type: 'success' });
              seq.push({ msg: "CHECKING OUTSTANDING PENALTIES... [NONE]", type: 'success' });
@@ -349,20 +322,8 @@ export default function App() {
 
     } else {
         // Logout
-        setUserProfile({
-            id: 'guest-01',
-            name: 'Guest User',
-            role: 'GUEST',
-            clearanceLevel: 0,
-            legalStatus: 'GREEN'
-        });
-        setLogs(prev => [{
-            id: Math.random().toString(),
-            timestamp: new Date().toLocaleTimeString(),
-            node: 'ada.passkit',
-            message: "SESSION TERMINATED. REVERTING TO PUBLIC ACCESS.",
-            type: 'warning'
-        }, ...prev]);
+        setUserProfile({ id: 'guest-01', name: 'Guest User', role: 'GUEST', clearanceLevel: 0, legalStatus: 'GREEN' });
+        setLogs(prev => [{ id: Math.random().toString(), timestamp: new Date().toLocaleTimeString(), node: 'ada.passkit', message: "SESSION TERMINATED. REVERTING TO PUBLIC ACCESS.", type: 'warning' }, ...prev]);
     }
   };
 
@@ -410,19 +371,10 @@ export default function App() {
                </div>
 
                <div className="flex items-center gap-3">
-                   <button 
-                      onClick={() => setMessages([INITIAL_MESSAGE])}
-                      title="Reset Session"
-                      className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
-                   >
+                   <button onClick={() => setMessages([INITIAL_MESSAGE])} title="Reset Session" className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors">
                       <Plus size={14} />
                    </button>
-                   
-                   {/* Deck Toggle (Mobile/Tablet) */}
-                   <button 
-                      onClick={() => setIsCanvasOpen(!isCanvasOpen)}
-                      className="lg:hidden p-1 text-zinc-400 hover:text-zinc-200"
-                   >
+                   <button onClick={() => setIsCanvasOpen(!isCanvasOpen)} className="lg:hidden p-1 text-zinc-400 hover:text-zinc-200">
                       <Anchor size={16} />
                    </button>
                </div>
@@ -463,6 +415,8 @@ export default function App() {
                logs={logs} 
                registry={registry}
                tenders={tenders}
+               trafficQueue={trafficQueue}
+               weatherData={weatherData}
                activeChannel={activeChannel}
                isMonitoring={isMonitoring}
                userProfile={userProfile}
@@ -480,10 +434,7 @@ export default function App() {
       />
 
       {/* Modals */}
-      <VoiceModal 
-        isOpen={isVoiceModalOpen} 
-        onClose={() => setIsVoiceModalOpen(false)} 
-      />
+      <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
 
     </div>
   );

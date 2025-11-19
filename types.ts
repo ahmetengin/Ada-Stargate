@@ -64,6 +64,25 @@ export interface Tender {
   assignment?: string;
 }
 
+// NEW: Traffic Control (ATC)
+export interface TrafficEntry {
+  id: string;
+  vessel: string;
+  status: 'INBOUND' | 'OUTBOUND' | 'HOLDING' | 'TAXIING' | 'DOCKED';
+  priority: number; // 1 (Emergency) - 5 (Pleasure)
+  sector: string; // e.g., "Entrance", "Sector Zulu"
+}
+
+// NEW: Weather Station
+export interface WeatherForecast {
+  day: string; // "Today", "Tomorrow", "Monday"
+  temp: number;
+  condition: 'Sunny' | 'Cloudy' | 'Rain' | 'Storm' | 'Windy';
+  windSpeed: number; // Knots
+  windDir: string; // NW, N, S
+  alertLevel?: 'NONE' | 'ADVISORY' | 'WARNING' | 'CRITICAL';
+}
+
 // NEW: Identity & Access Management
 export type UserRole = 'GUEST' | 'CAPTAIN' | 'GENERAL_MANAGER';
 
