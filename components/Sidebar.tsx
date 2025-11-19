@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Plus, Github, Anchor, Radio, Power, Shield, User, LogOut } from 'lucide-react';
+import { Plus, Github, Anchor, Radio, Power, Shield, User, Lock, Unlock, Key } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 
 interface SidebarProps {
@@ -74,6 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const channels = ['16', '73', '12', '13', '14', '69', '06', 'SCAN'];
+  const restrictedChannels = ['12', '13', '14']; // Only for GM
 
   return (
     <div 
@@ -122,37 +123,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Spacer */}
       <div className="flex-1"></div>
 
-      {/* Identity / Auth Card (ada.passkit) */}
+      {/* Identity / Auth Terminal (ada.passkit) */}
       <div className="px-3 pb-3">
-          <div className={`rounded-lg border p-3 transition-colors ${userProfile.role === 'GENERAL_MANAGER' ? 'bg-indigo-900/20 border-indigo-500/50' : 'bg-zinc-900 border-zinc-800'}`}>
-             <div className="flex items-center justify-between mb-2">
-                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Identity (Auth)</span>
-                 <Shield size={12} className={userProfile.role === 'GENERAL_MANAGER' ? "text-indigo-400" : "text-zinc-600"} />
+          <div className={`rounded-lg border p-3 transition-all duration-500 ${
+              userProfile.role === 'GENERAL_MANAGER' 
+              ? 'bg-indigo-950/30 border-indigo-500/50 shadow-[0_0_15px_rgba(79,70,229,0.1)]' 
+              : 'bg-zinc-900/50 border-zinc-800'
+          }`}>
+             <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/5">
+                 <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1">
+                    <Shield size={10} /> Security Clearance
+                 </span>
+                 <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                     userProfile.role === 'GENERAL_MANAGER' ? 'bg-indigo-500/20 text-indigo-300' : 'bg-zinc-800 text-zinc-500'
+                 }`}>
+                    LVL {userProfile.clearanceLevel}
+                 </span>
              </div>
              
-             <div className="flex items-center gap-2 mb-3">
-                <div className={`w-8 h-8 rounded bg-zinc-800 flex items-center justify-center ${userProfile.role === 'GENERAL_MANAGER' ? 'border border-indigo-400 text-indigo-400' : 'text-zinc-500'}`}>
-                    <User size={16} />
+             <div className="flex items-center gap-3 mb-4">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${
+                    userProfile.role === 'GENERAL_MANAGER' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-zinc-800 text-zinc-600'
+                }`}>
+                    {userProfile.role === 'GENERAL_MANAGER' ? <Unlock size={18} /> : <Lock size={18} />}
                 </div>
                 <div className="flex flex-col overflow-hidden">
-                    <span className="text-xs font-bold text-zinc-200 truncate">{userProfile.name}</span>
-                    <span className="text-[9px] text-zinc-400 truncate">{userProfile.role}</span>
+                    <span className={`text-xs font-bold truncate ${userProfile.role === 'GENERAL_MANAGER' ? 'text-white' : 'text-zinc-400'}`}>
+                        {userProfile.name}
+                    </span>
+                    <span className="text-[9px] text-zinc-500 truncate font-mono">
+                        {userProfile.role === 'GENERAL_MANAGER' ? 'ID: GM-8821-X' : 'ID: PUBLIC-GUEST'}
+                    </span>
                 </div>
              </div>
 
-             <div className="flex gap-1">
-                <button 
-                   onClick={() => onRoleChange('GUEST')}
-                   className={`flex-1 text-[9px] py-1 rounded border transition-all ${userProfile.role === 'GUEST' ? 'bg-zinc-700 text-white border-zinc-600' : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:bg-zinc-900'}`}
-                >
-                   GUEST
-                </button>
-                <button 
-                   onClick={() => onRoleChange('GENERAL_MANAGER')}
-                   className={`flex-1 text-[9px] py-1 rounded border transition-all ${userProfile.role === 'GENERAL_MANAGER' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-zinc-950 text-zinc-500 border-zinc-800 hover:bg-zinc-900'}`}
-                >
-                   GM (SECURE)
-                </button>
+             {/* Passkit Slot */}
+             <div className="flex flex-col gap-1.5">
+                {userProfile.role === 'GENERAL_MANAGER' ? (
+                    <button 
+                       onClick={() => onRoleChange('GUEST')}
+                       className="flex items-center justify-center gap-2 w-full text-[10px] py-2 rounded border bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all uppercase font-bold tracking-wide"
+                    >
+                       <Lock size={10} /> Terminate Session
+                    </button>
+                ) : (
+                    <button 
+                       onClick={() => onRoleChange('GENERAL_MANAGER')}
+                       className="flex items-center justify-center gap-2 w-full text-[10px] py-2 rounded border bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700 hover:border-indigo-500/30 hover:text-indigo-300 transition-all uppercase font-bold tracking-wide group"
+                    >
+                       <Key size={10} className="group-hover:text-indigo-400" /> Insert Passkit
+                    </button>
+                )}
              </div>
           </div>
       </div>
@@ -175,20 +196,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           
           <div className="grid grid-cols-4 gap-1.5">
-             {channels.map(ch => (
-               <button
-                 key={ch}
-                 disabled={!isMonitoring}
-                 onClick={() => onChannelChange(ch)}
-                 className={`text-[10px] font-mono py-1.5 rounded border transition-all ${
-                    activeChannel === ch 
-                    ? 'bg-indigo-600/80 border-indigo-500 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]' 
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:bg-zinc-800'
-                 } ${!isMonitoring ? 'opacity-50 cursor-not-allowed' : ''}`}
-               >
-                 {ch}
-               </button>
-             ))}
+             {channels.map(ch => {
+               const isRestricted = restrictedChannels.includes(ch) && userProfile.role !== 'GENERAL_MANAGER';
+               return (
+                <button
+                  key={ch}
+                  disabled={!isMonitoring || isRestricted}
+                  onClick={() => onChannelChange(ch)}
+                  className={`text-[10px] font-mono py-1.5 rounded border transition-all relative group ${
+                      activeChannel === ch 
+                      ? 'bg-indigo-600/80 border-indigo-500 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]' 
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:bg-zinc-800'
+                  } ${restrictedChannels.includes(ch) ? 'border-l-2 border-l-yellow-500/50' : ''} ${(!isMonitoring || isRestricted) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isRestricted ? <Lock size={8} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-zinc-600" /> : ch}
+                  
+                  {/* Operational Dot for Internal Channels */}
+                  {restrictedChannels.includes(ch) && activeChannel !== ch && !isRestricted && (
+                      <span className="absolute top-0.5 right-0.5 w-1 h-1 bg-yellow-500 rounded-full opacity-50"></span>
+                  )}
+                </button>
+               );
+             })}
           </div>
         </div>
       </div>

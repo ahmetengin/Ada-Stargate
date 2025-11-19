@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Activity, Server, Radio, Zap, Anchor, Map, List, AlertTriangle, Search, Filter, AlertCircle, ClipboardList, Ship } from 'lucide-react';
-import { RegistryEntry, Tender } from '../types';
+import { Activity, Server, Radio, Zap, Anchor, Map, List, AlertTriangle, Search, Filter, AlertCircle, ClipboardList, Ship, User } from 'lucide-react';
+import { RegistryEntry, Tender, UserProfile } from '../types';
 
 interface SystemLog {
   id: string;
@@ -17,9 +17,10 @@ interface CanvasProps {
   tenders: Tender[];
   activeChannel: string;
   isMonitoring: boolean;
+  userProfile: UserProfile; // NEW: Pass user profile
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeChannel, isMonitoring }) => {
+export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeChannel, isMonitoring, userProfile }) => {
   const [activeTab, setActiveTab] = useState<'feed' | 'fleet'>('feed');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
@@ -334,12 +335,14 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, registry, tenders, activeC
       {/* Footer Stats */}
       <div className="p-3 border-t border-zinc-900 bg-zinc-950 grid grid-cols-3 gap-2 text-[10px] font-mono text-zinc-500 select-none">
         <div className="flex items-center gap-1 justify-center">
-           <Server size={10} />
-           <span>LAT: 12ms</span>
+           <User size={10} className={userProfile.role === 'GENERAL_MANAGER' ? 'text-indigo-400' : 'text-zinc-500'} />
+           <span className={userProfile.role === 'GENERAL_MANAGER' ? 'text-indigo-300 font-semibold' : 'text-zinc-500'}>
+             USER: {userProfile.name}
+           </span>
         </div>
         <div className="flex items-center gap-1 justify-center">
-           <Zap size={10} />
-           <span>UP: 99.9%</span>
+           <Server size={10} />
+           <span>LAT: 12ms</span>
         </div>
         <div className="flex items-center gap-1 justify-center">
            <Radio size={10} />

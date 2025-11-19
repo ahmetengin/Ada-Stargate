@@ -6,55 +6,61 @@ import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
 import { MessageBubble } from './components/MessageBubble';
 import { streamChatResponse, generateImage } from './services/geminiService';
-import { Menu, Radio } from 'lucide-react';
+import { Menu, Radio, Anchor, ShieldAlert } from 'lucide-react';
 import { VoiceModal } from './components/VoiceModal';
 import { TypingIndicator } from './components/TypingIndicator';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
   role: MessageRole.Model,
-  text: "**System Initialization Sequence**\n\n`[SUCCESS]` Tenant Loaded: **wim.ada.network** (West Istanbul Marina)\n`[SUCCESS]` SEAL Core: **Synthetic Data Generation Active**\n`[SUCCESS]` Auth Node: **ada.passkit** (IAM Active)\n`[SUCCESS]` Marshall Protocol: **ENFORCING**\n\n---\n\n**Ada Orchestrator Online.**\n\nGreetings, Captain. I am connected to the WIM autonomous cluster.\n\n**Operational Status:**\n- **🧠 SEAL Engine:** Learning from interactions (Self-Edit Mode)\n- **👮 Marshall:** Monitoring Speed (G.1) & Contracts (H.3)\n- **🛡️ Auth:** KVKK/GDPR Protocols Active\n- **📡 VHF Sentinel:** Scanning Ch 16/73/12/13/14\n\n*State: Ready. Privacy Protocol Active.*",
+  text: `**System Initialization Sequence**
+
+**[ OK ]** SEAL Core: Synthetic Data Generation (ACTIVE)
+**[ OK ]** Tender Ops: Alpha/Bravo/Charlie (READY)
+**[ OK ]** Marshall Protocol: Enforcing WIM Regulations (ENGAGED)
+
+*Ada Maritime Intelligence is online. Waiting for Captain's orders.*`,
   timestamp: Date.now()
 };
 
-interface SystemLog {
-  id: string;
-  timestamp: string;
-  node: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'critical' | 'alert';
-}
+// Mock Data Generators
+const VESSEL_NAMES = ['S/Y Phisedelia', 'M/Y Blue Horizon', 'S/Y Mistral', 'M/Y Poseidon', 'Catamaran Lir', 'S/Y Aegeas', 'Tender Bravo'];
+const LOCATIONS = ['Pontoon A-12', 'Pontoon C-05', 'Fuel Station', 'Dry Dock', 'Entrance Beacon', 'Technical Quay'];
 
-type NodeStatus = 'connected' | 'working' | 'disconnected';
-
-function App() {
+export default function App() {
+  // --- State: Chat & AI ---
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>(ModelType.Pro);
   const [useSearch, setUseSearch] = useState(false);
   const [useThinking, setUseThinking] = useState(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // --- State: Maritime Systems ---
+  const [activeChannel, setActiveChannel] = useState('73');
+  const [isMonitoring, setIsMonitoring] = useState(true);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  
-  // User Identity / Auth State
+  const [isCanvasOpen, setIsCanvasOpen] = useState(true);
+
+  // --- State: Identity & Auth ---
   const [userProfile, setUserProfile] = useState<UserProfile>({
-     id: 'guest-1',
-     name: 'Guest User',
-     role: 'GUEST',
-     clearanceLevel: 0
+    id: 'guest-01',
+    name: 'Guest User',
+    role: 'GUEST',
+    clearanceLevel: 0
   });
 
-  // Simulation State
-  const [logs, setLogs] = useState<SystemLog[]>([]);
+  // --- State: Simulation Data ---
+  const [logs, setLogs] = useState<any[]>([]);
   const [registry, setRegistry] = useState<RegistryEntry[]>([]);
   const [tenders, setTenders] = useState<Tender[]>([
     { id: 't1', name: 'Tender Alpha', status: 'Idle' },
     { id: 't2', name: 'Tender Bravo', status: 'Idle' },
-    { id: 't3', name: 'Tender Charlie', status: 'Maintenance' }
+    { id: 't3', name: 'Tender Charlie', status: 'Maintenance' },
   ]);
-  const [activeChannel, setActiveChannel] = useState<string>('73');
-  const [isMonitoring, setIsMonitoring] = useState<boolean>(true);
-  const [nodeStates, setNodeStates] = useState<Record<string, NodeStatus>>({
+  
+  // Node Statuses for Sidebar
+  const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({
+    'ada.vhf': 'connected',
     'ada.sea': 'connected',
     'ada.marina': 'connected',
     'ada.finance': 'connected',
@@ -63,19 +69,9 @@ function App() {
     'ada.legal': 'connected',
     'ada.security': 'connected',
     'ada.weather': 'connected',
-    'ada.vhf': 'connected'
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Refs for interval access
-  const monitoringRef = useRef(isMonitoring);
-  const channelRef = useRef(activeChannel);
-
-  useEffect(() => {
-    monitoringRef.current = isMonitoring;
-    channelRef.current = activeChannel;
-  }, [isMonitoring, activeChannel]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,430 +81,362 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
-  // Helper to add log manually
-  const addSystemLog = (node: string, msg: string, type: SystemLog['type']) => {
-    setLogs(prev => [{
-      id: Date.now().toString() + Math.random(),
-      timestamp: new Date().toLocaleTimeString(),
-      node,
-      message: msg,
-      type
-    }, ...prev].slice(0, 200));
-    
-    // Blink the node
-    const nodeName = node.includes('wim') ? node.split('.')[1] ? 'ada.' + node.split('.')[1] : 'ada.passkit' : 'ada.passkit';
-    setNodeStates(prev => ({ ...prev, [nodeName]: 'working' }));
-    setTimeout(() => setNodeStates(prev => ({ ...prev, [nodeName]: 'connected' })), 400);
-  };
-
-  // Handle Role Switch with "Passkit Authentication Sequence"
-  const handleRoleChange = (role: UserRole) => {
-     if (role === 'GENERAL_MANAGER') {
-        // Cinematic Auth Sequence
-        addSystemLog('ada.passkit.wim', 'Initiating Secure Handshake (Protocol v2)...', 'warning');
-
-        setTimeout(() => {
-           addSystemLog('ada.passkit.wim', 'Device Passkit Found: [PK-8821-AE]', 'info');
-        }, 800);
-
-        setTimeout(() => {
-           addSystemLog('ada.passkit.wim', 'Biometric Verification: RETINA_SCAN [MATCH]', 'success');
-        }, 1800);
-
-        setTimeout(() => {
-           addSystemLog('ada.passkit.wim', 'Decryption Key: 0x7F... Loaded. Level 5 Access Granted.', 'critical'); // Green critical style
-           setUserProfile({
-              id: 'gm-01',
-              name: 'Ahmet Engin',
-              role: 'GENERAL_MANAGER',
-              clearanceLevel: 5
-           });
-           // Optional: Add a welcome message to chat
-           setMessages(prev => [...prev, {
-              id: Date.now().toString(),
-              role: MessageRole.System,
-              text: "**AUTHENTICATION SUCCESSFUL**\n\nWelcome back, General Manager. Access Level 5 unlocked. All telemetry streams are now unmasked.",
-              timestamp: Date.now()
-           }]);
-        }, 2800);
-
-     } else {
-        // Immediate Logout
-        setUserProfile({
-           id: 'guest-1',
-           name: 'Guest User',
-           role: 'GUEST',
-           clearanceLevel: 0
-        });
-        addSystemLog('ada.passkit.wim', 'Session Terminated. Reverting to Public Access.', 'warning');
-     }
-  };
-
-  // System Simulation Effect
+  // --- Simulation Engine ---
   useEffect(() => {
-    const vesselNames = [
-      'Phisedelia', 'Blue Horizon', 'Karayel', 'Mistral', 'Aegean Queen', 
-      'Marmara Star', 'Sirocco', 'Levante', 'Poyraz', 'Meltem', 
-      'Odyssey', 'Poseidon', 'Neptune', 'Mermaid', 'Atlantis'
-    ];
-
-    const serviceNodes = ['ada.marina.wim', 'ada.finance.wim', 'ada.weather.wim', 'ada.customer.wim', 'ada.legal.wim', 'ada.security.wim'];
-
-    const generateLog = () => {
-      const rand = Math.random();
-      let nodeFull = '';
-      let nodeBase = '';
-      let msg = '';
-      let type: SystemLog['type'] = 'info';
-
-      // Registry Simulation (Check-In / Check-Out) - 5% chance
-      if (rand < 0.05) {
-          const action = Math.random() > 0.5 ? 'CHECK-IN' : 'CHECK-OUT';
-          const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
-          const loc = action === 'CHECK-IN' ? 'Gate 1' : `Pontoon ${String.fromCharCode(65 + Math.floor(Math.random() * 5))}`;
-          
-          const entry: RegistryEntry = {
-            id: Math.random().toString(36).substr(2, 9),
-            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' }),
-            vessel: `S/Y ${vName}`,
-            action,
-            location: loc,
-            status: 'AUTHORIZED'
-          };
-          
-          setRegistry(prev => [entry, ...prev].slice(0, 50)); // Keep last 50 entries
-          
-          nodeFull = 'ada.passkit.wim';
-          nodeBase = 'ada.passkit';
-          msg = `Registry Update: ${action} - ${vName} @ ${loc}`;
-          type = 'success';
-      } 
-      else if (rand < 0.35) { // VHF Traffic (High frequency)
-         if (!monitoringRef.current) return null;
-         nodeFull = 'ada.vhf.wim';
-         nodeBase = 'ada.vhf';
-         
-         const currentCh = channelRef.current;
-         const msgs16 = ['Securite: Dredging ops.', 'Mayday Relay: Sector 4.', 'All stations: Gale warning.', 'Routine Check.'];
-         const msgs73 = ['Phisedelia requesting pilot.', 'M/Y Blue Star at A-Pontoon.', 'Fuel dock status check.', 'Tender boat returning.'];
-         const msgs06 = ['Switching to Ch 06.', 'Radio check, over.'];
-         const msgs12 = ['Port Control: Operations normal.', 'Manager to Office.', 'Shift change acknowledged.'];
-         const msgs13 = ['Security Patrol: Sector B clear.', 'Gate 1: Access verified.', 'CCTV 4: Motion detected.'];
-         const msgs14 = ['Tender Alpha: Lines secured.', 'Travel Lift: Haul-out complete.', 'Technical team to Hangar 2.'];
-
-         // Emergency scenarios
-         if (rand < 0.02) {
-             msg = `[CH 16] MAYDAY MAYDAY: Engine fire on ${vesselNames[Math.floor(Math.random() * vesselNames.length)]}.`;
-             type = 'critical';
-         } else if (currentCh === 'SCAN' || currentCh === '16') {
-             msg = `[CH 16] ${msgs16[Math.floor(Math.random() * msgs16.length)]}`;
-             type = 'warning';
-         } else if (currentCh === '73') {
-             msg = `[CH 73] ${msgs73[Math.floor(Math.random() * msgs73.length)]}`;
-         } else if (currentCh === '12') {
-             msg = `[CH 12] ${msgs12[Math.floor(Math.random() * msgs12.length)]}`;
-         } else if (currentCh === '13') {
-             msg = `[CH 13] ${msgs13[Math.floor(Math.random() * msgs13.length)]}`;
-         } else if (currentCh === '14') {
-             msg = `[CH 14] ${msgs14[Math.floor(Math.random() * msgs14.length)]}`;
-         } else {
-             msg = `[CH ${currentCh}] ${msgs06[Math.floor(Math.random() * msgs06.length)]}`;
-         }
-
-      } else if (rand < 0.50) { // Vessel Ops (Privacy First)
-         // Vessels don't broadcast telemetry anymore unless critical
-         const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
-         nodeFull = `ada.sea.${vName.toLowerCase().replace(' ', '_')}`;
-         nodeBase = 'ada.sea';
-         
-         // Simulation of Local Data Processing
-         const privacyActs = ['Local DB: Encrypted.', 'Privacy Shield: Query Blocked.', 'Auth Request: Check-in.', 'Handshake: ada.marina.wim'];
-         msg = privacyActs[Math.floor(Math.random() * privacyActs.length)];
-         type = 'info';
-
-      } else { // Marshall / Infrastructure Events
-         const sNode = serviceNodes[Math.floor(Math.random() * serviceNodes.length)];
-         nodeFull = sNode;
-         nodeBase = sNode.split('.')[1] ? `ada.${sNode.split('.')[1]}` : 'ada.marina';
-         
-         if (nodeBase === 'ada.legal' || nodeBase === 'ada.security') {
-            // Marshall Logic: Speeding Simulation
-            if (Math.random() < 0.15) {
-               const plate = Math.floor(Math.random() * 99) + 'AB' + Math.floor(Math.random() * 999);
-               msg = `CAM-04: Land Speed Violation [Plate: 34${plate}] 18km/h. (Limit: 10km/h)`;
-               type = 'critical';
-            } else {
-               msg = 'Contract Audit: Compliance 99%.';
-               type = 'success';
-            }
-         } else if (nodeBase === 'ada.finance') {
-            msg = `Ledger Sync: ${Math.floor(Math.random() * 5000)} EUR processed.`;
-         } else if (nodeBase === 'ada.marina') {
-             // Tender Ops Simulation (Ch 14) & State Update
-             if (Math.random() < 0.4) {
-                 const vName = vesselNames[Math.floor(Math.random() * vesselNames.length)];
-                 
-                 // Randomly assign a task to a tender
-                 setTenders(prev => {
-                    const newTenders = [...prev];
-                    const idleTenderIdx = newTenders.findIndex(t => t.status === 'Idle');
-                    if (idleTenderIdx >= 0 && Math.random() > 0.5) {
-                        newTenders[idleTenderIdx] = { ...newTenders[idleTenderIdx], status: 'Busy', assignment: `Assisting ${vName}` };
-                        msg = `[CH 14] ${newTenders[idleTenderIdx].name}: Assisting ${vName} at Pontoon C.`;
-                    } else {
-                        // Randomly free up a tender
-                        const busyTenderIdx = newTenders.findIndex(t => t.status === 'Busy');
-                        if (busyTenderIdx >= 0) {
-                            msg = `[CH 14] ${newTenders[busyTenderIdx].name}: Task complete. Returning to base.`;
-                            newTenders[busyTenderIdx] = { ...newTenders[busyTenderIdx], status: 'Idle', assignment: undefined };
-                        } else {
-                             msg = 'Gate sensor triggered.';
-                        }
-                    }
-                    return newTenders;
-                 });
-                 type = 'info';
-             } else {
-                 msg = 'Gate sensor triggered.';
-             }
-         } else {
-            const sActs = ['Transaction verified.', 'Weather update: 15kt NW.', 'CRM Sync.'];
-            msg = sActs[Math.floor(Math.random() * sActs.length)];
-         }
-      }
-
-      if (!msg) return null;
-
-      // Update Node Status visually
-      setNodeStates(prev => ({
-        ...prev,
-        [nodeBase]: 'working'
-      }));
-      setTimeout(() => {
-        setNodeStates(prev => ({
-          ...prev,
-          [nodeBase]: 'connected'
-        }));
-      }, 400);
-
-      return {
-        id: Math.random().toString(36).substr(2, 9),
-        timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-        node: nodeFull,
-        message: msg,
-        type
-      };
-    };
-
     const interval = setInterval(() => {
-      const newLog = generateLog();
-      if (newLog) {
-        setLogs(prev => [newLog, ...prev].slice(0, 200)); 
+      if (!isMonitoring) return;
+
+      const random = Math.random();
+      let newLog = null;
+
+      // 1. VHF Traffic Simulation (Ch 16/73/12/13/14)
+      if (random > 0.7) {
+         const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
+         // Generate realistic traffic based on active channel context or random
+         if (random > 0.95) {
+             newLog = {
+                 node: 'ada.vhf.wim',
+                 message: `[CH 16] MAYDAY RELAY - Vessel ${vessel} reporting engine fire at 40.9N 28.8E`,
+                 type: 'critical'
+             };
+         } else if (random > 0.9) {
+             newLog = {
+                 node: 'ada.vhf.wim',
+                 message: `[CH 16] PAN PAN - Medical assistance required on Pontoon B`,
+                 type: 'alert'
+             };
+         } else if (random > 0.88) {
+             newLog = {
+                 node: 'ada.security',
+                 message: `[CH 13] Security Patrol: Unauthorized drone detected near Hangar A.`,
+                 type: 'warning'
+             };
+         } else if (random > 0.86) {
+             newLog = {
+                 node: 'ada.marina.wim',
+                 message: `[CH 14] Tender Alpha: Towing S/Y Phisedelia to Pontoon C.`,
+                 type: 'info'
+             };
+         } else {
+             newLog = {
+                 node: 'ada.vhf.wim',
+                 message: `[CH 73] ${vessel}: Requesting radio check. Signal 5/5.`,
+                 type: 'info'
+             };
+         }
+      } 
+      // 2. Marshall Protocol / Traffic Enforcement
+      else if (random < 0.05) {
+         newLog = {
+            node: 'ada.legal.wim',
+            message: `MARSHALL ALERT: Speeding detected (Land). Vehicle 34AB123 at 18km/h. Article G.1 Enforcement: Card Cancelled.`,
+            type: 'critical'
+         };
       }
-    }, 600); // Turbo Mode (600ms)
+      // 3. Operational Updates (Weather/Finance)
+      else if (random < 0.15) {
+          newLog = {
+            node: 'ada.weather.wim',
+            message: 'Wind gusting 28 knots NW. Small craft advisory active.',
+            type: 'warning'
+          };
+      }
+
+      if (newLog) {
+         const logEntry = {
+            id: Math.random().toString(36).substr(2, 9),
+            timestamp: new Date().toLocaleTimeString(),
+            ...newLog
+         };
+         setLogs(prev => [logEntry, ...prev].slice(0, 100)); // Keep last 100
+         
+         // Flash node status
+         const nodeKey = newLog.node.split('.')[0] + '.' + newLog.node.split('.')[1]; // e.g. ada.vhf
+         if (nodeStates[nodeKey]) {
+             setNodeStates(prev => ({ ...prev, [nodeKey]: 'working' }));
+             setTimeout(() => {
+                 setNodeStates(prev => ({ ...prev, [nodeKey]: 'connected' }));
+             }, 800);
+         }
+      }
+
+      // 4. Registry Simulation (Check-in/Out)
+      if (Math.random() > 0.92) {
+          const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
+          const action = Math.random() > 0.5 ? 'CHECK-IN' : 'CHECK-OUT';
+          const entry: RegistryEntry = {
+              id: Math.random().toString(36),
+              timestamp: new Date().toLocaleTimeString(),
+              vessel,
+              action,
+              location: action === 'CHECK-IN' ? LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)] : 'Open Sea',
+              status: 'AUTHORIZED'
+          };
+          setRegistry(prev => [entry, ...prev].slice(0, 50));
+      }
+
+      // 5. Tender Ops Simulation
+      if (Math.random() > 0.85) {
+         const tenderIdx = Math.floor(Math.random() * 3); // 0, 1, 2
+         const newStatus = Math.random() > 0.6 ? 'Busy' : 'Idle';
+         const assignment = newStatus === 'Busy' ? `Assist ${VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)]}` : undefined;
+         
+         setTenders(prev => {
+            const next = [...prev];
+            if (next[tenderIdx].status !== 'Maintenance') {
+                next[tenderIdx] = { ...next[tenderIdx], status: newStatus, assignment };
+            }
+            return next;
+         });
+      }
+
+    }, 1200); // Simulation tick
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isMonitoring, nodeStates]);
+
+  // --- Handlers ---
 
   const handleSend = async (text: string, attachments: File[]) => {
-    const formattedAttachments = await Promise.all(attachments.map(async (file) => {
-      const reader = new FileReader();
-      return new Promise<{mimeType: string, data: string, name: string}>((resolve) => {
-        reader.onload = (e) => resolve({
-          mimeType: file.type,
-          data: (e.target?.result as string).split(',')[1],
-          name: file.name
-        });
-        reader.readAsDataURL(file);
-      });
-    }));
-
-    const newUserMsg: Message = {
+    // 1. Add User Message
+    const newMessage: Message = {
       id: Date.now().toString(),
       role: MessageRole.User,
-      text,
+      text: text,
       timestamp: Date.now(),
-      attachments: formattedAttachments
+      attachments: await Promise.all(attachments.map(async file => {
+         const reader = new FileReader();
+         return new Promise<any>((resolve) => {
+            reader.onload = (e) => resolve({
+               mimeType: file.type,
+               data: (e.target?.result as string).split(',')[1],
+               name: file.name
+            });
+            reader.readAsDataURL(file);
+         });
+      }))
     };
-
-    setMessages(prev => [...prev, newUserMsg]);
+    setMessages(prev => [...prev, newMessage]);
     setIsLoading(true);
 
-    try {
-      if (selectedModel === ModelType.Image) {
-        // Image Generation Flow
-        const botMsgId = (Date.now() + 1).toString();
-        setMessages(prev => [...prev, {
-            id: botMsgId,
-            role: MessageRole.Model,
-            text: '',
-            timestamp: Date.now(),
-            isThinking: true
-        }]);
+    // 2. Prepare Context
+    const processedAttachments = newMessage.attachments || [];
 
-        const imageBase64 = await generateImage(text);
-        
-        setMessages(prev => prev.map(m => m.id === botMsgId ? {
-            ...m,
-            isThinking: false,
-            generatedImage: imageBase64,
-            text: `Generated image for: "${text}"`
-        } : m));
+    // 3. Image Generation Check
+    if (selectedModel === ModelType.Image) {
+       const imageBase64 = await generateImage(text);
+       setMessages(prev => [
+         ...prev,
+         {
+           id: (Date.now() + 1).toString(),
+           role: MessageRole.Model,
+           text: "",
+           generatedImage: imageBase64,
+           timestamp: Date.now()
+         }
+       ]);
+       setIsLoading(false);
+       return;
+    }
 
-      } else {
-        // Chat Flow
-        const botMsgId = (Date.now() + 1).toString();
-        setMessages(prev => [...prev, {
-            id: botMsgId,
-            role: MessageRole.Model,
-            text: '',
-            timestamp: Date.now(),
-            isThinking: true
-        }]);
+    // 4. Stream Response
+    let currentResponse = "";
+    const responseId = (Date.now() + 1).toString();
+    
+    // Add placeholder message
+    setMessages(prev => [...prev, {
+       id: responseId,
+       role: MessageRole.Model,
+       text: "",
+       timestamp: Date.now(),
+       isThinking: true
+    }]);
 
-        let fullText = '';
-        await streamChatResponse(
-          messages,
-          text,
-          formattedAttachments,
-          selectedModel,
-          useSearch,
-          useThinking,
-          registry, // Pass latest registry
-          tenders,  // Pass latest tenders
-          userProfile, // Pass latest User Identity (Auth)
-          (chunkText, grounding) => {
-            fullText += chunkText;
-            setMessages(prev => prev.map(m => m.id === botMsgId ? {
-                ...m,
-                text: fullText,
-                isThinking: false,
-                groundingSources: grounding || m.groundingSources
-            } : m));
-          }
-        );
+    await streamChatResponse(
+      messages.concat(newMessage),
+      text,
+      processedAttachments,
+      selectedModel,
+      useSearch,
+      useThinking,
+      registry,
+      tenders,
+      userProfile, // Pass Auth Context
+      (chunk, grounding) => {
+         currentResponse += chunk;
+         setMessages(prev => prev.map(m => 
+           m.id === responseId 
+             ? { ...m, text: currentResponse, isThinking: false, groundingSources: grounding }
+             : m
+         ));
       }
+    );
 
-    } catch (error: any) {
-        console.error(error);
-        let errorMessage = "Error: Could not connect to Ada Orchestrator.";
-        if (error.message === 'API_QUOTA_EXCEEDED') {
-           errorMessage = "⚠️ **SYSTEM ALERT: RESOURCE EXHAUSTED**\n\nThe API quota has been exceeded. Please check billing or wait before sending new requests.\n\n*Status: Standby Mode*";
-        }
+    setIsLoading(false);
+  };
 
-        setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            role: MessageRole.System,
-            text: errorMessage,
-            timestamp: Date.now()
-        }]);
-    } finally {
-        setIsLoading(false);
+  const handleRoleChange = (role: UserRole) => {
+    if (role === 'GENERAL_MANAGER') {
+        // Simulate Passkit Auth Sequence
+        const seq = [
+            { msg: "AUTHENTICATING...", type: 'info' },
+            { msg: "DETECTED PASSKIT: PK-8821-X", type: 'warning' },
+            { msg: "BIOMETRIC HANDSHAKE: RETINA_SCAN [OK]", type: 'success' },
+            { msg: "ACCESS GRANTED: LEVEL 5 (GM)", type: 'success' }
+        ];
+        
+        let delay = 0;
+        seq.forEach(s => {
+            setTimeout(() => {
+                setLogs(prev => [{
+                    id: Math.random().toString(),
+                    timestamp: new Date().toLocaleTimeString(),
+                    node: 'ada.passkit',
+                    message: s.msg,
+                    type: s.type
+                }, ...prev]);
+            }, delay);
+            delay += 800;
+        });
+
+        setTimeout(() => {
+             setUserProfile({
+                id: 'ahmet-engin-01',
+                name: 'Ahmet Engin',
+                role: 'GENERAL_MANAGER',
+                clearanceLevel: 5
+             });
+        }, delay);
+
+    } else {
+        // Logout
+        setUserProfile({
+            id: 'guest-01',
+            name: 'Guest User',
+            role: 'GUEST',
+            clearanceLevel: 0
+        });
+        setLogs(prev => [{
+            id: Math.random().toString(),
+            timestamp: new Date().toLocaleTimeString(),
+            node: 'ada.passkit',
+            message: "SESSION TERMINATED. REVERTING TO PUBLIC ACCESS.",
+            type: 'warning'
+        }, ...prev]);
     }
   };
 
-  const handleClear = () => {
-    setMessages([INITIAL_MESSAGE]);
-    setLogs([]);
-    setRegistry([]);
-  };
-
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden bg-zinc-950 text-zinc-200">
       
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-4 z-40">
-        <div className="font-bold text-lg">Ada Orchestrator</div>
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
-           <Menu />
-        </button>
-      </div>
+      {/* 1. Sidebar (Controls) */}
+      <Sidebar 
+         onClear={() => setMessages([INITIAL_MESSAGE])}
+         nodeStates={nodeStates}
+         activeChannel={activeChannel}
+         onChannelChange={setActiveChannel}
+         isMonitoring={isMonitoring}
+         onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
+         userProfile={userProfile}
+         onRoleChange={handleRoleChange}
+      />
 
-      {/* Sidebar (Desktop) */}
-      <div className={`${mobileMenuOpen ? 'absolute inset-0 z-50 bg-zinc-950' : 'hidden'} md:relative md:block`}>
-        <div className="md:hidden absolute top-4 right-4">
-           <button onClick={() => setMobileMenuOpen(false)}><Menu /></button>
-        </div>
-        <Sidebar 
-           onClear={handleClear} 
-           nodeStates={nodeStates}
-           activeChannel={activeChannel}
-           onChannelChange={setActiveChannel}
-           isMonitoring={isMonitoring}
-           onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
-           userProfile={userProfile}
-           onRoleChange={handleRoleChange}
-        />
-      </div>
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-full relative min-w-0">
+      {/* 2. Main Chat Area */}
+      <div className="flex flex-col flex-1 relative min-w-0">
         
-        {/* Header with VHF Status */}
-        <div className="h-14 border-b border-zinc-900 bg-zinc-950/50 flex items-center justify-end px-4 gap-4">
-           <div className="flex items-center gap-2">
-              <div className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Scanning</div>
-              <div className="flex gap-1">
-                 {['16', '73', '06'].map(ch => (
-                    <div key={ch} className={`w-1.5 h-1.5 rounded-full ${activeChannel === 'SCAN' ? 'bg-green-500 animate-pulse' : activeChannel === ch ? 'bg-green-500' : 'bg-zinc-800'}`} style={{ animationDelay: ch === '73' ? '100ms' : ch === '06' ? '200ms' : '0ms' }} />
-                 ))}
+        {/* Header */}
+        <header className="h-14 border-b border-zinc-900 bg-zinc-950/80 backdrop-blur flex items-center justify-between px-4 flex-shrink-0 z-10">
+           <div className="flex items-center gap-3">
+              <div className="md:hidden">
+                 <Menu size={20} className="text-zinc-400" />
+              </div>
+              <div className="flex items-center gap-2">
+                 <ShieldAlert size={16} className={userProfile.role === 'GENERAL_MANAGER' ? 'text-indigo-500' : 'text-zinc-600'} />
+                 <span className="font-mono font-bold text-sm tracking-wider">
+                    {userProfile.role === 'GENERAL_MANAGER' ? 'OPS COMMAND' : 'PUBLIC TERMINAL'}
+                 </span>
               </div>
            </div>
-           <div className="h-4 w-px bg-zinc-800" />
-           <button 
-             onClick={() => setIsVoiceModalOpen(true)}
-             className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 px-3 py-1.5 rounded text-xs font-bold font-mono tracking-wide transition-colors"
-           >
-             <Radio size={12} />
-             VHF {activeChannel === 'SCAN' ? 'SCAN' : activeChannel}
-           </button>
-        </div>
 
-        {/* Chat History */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
-          {messages.map((msg) => (
-             <MessageBubble key={msg.id} message={msg} />
-          ))}
-          {isLoading && messages[messages.length - 1]?.role === MessageRole.User && (
-             <div className="flex justify-start w-full mb-6">
-                <TypingIndicator />
-             </div>
-          )}
-          <div ref={messagesEndRef} />
+           <div className="flex items-center gap-4">
+               {/* VHF Status Widget */}
+               <div className="flex items-center gap-3 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800">
+                   <div className="flex flex-col items-end leading-none">
+                       <span className="text-[10px] text-zinc-500 font-bold">VHF ACTIVE</span>
+                       <span className={`text-sm font-mono font-bold ${activeChannel === '16' ? 'text-red-500' : 'text-green-400'}`}>
+                           CH {activeChannel}
+                       </span>
+                   </div>
+                   <button 
+                     onClick={() => setIsVoiceModalOpen(true)}
+                     className="w-8 h-8 rounded bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-indigo-400 transition-colors"
+                   >
+                       <Radio size={16} />
+                   </button>
+               </div>
+
+               {/* Deck Toggle (Mobile/Tablet) */}
+               <button 
+                  onClick={() => setIsCanvasOpen(!isCanvasOpen)}
+                  className="lg:hidden p-2 text-zinc-400 hover:text-zinc-200"
+               >
+                  <Anchor size={20} />
+               </button>
+           </div>
+        </header>
+
+        {/* Messages Scroll Area */}
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+          <div className="max-w-3xl mx-auto">
+            {messages.map((msg) => (
+              <MessageBubble key={msg.id} message={msg} />
+            ))}
+            {isLoading && messages[messages.length - 1]?.role === MessageRole.User && (
+               <TypingIndicator />
+            )}
+            <div ref={messagesEndRef} />
+          </div>
         </div>
 
         {/* Input Area */}
         <div className="p-4 bg-zinc-950 border-t border-zinc-900">
            <InputArea 
-              onSend={handleSend} 
-              isLoading={isLoading}
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              useSearch={useSearch}
-              onToggleSearch={() => setUseSearch(!useSearch)}
-              useThinking={useThinking}
-              onToggleThinking={() => setUseThinking(!useThinking)}
-              onStartVoice={() => setIsVoiceModalOpen(true)}
+             onSend={handleSend}
+             isLoading={isLoading}
+             selectedModel={selectedModel}
+             onModelChange={setSelectedModel}
+             useSearch={useSearch}
+             onToggleSearch={() => setUseSearch(!useSearch)}
+             useThinking={useThinking}
+             onToggleThinking={() => setUseThinking(!useThinking)}
+             onStartVoice={() => setIsVoiceModalOpen(true)}
            />
-           <div className="text-center text-[10px] text-zinc-600 mt-2 select-none">
-              MARSHALL PROTOCOL ACTIVE. VIOLATIONS ARE LOGGED AUTOMATICALLY.
+           <div className="text-center mt-2">
+              <span className="text-[10px] text-zinc-600 font-mono">
+                 Ada Maritime Intelligence v2.5.0 • {userProfile.role} SESSION
+              </span>
            </div>
         </div>
       </div>
 
-      {/* Canvas (Operations Deck) */}
-      <Canvas 
-        logs={logs} 
-        registry={registry}
-        tenders={tenders}
-        activeChannel={activeChannel}
-        isMonitoring={isMonitoring}
-      />
+      {/* 3. Operations Deck (Canvas) */}
+      {isCanvasOpen && (
+        <Canvas 
+           logs={logs} 
+           registry={registry}
+           tenders={tenders}
+           activeChannel={activeChannel}
+           isMonitoring={isMonitoring}
+           userProfile={userProfile}
+        />
+      )}
 
-      <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} />
+      {/* Modals */}
+      <VoiceModal 
+        isOpen={isVoiceModalOpen} 
+        onClose={() => setIsVoiceModalOpen(false)} 
+      />
 
     </div>
   );
 }
-
-export default App;
