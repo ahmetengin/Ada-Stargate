@@ -51,26 +51,31 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
   const getRowStyle = (log: SystemLog) => {
     const msg = log.message.toUpperCase();
     if (log.type === 'critical' || msg.includes('MAYDAY') || msg.includes('COLLISION') || msg.includes('FIRE')) {
-      return 'bg-red-950/40 border-l-4 border-red-500 animate-[pulse_3s_infinite]';
+      // Urgent Red: High opacity background, bright red border
+      return 'bg-red-900/60 border-l-4 border-red-500 animate-pulse shadow-[inset_0_0_20px_rgba(220,38,38,0.2)]';
     }
     if (log.type === 'alert' || msg.includes('PAN PAN') || msg.includes('PAN-PAN')) {
-      return 'bg-orange-950/30 border-l-4 border-orange-500';
+      // Urgent Orange: Medium-high opacity
+      return 'bg-orange-900/50 border-l-4 border-orange-500 shadow-[inset_0_0_10px_rgba(234,88,12,0.2)]';
     }
     if (log.type === 'warning' || msg.includes('SECURITE')) {
-      return 'bg-yellow-950/20 border-l-4 border-yellow-500';
+      // Warning Yellow: Visible opacity
+      return 'bg-yellow-900/40 border-l-4 border-yellow-500';
     }
     return 'hover:bg-zinc-800/50 border-l-4 border-transparent';
   };
 
   const getTextStyle = (log: SystemLog) => {
     const msg = log.message.toUpperCase();
-    if (log.type === 'critical' || msg.includes('MAYDAY')) return 'text-red-200 font-bold';
-    if (log.type === 'alert' || msg.includes('PAN PAN')) return 'text-orange-200 font-semibold';
-    if (log.type === 'warning' || msg.includes('SECURITE')) return 'text-yellow-200';
+    // High contrast text for urgent backgrounds
+    if (log.type === 'critical' || msg.includes('MAYDAY')) return 'text-white font-bold drop-shadow-md';
+    if (log.type === 'alert' || msg.includes('PAN PAN')) return 'text-white font-semibold drop-shadow-sm';
+    if (log.type === 'warning' || msg.includes('SECURITE')) return 'text-yellow-100 font-medium';
     return 'text-zinc-400 group-hover:text-zinc-300';
   };
 
-  const filteredLogs = [...logs].reverse().filter(log => 
+  // Removed .reverse() so the logs (which come in as [Newest, ..., Oldest]) render Newest first.
+  const filteredLogs = logs.filter(log => 
     log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
     log.node.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -141,17 +146,18 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
               </span>
             </div>
 
-            {/* Logs Stream - REVERSED order for newest first */}
+            {/* Logs Stream */}
             <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar font-mono text-xs">
               {filteredLogs.map((log) => (
                 <div key={log.id} className={`flex gap-3 p-2 rounded transition-colors group ${getRowStyle(log)}`}>
-                  <span className={`flex-shrink-0 w-14 opacity-70 ${log.type === 'critical' ? 'text-red-300' : 'text-zinc-600'}`}>
+                  <span className={`flex-shrink-0 w-14 opacity-70 ${log.type === 'critical' || log.type === 'alert' ? 'text-white/80' : 'text-zinc-600'}`}>
                     {log.timestamp}
                   </span>
                   <div className="flex flex-col min-w-0 w-full">
                     <div className="flex items-center gap-2">
                       <span className={`font-bold ${
-                        log.type === 'critical' ? 'text-red-400' :
+                        log.type === 'critical' ? 'text-red-100' :
+                        log.type === 'alert' ? 'text-orange-100' :
                         log.node.includes('sea') ? 'text-blue-400' : 
                         log.node.includes('finance') ? 'text-green-400' :
                         log.node.includes('marina') ? 'text-cyan-400' : 
@@ -159,7 +165,7 @@ export const Canvas: React.FC<CanvasProps> = ({ logs, activeChannel, isMonitorin
                       }`}>
                         {log.node}
                       </span>
-                      {log.type === 'critical' && <AlertTriangle size={12} className="text-red-500 animate-bounce" />}
+                      {log.type === 'critical' && <AlertTriangle size={12} className="text-white animate-bounce" />}
                     </div>
                     <span className={`break-words mt-0.5 ${getTextStyle(log)}`}>
                       {log.message}
