@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  ada-orchestrator:
+    container_name: ada_orchestrator
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # This matches the ARG in the Dockerfile
+      args:
+        - API_KEY=${API_KEY}
+    ports:
+      - "3000:80"
+    restart: always
+    depends_on:
+      - ada-redis-broker
+
+  # Simulated Redis Broker for the Distributed Node System
+  ada-redis-broker:
+    image: redis:alpine
+    container_name: ada_redis_broker
+    ports:
+      - "6379:6379"
+    restart: always
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
