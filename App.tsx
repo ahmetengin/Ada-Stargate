@@ -6,7 +6,7 @@ import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
 import { MessageBubble } from './components/MessageBubble';
 import { streamChatResponse, generateImage } from './services/geminiService';
-import { Menu, Radio, Anchor, ShieldAlert, Plus } from 'lucide-react';
+import { Menu, Anchor, ShieldAlert, Plus } from 'lucide-react';
 import { VoiceModal } from './components/VoiceModal';
 import { TypingIndicator } from './components/TypingIndicator';
 import { StatusBar } from './components/StatusBar';
@@ -17,7 +17,8 @@ const INITIAL_MESSAGE: Message = {
   text: `**System Initialization Sequence**
 
 **[ OK ]** SEAL Core: Synthetic Data Generation (ACTIVE)
-**[ OK ]** Tender Ops: Alpha/Bravo/Charlie (READY)
+**[ OK ]** Weather Station: Multi-Source Forecast (ONLINE)
+**[ OK ]** Traffic Tower: ATC Logic Engaged (READY)
 **[ OK ]** Marshall Protocol: Enforcing WIM Regulations (ENGAGED)
 
 *Ada Maritime Intelligence is online. Waiting for Captain's orders.*`,
@@ -94,11 +95,17 @@ export default function App() {
       // 1. VHF Traffic Simulation (Ch 16/73/12/13/14)
       if (random > 0.7) {
          const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
-         if (random > 0.95) {
+         if (random > 0.96) {
              newLog = {
                  node: 'ada.vhf.wim',
                  message: `[CH 16] MAYDAY RELAY - Vessel ${vessel} reporting engine fire at 40.9N 28.8E`,
                  type: 'critical'
+             };
+         } else if (random > 0.94) {
+             newLog = {
+                 node: 'ada.marina.wim',
+                 message: `[BROADCAST] ATTENTION ALL STATIONS. TRAFFIC CONGESTION AT ENTRANCE. HOLD POSITION.`,
+                 type: 'alert'
              };
          } else if (random > 0.9) {
              newLog = {
@@ -126,7 +133,7 @@ export default function App() {
              };
          }
       } 
-      // 2. Marshall Protocol
+      // 2. Marshall Protocol & Traffic Control
       else if (random < 0.05) {
          newLog = {
             node: 'ada.legal.wim',
@@ -134,11 +141,17 @@ export default function App() {
             type: 'critical'
          };
       }
-      // 3. Operational Updates
-      else if (random < 0.15) {
+      // 3. Weather Updates (ada.weather.wim)
+      else if (random < 0.10) {
+          const forecasts = [
+              "Forecast Day 1: Sunny, Wind NW 12kts. Sea slight.",
+              "Forecast Day 2: GALE WARNING. Wind increasing N 35kts.",
+              "Poseidon: Barometer dropping 1012 -> 1005 hPa.",
+              "Windy: Thunderstorm cells detected West of Marmara."
+          ];
           newLog = {
             node: 'ada.weather.wim',
-            message: 'Wind gusting 28 knots NW. Small craft advisory active.',
+            message: forecasts[Math.floor(Math.random() * forecasts.length)],
             type: 'warning'
           };
       }
@@ -318,7 +331,7 @@ export default function App() {
                     timestamp: new Date().toLocaleTimeString(),
                     node: s.msg.includes('LEGAL') || s.msg.includes('CONTRACT') ? 'ada.legal.wim' : 'ada.passkit',
                     message: s.msg,
-                    type: s.type
+                    type: s.type as any
                 }, ...prev]);
             }, delay);
             delay += 800;

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GitBranch, RefreshCw, Wifi, Radio, AlertCircle, CheckCircle, Key, Shield } from 'lucide-react';
+import { GitBranch, RefreshCw, Wifi, Radio, AlertCircle, Key, Shield } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface StatusBarProps {
@@ -19,6 +19,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   activeChannel
 }) => {
   const isGM = userProfile.role === 'GENERAL_MANAGER';
+  const isLegalRed = userProfile.legalStatus === 'RED';
 
   return (
     <div className="h-6 w-full flex items-center justify-between px-2 select-none font-mono text-[10px] bg-zinc-950 border-t border-zinc-900 text-zinc-500 z-50">
@@ -57,7 +58,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
          <button 
            onClick={onToggleAuth}
            className={`flex items-center gap-2 px-3 h-full border-l border-zinc-900/50 hover:bg-zinc-900 transition-all uppercase font-bold tracking-wider ${
-             isGM ? 'text-indigo-400 hover:text-indigo-300' : 'text-zinc-500 hover:text-zinc-300'
+             isLegalRed ? 'text-red-500' : isGM ? 'text-indigo-400 hover:text-indigo-300' : 'text-zinc-500 hover:text-zinc-300'
            }`}
            title={isGM ? "Click to Logout" : "Click to Login"}
          >
@@ -76,7 +77,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
         {/* Notifications */}
         <div className="flex items-center gap-1.5 px-3 h-full border-l border-zinc-900/50 hover:bg-zinc-900 cursor-pointer text-zinc-500 hover:text-zinc-300">
-           <AlertCircle size={10} />
+           <AlertCircle size={10} className={isLegalRed ? 'text-red-500 animate-pulse' : ''} />
         </div>
       </div>
     </div>

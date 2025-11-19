@@ -18,12 +18,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       setIsSpeaking(false);
     } else {
       const utterance = new SpeechSynthesisUtterance(message.text);
-      // Optional: select a voice based on browser availability or persona (e.g., Google US English)
-      // utterance.lang = 'en-US'; 
-      
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
-      
       window.speechSynthesis.speak(utterance);
       setIsSpeaking(true);
     }
@@ -47,7 +43,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <div className={`px-4 py-3 rounded-2xl text-sm md:text-base shadow-sm ${
             isUser 
               ? 'bg-zinc-800 text-zinc-200 rounded-tr-none border border-zinc-700/50' 
-              : 'bg-transparent text-zinc-300 rounded-tl-none px-0 py-0' // Minimalist for bot: Remove bg bubble for pure text look or keep subtle? Let's keep subtle bubble for readability but darker.
+              : 'bg-transparent text-zinc-300 rounded-tl-none px-0 py-0' 
           } ${!isUser && 'bg-zinc-900/40 border border-zinc-800/50'}`}> 
           
             {/* Attachments */}

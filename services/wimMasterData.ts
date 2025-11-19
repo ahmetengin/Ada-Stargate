@@ -36,6 +36,25 @@ export const wimMasterData = {
       "gdpr_compliance": "Right to be forgotten active. Data encryption required for Level 1+."
     }
   },
+  "weather_station": {
+      "node": "ada.weather.wim",
+      "sources": [
+          { "name": "Poseidon System", "region": "Aegean/Marmara", "priority": 1 },
+          { "name": "Windy.com (ECMWF)", "type": "Global Model", "priority": 2 },
+          { "name": "OpenWeatherMap", "type": "API", "priority": 3 }
+      ],
+      "alert_thresholds": {
+          "small_craft_advisory": "Wind > 22 knots",
+          "gale_warning": "Wind > 34 knots",
+          "storm_warning": "Wind > 48 knots",
+          "thunderstorm": "Lightning probability > 40%"
+      },
+      "reporting_protocol": {
+          "frequency": "Daily 08:00 & 18:00 + On Demand",
+          "format": "3-Day Outlook (Morning/Afternoon/Night)",
+          "proactive_alert": "Broadcast immediately if thresholds exceeded."
+      }
+  },
   "assets": {
     "tenders": [
       { "id": "T-01", "callsign": "Tender Alpha", "type": "Palamar Botu", "status": "Active" },
@@ -49,28 +68,6 @@ export const wimMasterData = {
     "currency": "EUR",
     "payment_terms": "Advance Payment (Peşin)",
     "contract_types": ["Mooring", "Lifting", "Launching", "Dry Berthing"]
-  },
-  "operational_rules": {
-    "navigation": {
-      "max_speed_sea": "3 knots (Article E.1.10)",
-      "max_speed_land": "10 km/h (Article G.1)",
-      "anchoring": "Strictly Prohibited within Marina"
-    },
-    "safety": {
-      "swimming": "Prohibited (Article F.10)",
-      "fishing": "Prohibited (Article F.10)",
-      "water_sports": "Prohibited (Jet Ski, Diving)",
-      "fire_safety": "Open fire/BBQ prohibited (Article F.12). Hot works require permit."
-    },
-    "tender_operations": {
-      "workflow": "Public contact Ch 73 -> Handover to Tender Ch 14",
-      "priority": ["Emergency", "Superyachts (>40m)", "Racing Yachts (VO65)", "Standard"],
-      "maneuver_assist": "Mandatory for vessels >20m or high wind conditions"
-    },
-    "environment": {
-      "waste_disposal": "Designated areas only. Bilge discharge prohibited (Article F.13).",
-      "noise_control": "Engine/Generator usage subject to authorization."
-    }
   },
   "traffic_control": {
       "system_type": "ATC-Style Sequencing (Tower Control)",
