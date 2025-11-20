@@ -1,18 +1,10 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { Activity, List, Map, AlertTriangle, Search, Filter, AlertCircle, ClipboardList, Ship, CloudRain, Wind, Anchor, ArrowDown, ArrowUp, Clock, Cloud, Sun, Thermometer, Navigation, Radar } from 'lucide-react';
+import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, Anchor } from 'lucide-react';
 import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast } from '../types';
 
-interface SystemLog {
-  id: string;
-  timestamp: string;
-  node: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'critical' | 'alert';
-}
-
 interface CanvasProps {
-  logs: SystemLog[];
+  logs: any[];
   registry: RegistryEntry[];
   tenders: Tender[];
   trafficQueue: TrafficEntry[];
@@ -32,29 +24,23 @@ export const Canvas: React.FC<CanvasProps> = ({
   isMonitoring, 
   userProfile 
 }) => {
-  const [activeTab, setActiveTab] = useState<'feed' | 'fleet' | 'cloud' | 'ais'>('feed');
+  const [activeTab, setActiveTab] = useState<'cloud' | 'feed' | 'fleet' | 'ais'>('cloud');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [showWarningOnly, setShowWarningOnly] = useState(false);
   
-  // Resizable Canvas State
   const [width, setWidth] = useState(450);
   const [isResizing, setIsResizing] = useState(false);
 
   const startResizing = useCallback(() => setIsResizing(true), []);
   const stopResizing = useCallback(() => setIsResizing(false), []);
 
-  const resize = useCallback(
-    (mouseMoveEvent: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = window.innerWidth - mouseMoveEvent.clientX;
-        if (newWidth > 300 && newWidth < 900) {
-          setWidth(newWidth);
-        }
-      }
-    },
-    [isResizing]
-  );
+  const resize = useCallback((mouseMoveEvent: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = window.innerWidth - mouseMoveEvent.clientX;
+      if (newWidth > 300 && newWidth < 900) setWidth(newWidth);
+    }
+  }, [isResizing]);
 
   useEffect(() => {
     window.addEventListener("mousemove", resize);
@@ -64,336 +50,188 @@ export const Canvas: React.FC<CanvasProps> = ({
       window.removeEventListener("mouseup", stopResizing);
     };
   }, [resize, stopResizing]);
-
-  const getRowStyle = (log: SystemLog) => {
-    const msg = log.message.toUpperCase();
-    if (log.type === 'critical' || msg.includes('MAYDAY') || msg.includes('COLLISION') || msg.includes('FIRE')) {
-      return 'bg-red-900/60 border-l-4 border-red-500 animate-pulse shadow-[inset_0_0_20px_rgba(220,38,38,0.2)]';
-    }
-    if (log.type === 'alert' || msg.includes('PAN PAN')) {
-      return 'bg-orange-900/50 border-l-4 border-orange-500 shadow-[inset_0_0_10px_rgba(234,88,12,0.2)]';
-    }
-    if (log.type === 'warning' || msg.includes('SECURITE')) {
-      return 'bg-yellow-900/40 border-l-4 border-yellow-500';
-    }
-    return 'hover:bg-zinc-800/50 border-l-4 border-transparent';
+  
+  const getRowStyle = (log: any) => {
+    const type = log.type || 'info';
+    if (type === 'critical') return 'bg-red-900/40 border-l-2 border-red-500 text-red-200';
+    if (type === 'alert') return 'bg-amber-900/30 border-l-2 border-amber-500 text-amber-200';
+    if (type === 'warning') return 'bg-yellow-900/20 border-l-2 border-yellow-600 text-yellow-200';
+    return 'border-l-2 border-transparent hover:bg-zinc-800/50';
   };
-
-  const getTextStyle = (log: SystemLog) => {
-    const msg = log.message.toUpperCase();
-    if (log.type === 'critical' || msg.includes('MAYDAY')) return 'text-white font-bold drop-shadow-md';
-    if (log.type === 'alert' || msg.includes('PAN PAN')) return 'text-white font-semibold drop-shadow-sm';
-    if (log.type === 'warning' || msg.includes('SECURITE')) return 'text-yellow-100 font-medium';
-    return 'text-zinc-400 group-hover:text-zinc-300';
-  };
-
+  
   const filteredLogs = logs.filter(log => {
-    const matchesSearch = log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.node.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const isUrgent = log.type === 'critical' || log.type === 'alert' || log.message.includes('MAYDAY') || log.message.includes('PAN PAN');
-    const isWarning = log.type === 'warning' || log.message.includes('SECURITE');
+    const message = log.message.toLowerCase();
+    const source = log.source.toLowerCase();
+    const query = searchQuery.toLowerCase();
+    const type = log.type || 'info';
 
-    let matchesType = true;
+    if (showUrgentOnly && type !== 'critical' && type !== 'alert') return false;
+    if (showWarningOnly && type !== 'warning') return false;
     
-    if (showUrgentOnly && showWarningOnly) {
-        matchesType = isUrgent || isWarning;
-    } else if (showUrgentOnly) {
-        matchesType = isUrgent;
-    } else if (showWarningOnly) {
-        matchesType = isWarning;
-    }
-
-    return matchesSearch && matchesType;
+    return message.includes(query) || source.includes(query);
   });
 
-  // Icons mapping for weather
   const getWeatherIcon = (condition: string) => {
-    switch(condition) {
-      case 'Rain': case 'Storm': return <CloudRain size={16} className="text-blue-400" />;
-      case 'Cloudy': return <Cloud size={16} className="text-zinc-400" />;
-      case 'Windy': return <Wind size={16} className="text-zinc-400" />;
-      default: return <Sun size={16} className="text-yellow-400" />;
+    switch (condition) {
+      case 'Sunny': return <Sun size={24} className="text-yellow-400" />;
+      case 'Cloudy': return <Cloud size={24} className="text-zinc-400" />;
+      case 'Rain': return <CloudRain size={24} className="text-blue-400" />;
+      case 'Storm': return <CloudRain size={24} className="text-indigo-400 animate-pulse" />;
+      case 'Windy': return <Wind size={24} className="text-sky-400" />;
+      default: return <Thermometer size={24} className="text-zinc-500" />;
     }
   };
+
+  const getTenderStatusColor = (status: string) => {
+    if (status === 'Busy') return { dot: 'bg-yellow-400', text: 'text-yellow-300' };
+    if (status === 'Maintenance') return { dot: 'bg-red-500', text: 'text-red-400' };
+    return { dot: 'bg-green-500', text: 'text-green-400' };
+  };
+
+  const TabButton = ({ tabName, icon: Icon, currentTab }: any) => (
+    <button
+      onClick={() => setActiveTab(tabName)}
+      className={`p-2 rounded-md transition-colors ${
+        currentTab === tabName ? 'bg-indigo-600/20 text-indigo-300' : 'text-zinc-500 hover:text-zinc-300'
+      }`}
+    >
+      <Icon size={14} />
+    </button>
+  );
 
   return (
     <div 
       className="hidden lg:flex flex-col h-full bg-zinc-950 border-l border-zinc-900 flex-shrink-0 relative"
       style={{ width: width }}
     >
-      {/* Resize Handle */}
       <div 
         className={`absolute top-0 left-0 w-1 h-full cursor-col-resize hover:bg-indigo-500 transition-colors z-50 ${isResizing ? 'bg-indigo-500' : 'bg-transparent'}`}
         onMouseDown={startResizing}
       />
-
-      {/* Header */}
-      <div className="p-3 border-b border-zinc-900 bg-zinc-950/50 flex items-center justify-between select-none">
+      <div className="p-2 border-b border-zinc-900 bg-zinc-950/50 flex items-center justify-between select-none">
         <div className="flex items-center gap-2 text-zinc-300">
-          <Activity size={14} />
-          <span className="font-bold text-xs uppercase tracking-tight">Live Ops Deck</span>
+           <span className="font-bold tracking-tight text-xs uppercase font-mono">Operations Deck</span>
         </div>
-        <div className="flex bg-zinc-900 rounded p-0.5">
-          <button 
-            onClick={() => setActiveTab('feed')}
-            className={`p-1 rounded transition-all ${activeTab === 'feed' ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-            title="Live Feed"
-          >
-            <List size={12} />
-          </button>
-          <button 
-            onClick={() => setActiveTab('fleet')}
-            className={`p-1 rounded transition-all ${activeTab === 'fleet' ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-            title="Fleet & Tenders"
-          >
-            <Ship size={12} />
-          </button>
-          <button 
-            onClick={() => setActiveTab('cloud')}
-            className={`p-1 rounded transition-all ${activeTab === 'cloud' ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-            title="Weather & ATC"
-          >
-            <Cloud size={12} />
-          </button>
-          <button 
-            onClick={() => setActiveTab('ais')}
-            className={`p-1 rounded transition-all ${activeTab === 'ais' ? 'bg-zinc-700 text-zinc-100 shadow-sm' : 'text-zinc-500 hover:text-zinc-300'}`}
-            title="AIS Radar"
-          >
-            <Radar size={12} />
-          </button>
+        <div className="flex items-center gap-1">
+          <TabButton tabName="feed" icon={List} currentTab={activeTab} />
+          <TabButton tabName="fleet" icon={Ship} currentTab={activeTab} />
+          <TabButton tabName="cloud" icon={Cloud} currentTab={activeTab} />
+          <TabButton tabName="ais" icon={Radar} currentTab={activeTab} />
         </div>
       </div>
-
-      {/* Content Area */}
-      <div className="flex-1 overflow-hidden flex flex-col bg-zinc-900/10">
-        
-        {/* --- TAB 1: LIVE FEED --- */}
+      <div className="flex-1 overflow-hidden flex flex-col bg-zinc-900/30">
         {activeTab === 'feed' && (
-          <>
-             {/* Filters */}
-            <div className="px-3 py-2 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between select-none gap-2">
-              <div className="flex gap-1">
-                <button 
-                  onClick={() => setShowUrgentOnly(!showUrgentOnly)}
-                  className={`p-1 rounded border transition-all flex items-center gap-1 ${
-                    showUrgentOnly 
-                    ? 'bg-red-900/30 border-red-500/50 text-red-400' 
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:bg-zinc-800'
-                  }`}
-                  title="Show Critical Only"
-                >
-                  <AlertTriangle size={10} />
-                </button>
-                <button 
-                  onClick={() => setShowWarningOnly(!showWarningOnly)}
-                  className={`p-1 rounded border transition-all flex items-center gap-1 ${
-                    showWarningOnly
-                    ? 'bg-yellow-900/30 border-yellow-500/50 text-yellow-400' 
-                    : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:bg-zinc-800'
-                  }`}
-                  title="Show Warnings Only"
-                >
-                  <AlertCircle size={10} />
-                </button>
-              </div>
-
-              <div className="relative flex-1">
-                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-600" size={10} />
-                 <input 
-                   type="text" 
-                   placeholder="Filter log stream..." 
-                   value={searchQuery}
-                   onChange={(e) => setSearchQuery(e.target.value)}
-                   className="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 text-[10px] rounded pl-6 pr-2 py-1 focus:outline-none focus:border-indigo-500/30 transition-colors placeholder-zinc-700 font-mono"
-                 />
-              </div>
+           <>
+            <div className="p-2 border-b border-zinc-900 flex items-center gap-2">
+                <Search size={12} className="text-zinc-500 flex-shrink-0" />
+                <input 
+                    type="text"
+                    placeholder="Filter logs..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent w-full text-xs focus:outline-none"
+                />
+                <button onClick={() => setShowWarningOnly(!showWarningOnly)} className={`p-1 rounded ${showWarningOnly ? 'bg-yellow-500/20 text-yellow-400' : 'text-zinc-500'}`} title="Warnings Only"><AlertTriangle size={12} /></button>
+                <button onClick={() => setShowUrgentOnly(!showUrgentOnly)} className={`p-1 rounded ${showUrgentOnly ? 'bg-red-500/20 text-red-400' : 'text-zinc-500'}`} title="Urgent Only"><AlertCircle size={12} /></button>
             </div>
-
-            {/* Logs Stream */}
             <div className="flex-1 overflow-y-auto p-2 space-y-0.5 custom-scrollbar font-mono text-[10px]">
-              {filteredLogs.map((log) => (
-                <div key={log.id} className={`flex gap-2 p-1.5 rounded border border-transparent transition-colors group ${getRowStyle(log)}`}>
-                  <span className={`flex-shrink-0 w-12 opacity-50 ${log.type === 'critical' ? 'text-white' : 'text-zinc-500'}`}>
-                    {log.timestamp}
-                  </span>
-                  <div className="flex flex-col min-w-0 w-full">
-                    <div className="flex items-center gap-2">
-                      <span className={`font-bold ${
-                        log.type === 'critical' ? 'text-red-200' :
-                        log.type === 'alert' ? 'text-orange-200' :
-                        log.node.includes('sea') ? 'text-blue-400' : 
-                        log.node.includes('finance') ? 'text-green-400' :
-                        log.node.includes('marina') ? 'text-cyan-400' : 
-                        log.node.includes('vhf') ? 'text-indigo-400' : 'text-purple-400'
-                      }`}>
-                        {log.node}
-                      </span>
+                {filteredLogs.map(log => (
+                    <div key={log.id} className={`flex gap-3 p-1 rounded transition-colors ${getRowStyle(log)}`}>
+                        <div className="opacity-50 w-14">{log.timestamp}</div>
+                        <div className="font-semibold w-28 truncate">{log.source}</div>
+                        <div className="flex-1 text-zinc-300 break-words leading-relaxed whitespace-pre-wrap">{log.message}</div>
                     </div>
-                    <span className={`break-words leading-tight ${getTextStyle(log)}`}>
-                      {log.message}
-                    </span>
+                ))}
+            </div>
+           </>
+        )}
+        {activeTab === 'fleet' && (
+           <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-4 text-xs">
+              <div>
+                <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Port Registry (Last 50)</h3>
+                <div className="bg-black/20 border border-zinc-800/50 rounded-lg p-2 max-h-64 overflow-y-auto custom-scrollbar">
+                    {registry.map(r => (
+                        <div key={r.id} className="flex items-center gap-3 text-[10px] py-1 border-b border-zinc-800/50 last:border-b-0">
+                            <span className="w-14 text-zinc-500">{r.timestamp}</span>
+                            <span className={`font-bold w-32 truncate ${r.action === 'CHECK-IN' ? 'text-green-400' : 'text-red-400'}`}>{r.vessel}</span>
+                            <span className="w-16">{r.action}</span>
+                            <span className="flex-1 text-zinc-400 truncate">{r.location}</span>
+                        </div>
+                    ))}
+                </div>
+              </div>
+               <div>
+                <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Tender Operations (CH 14)</h3>
+                <div className="grid grid-cols-3 gap-2">
+                    {tenders.map(t => {
+                        const { dot, text } = getTenderStatusColor(t.status);
+                        return (
+                            <div key={t.id} className="bg-black/20 border border-zinc-800/50 rounded-lg p-2">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="font-bold text-zinc-300 text-[10px]">{t.name}</span>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                                </div>
+                                <div className="text-[10px]">
+                                    <div className={`font-mono uppercase font-bold ${text}`}>{t.status}</div>
+                                    <div className="text-zinc-500 truncate h-4">{t.assignment || '—'}</div>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+              </div>
+           </div>
+        )}
+        {activeTab === 'cloud' && (
+           <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-4 text-xs">
+                <div>
+                  <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Weather Station: 3-Day Outlook</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {weatherData.map((day, i) => (
+                        <div key={i} className={`bg-black/20 border ${day.alertLevel === 'CRITICAL' ? 'border-red-500/50' : day.alertLevel === 'WARNING' ? 'border-amber-500/50' : 'border-zinc-800/50'} rounded-lg p-2`}>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="font-bold text-zinc-300 text-[10px]">{day.day}</div>
+                                    <div className="text-2xl font-bold text-zinc-100">{day.temp}°C</div>
+                                </div>
+                                {getWeatherIcon(day.condition)}
+                            </div>
+                            <div className="mt-2 text-[10px] space-y-0.5">
+                                <div className="flex items-center gap-1"><Wind size={10} className="text-sky-400"/> <span>{day.windSpeed} knots {day.windDir}</span></div>
+                                {day.alertLevel !== 'NONE' && (
+                                    <div className={`flex items-center gap-1 font-bold ${day.alertLevel === 'CRITICAL' ? 'text-red-400' : 'text-amber-400'}`}>
+                                        <AlertTriangle size={10} /> <span>{day.alertLevel}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* --- TAB 2: FLEET (Registry & Tenders) --- */}
-        {activeTab === 'fleet' && (
-          <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-4">
-             
-             {/* TENDER OPERATIONS */}
-             <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
-                    <Anchor size={10} /> Tenders (Ch 14)
-                  </span>
-                </div>
-                <div className="grid gap-1 p-2">
-                  {tenders.map(tender => (
-                    <div key={tender.id} className="bg-zinc-900/30 border border-zinc-800/50 p-1.5 rounded flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          tender.status === 'Idle' ? 'bg-green-500' : 
-                          tender.status === 'Busy' ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
-                        }`} />
-                        <span className="text-[10px] font-medium text-zinc-300">{tender.name}</span>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-mono text-zinc-500 uppercase">{tender.status}</span>
-                        {tender.assignment && <span className="text-[8px] text-indigo-400">{tender.assignment}</span>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-             </div>
-
-             {/* REGISTRY TABLE */}
-             <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="px-3 py-2 border-b border-zinc-800 flex items-center gap-2 bg-zinc-900/50">
-                   <ClipboardList size={12} className="text-zinc-400" />
-                   <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-wide">Port Registry</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-[10px] font-mono">
-                    <thead className="bg-zinc-900/50 text-zinc-500">
-                      <tr>
-                        <th className="px-2 py-1 font-normal">Time</th>
-                        <th className="px-2 py-1 font-normal">Vessel</th>
-                        <th className="px-2 py-1 font-normal text-right">Sts</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-800/30">
-                      {registry.slice(0, 15).map((entry) => (
-                        <tr key={entry.id} className="hover:bg-zinc-800/30 transition-colors">
-                          <td className="px-2 py-1 text-zinc-500">{entry.timestamp}</td>
-                          <td className="px-2 py-1 text-zinc-300">{entry.vessel}</td>
-                          <td className="px-2 py-1 text-right">
-                            <span className={`px-1 py-0.5 rounded-[2px] text-[8px] font-bold ${
-                              entry.action === 'CHECK-IN' ? 'text-green-400 bg-green-900/20' : 'text-blue-400 bg-blue-900/20'
-                            }`}>
-                              {entry.action === 'CHECK-IN' ? 'IN' : 'OUT'}
-                            </span>
-                          </td>
-                        </tr>
+                <div>
+                  <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Traffic Tower (CH 73)</h3>
+                  <div className="bg-black/20 border border-zinc-800/50 rounded-lg p-2 max-h-64 overflow-y-auto custom-scrollbar">
+                      {trafficQueue.map(t => (
+                          <div key={t.id} className="flex items-center gap-3 text-[10px] py-1.5 border-b border-zinc-800/50 last:border-b-0">
+                              {t.status === 'INBOUND' && <ArrowDown size={10} className="text-green-400 w-4"/>}
+                              {t.status === 'OUTBOUND' && <ArrowUp size={10} className="text-blue-400 w-4"/>}
+                              {t.status === 'HOLDING' && <Clock size={10} className="text-yellow-400 w-4"/>}
+                              {t.status === 'TAXIING' && <Navigation size={10} className="text-sky-400 w-4 animate-pulse"/>}
+                              <span className="w-32 font-bold truncate">{t.vessel}</span>
+                              <span className="flex-1 font-mono uppercase text-zinc-400">{t.status}</span>
+                              <span className="text-zinc-500">{t.sector}</span>
+                          </div>
                       ))}
-                    </tbody>
-                  </table>
+                  </div>
                 </div>
-             </div>
-          </div>
+           </div>
         )}
-
-        {/* --- TAB 3: CLOUD (Weather & Traffic Tower) --- */}
-        {activeTab === 'cloud' && (
-          <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-4">
-             
-             {/* WEATHER STATION DASHBOARD */}
-             <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
-                     <CloudRain size={12} /> Weather Station
-                   </span>
-                   <span className="text-[9px] text-green-500 font-mono">LIVE</span>
-                </div>
-                {/* Main Weather Display */}
-                <div className="p-3 flex items-center justify-between">
-                   {weatherData.map((w, idx) => (
-                     <div key={idx} className="flex flex-col items-center w-1/3 relative">
-                        {/* Vertical Separator */}
-                        {idx > 0 && <div className="absolute left-0 top-2 bottom-2 w-[1px] bg-zinc-800"></div>}
-                        
-                        <span className="text-[9px] text-zinc-500 uppercase mb-1">{w.day}</span>
-                        <div className="mb-1">{getWeatherIcon(w.condition)}</div>
-                        <div className="text-lg font-bold text-zinc-200">{w.temp}°</div>
-                        <div className="flex items-center gap-1 text-[9px] text-zinc-400 mt-1">
-                           <Wind size={8} /> 
-                           <span className={w.windSpeed > 25 ? 'text-red-400 font-bold' : ''}>{w.windSpeed}kt {w.windDir}</span>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-             </div>
-
-             {/* TRAFFIC CONTROL TOWER (ATC) */}
-             <div className="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
-                <div className="px-3 py-2 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
-                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide flex items-center gap-2">
-                     <Navigation size={12} /> Traffic Tower (ATC)
-                   </span>
-                   <span className="text-[9px] text-indigo-400 font-mono">CH 73</span>
-                </div>
-                <div className="p-2 space-y-1">
-                   {trafficQueue.length === 0 && (
-                      <div className="text-center text-[10px] text-zinc-600 py-4">Fairway Clear. No active traffic.</div>
-                   )}
-                   {trafficQueue.map((t) => (
-                      <div key={t.id} className={`flex items-center justify-between p-1.5 rounded border ${
-                          t.status === 'HOLDING' ? 'bg-yellow-900/10 border-yellow-500/20' : 
-                          t.status === 'TAXIING' ? 'bg-blue-900/10 border-blue-500/20' :
-                          'bg-zinc-900/50 border-zinc-800/50'
-                      }`}>
-                          <div className="flex items-center gap-2">
-                             {t.status === 'INBOUND' && <ArrowDown size={12} className="text-green-400" />}
-                             {t.status === 'OUTBOUND' && <ArrowUp size={12} className="text-blue-400" />}
-                             {t.status === 'HOLDING' && <Clock size={12} className="text-yellow-500 animate-pulse" />}
-                             <span className="text-[10px] text-zinc-300 font-medium">{t.vessel}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                             <span className="text-[9px] text-zinc-500">{t.sector}</span>
-                             <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${
-                                 t.status === 'HOLDING' ? 'text-yellow-500 bg-yellow-900/20' : 
-                                 t.status === 'TAXIING' ? 'text-blue-400 bg-blue-900/20' : 'text-zinc-400 bg-zinc-800'
-                             }`}>
-                                {t.status}
-                             </span>
-                          </div>
-                      </div>
-                   ))}
-                </div>
-             </div>
-
-          </div>
-        )}
-
-        {/* --- TAB 4: AIS MAP (Placeholder) --- */}
         {activeTab === 'ais' && (
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-zinc-600">
-                <div className="relative w-32 h-32 mb-4">
-                    <div className="absolute inset-0 border-2 border-zinc-800 rounded-full"></div>
-                    <div className="absolute inset-4 border border-zinc-800 rounded-full opacity-50"></div>
-                    <div className="absolute inset-0 border-t-2 border-green-500/50 rounded-full animate-spin duration-[3000ms]"></div>
-                    <div className="absolute top-1/2 left-1/2 w-1 h-1 bg-green-500 rounded-full"></div>
-                </div>
-                <span className="text-xs font-mono font-bold">AIS RADAR SYSTEM</span>
-                <span className="text-[10px] mt-2">Scanning Marine Traffic...</span>
-                <span className="text-[10px] text-zinc-700 mt-1">Integration pending valid API Key</span>
-            </div>
+           <div className="flex-1 flex items-center justify-center text-zinc-600 flex-col bg-cover bg-center" style={{backgroundImage: "url('https://i.imgur.com/3Z7wV0g.png')"}}>
+             <Radar size={20} className="mb-1 animate-pulse" />
+             <p className="text-[10px] font-mono tracking-widest">SCANNING AIS...</p>
+           </div>
         )}
-
       </div>
     </div>
   );
