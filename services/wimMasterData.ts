@@ -1,11 +1,15 @@
 
 
 
+
+
+
 export const wimMasterData = {
   "identity": {
     "name": "West Istanbul Marina",
     "code": "WIM",
     "operator": "Enelka Taahhüt İmalat ve Ticaret A.Ş.",
+    "awards": ["5 Gold Anchors", "Blue Flag (10 Years Continuous)"],
     "location": {
       "district": "Beylikdüzü",
       "neighborhood": "Yakuplu",
@@ -75,7 +79,15 @@ export const wimMasterData = {
       { "id": "T-01", "callsign": "Tender Alpha", "type": "Palamar Botu", "status": "Active" },
       { "id": "T-02", "callsign": "Tender Bravo", "type": "Palamar Botu", "status": "Active" },
       { "id": "T-03", "callsign": "Tender Charlie", "type": "Palamar Botu", "status": "Standby" }
-    ]
+    ],
+    "capacities": {
+        "total_area": "155.000 m2",
+        "sea_berths": 600,
+        "land_park": 300,
+        "rack_park": "96 (up to 7m)",
+        "hangars": "11 (up to 90m)",
+        "hardstanding": "60.000 m2"
+    }
   },
   "legal_framework": {
     "governing_law": "Republic of Türkiye",
@@ -186,16 +198,21 @@ export const wimMasterData = {
   },
   "services": {
     "technical": {
-      "travel_lift": "Available (Subject to appointment)",
-      "haul_out": "Available",
+      "travel_lift_major": "700 Ton Travel Lift (Mega Yachts)",
+      "travel_lift_minor": "75 Ton Travel Lift",
+      "haul_out": "Available (60.000m2 Hardstanding)",
       "pressure_wash": "Available"
     },
     "amenities": {
-      "electricity": "Metered (16A-63A)",
+      "restaurants": ["Zeytinlik Balık", "BigChefs", "Fersah", "Calisto", "Poem", "Port of Point", "Happy Moon's"],
+      "lifestyle": ["Kumsal İstanbul Sokağı", "Plaj (Beach)", "Yacht Club"],
+      "sports": ["Fitness", "Sauna", "Indoor/Outdoor Pools", "Tennis", "Basketball", "Football", "Sailing School (TYF/RYA)"],
+      "shopping": "Shopping Center & Market",
+      "electricity": "Metered (16A-63A) + Fiber Internet",
       "water": "Metered",
       "fuel": "Station Available (Duty-free subject to conditions)",
-      "security": "24/7 Private Security",
-      "parking": "Designated areas only"
+      "security": "24/7 Private Security + Helipad + Customs Gate",
+      "parking": "550 Car Capacity"
     }
   },
   "penalties": {
