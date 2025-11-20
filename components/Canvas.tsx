@@ -220,7 +220,7 @@ export const Canvas: React.FC<CanvasProps> = ({
               </div>
 
               <div>
-                <h3 className="font-bold text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Port Activity</h3>
+                <h3 className="font-bold text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Port Activity (Registry)</h3>
                 <div className="space-y-2">
                     {registry.map(r => (
                         <div key={r.id} className="flex items-center justify-between text-[10px] py-1">
@@ -253,7 +253,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Traffic Control</h3>
+                  <h3 className="font-bold text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Traffic Control (Queue)</h3>
                   <div className="space-y-1">
                       {trafficQueue.map(t => (
                           <div key={t.id} className="flex items-center justify-between py-2 px-2 hover:bg-zinc-900/30 rounded group">
@@ -271,13 +271,16 @@ export const Canvas: React.FC<CanvasProps> = ({
 
                               <div className="flex items-center gap-3">
                                 <span className="text-[9px] font-bold text-zinc-500">{t.status}</span>
-                                <button 
-                                    onClick={() => onCheckIn(t.id)}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-400 hover:text-white"
-                                    title="Check-In"
-                                >
-                                    <LogIn size={12} />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                   <span className="text-[8px] text-zinc-700 hidden group-hover:block">AI AUTO</span>
+                                   <button 
+                                      onClick={() => onCheckIn(t.id)}
+                                      className="opacity-50 hover:opacity-100 transition-opacity text-indigo-400 hover:text-white p-1 bg-indigo-500/10 rounded"
+                                      title="Manual Override: Authorize Check-In"
+                                   >
+                                      <LogIn size={12} />
+                                   </button>
+                                </div>
                               </div>
                           </div>
                       ))}
@@ -293,7 +296,7 @@ export const Canvas: React.FC<CanvasProps> = ({
              <div className="absolute top-4 left-4 z-20 pointer-events-none">
                 <div className="flex items-center gap-2 text-emerald-500/50 mb-1">
                     <Radar size={14} />
-                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS LIVE</span>
+                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS LIVE | 3 TARGETS</span>
                 </div>
              </div>
 
@@ -304,9 +307,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                     <div className="absolute w-[120px] h-[120px] rounded-full bg-emerald-900/5" />
                     <div className="absolute w-[40px] h-[40px] rounded-full bg-emerald-500/10" />
                     
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full z-10" />
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full z-10 animate-ping" />
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full z-10 absolute" />
 
                     {trafficQueue.map((t, idx) => {
+                        // Deterministic positioning based on vessel name hash
                         const hash = t.vessel.split('').reduce((a,b)=>a+b.charCodeAt(0),0);
                         const angle = (hash % 360) * (Math.PI / 180);
                         const distance = 50 + (hash % 80); 
@@ -316,9 +321,18 @@ export const Canvas: React.FC<CanvasProps> = ({
                         return (
                             <div 
                                 key={t.id}
-                                className="absolute w-1.5 h-1.5 bg-white rounded-full z-20 opacity-80"
+                                className="absolute z-20 group cursor-pointer"
                                 style={{ transform: `translate(${x}px, ${y}px)` }}
-                            />
+                            >
+                                {/* The Dot */}
+                                <div className="w-2 h-2 bg-white rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]" />
+                                
+                                {/* The Label (Tooltip) */}
+                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-zinc-900/90 text-emerald-400 text-[9px] px-2 py-1 rounded border border-zinc-800 opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 backdrop-blur-sm">
+                                    <div className="font-bold">{t.vessel}</div>
+                                    <div className="text-zinc-400 text-[8px]">{t.status} • {t.sector}</div>
+                                </div>
+                            </div>
                         );
                     })}
                 </div>
@@ -335,9 +349,9 @@ export const Canvas: React.FC<CanvasProps> = ({
                     </thead>
                     <tbody>
                         {trafficQueue.map((t, idx) => (
-                            <tr key={t.id} className="text-[9px] hover:bg-zinc-900/30">
-                                <td className="py-1 text-zinc-600">TRK-{idx + 10}</td>
-                                <td className="py-1 text-emerald-400 font-bold">{t.vessel}</td>
+                            <tr key={t.id} className="text-[9px] hover:bg-zinc-900/30 group">
+                                <td className="py-1 text-zinc-600 font-mono">TRK-{idx + 10}</td>
+                                <td className="py-1 text-emerald-400 font-bold group-hover:text-white transition-colors">{t.vessel}</td>
                                 <td className="py-1 text-zinc-500 text-right">{((t.vessel.length * 0.8) % 10).toFixed(1)} nm</td>
                             </tr>
                         ))}

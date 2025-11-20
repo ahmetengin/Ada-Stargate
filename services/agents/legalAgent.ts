@@ -31,8 +31,9 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
         if (sectionBuffer.length > 0) {
             const text = sectionBuffer.join('\n').trim();
             let score = 0;
-            if (text.toLowerCase().includes(lowerQuery) || text.toLowerCase().split(' ').some(w => w.length > 3 && lowerQuery.includes(w))) {
-                score = 1;
+            // Simple keyword scoring
+            if (text.toLowerCase().includes(lowerQuery)) {
+                score = 2;
             }
             if (score > 0) {
                 allSections.push({ article: currentArticle, text, score });
@@ -57,6 +58,9 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
         return `**${documentId}** belgesinde "${query}" ile ilgili doğrudan bir madde bulunamadı.`;
     }
 
+    // Sort by score
+    allSections.sort((a, b) => b.score - a.score);
+
     const topSnippets = allSections.slice(0, 3);
     let formattedResponse = "";
 
@@ -69,6 +73,10 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
     topSnippets.forEach(snippet => {
         formattedResponse += `--- **Madde ${snippet.article}:** ---\n${snippet.text}\n\n`;
     });
+
+    if (documentId.includes('colregs')) {
+        formattedResponse += "\nUnutma, denizde emniyet her şeyden önce gelir.";
+    }
 
     return formattedResponse;
 }
@@ -98,14 +106,14 @@ export const legalAgent = {
     let documentToQuery: string | null = null;
     let queryContext: string = "";
 
-    // SETUR & Competitor Policy (No Info)
+    // SETUR Policy Check
     if (lowerQuery.includes('setur')) { 
         addTrace({
             id: `trace_legal_setur_${Date.now()}`,
             timestamp: new Date().toISOString(),
             node: 'ada.legal',
             step: 'OUTPUT',
-            content: `Policy: Competitor inquiry detected. Diverting.`,
+            content: `Policy: Competitor inquiry detected. Providing generic legal response.`,
             persona: 'EXPERT'
         });
         return [{
@@ -120,7 +128,7 @@ export const legalAgent = {
         }];
     } 
     
-    // Document Selection Logic
+    // Document Selection
     if (lowerQuery.includes('colregs') || lowerQuery.includes('kural') || lowerQuery.includes('seyir') || lowerQuery.includes('çatışma')) {
         documentToQuery = 'colregs_and_straits.md';
         queryContext = "COLREGs ve Seyir Kuralları";

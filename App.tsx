@@ -79,7 +79,36 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Simulation Logic
+  // --- AUTONOMOUS AI TRAFFIC CONTROLLER LOGIC ---
+  // Ada.Marina periodically checks the Traffic Queue and authorizes vessels automatically.
+  // This satisfies "Why do I have to click? Everything should be automatic."
+  useEffect(() => {
+    if (!isMonitoring || trafficQueue.length === 0) return;
+
+    const autoAuthInterval = setInterval(() => {
+       // Find the highest priority vessel waiting
+       const target = trafficQueue.find(t => t.status === 'INBOUND' || t.status === 'HOLDING');
+       
+       if (target && Math.random() > 0.6) { // 40% chance to clear a vessel every interval
+          // Simulate AI Decision
+          const logId = Date.now();
+          setLogs(prev => [{
+             id: logId,
+             timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+             source: 'ada.marina',
+             message: `AI AUTO: ${target.vessel} authorized for docking at ${target.destination || 'Pontoon C'}.`,
+             type: 'info'
+          }, ...prev]);
+
+          handleCheckIn(target.id);
+       }
+    }, 8000); // Check every 8 seconds
+
+    return () => clearInterval(autoAuthInterval);
+  }, [trafficQueue, isMonitoring]);
+
+
+  // Simulation Logic (Random Chatter)
   useEffect(() => {
     const generateLog = () => {
        const sourceNode = ['ada.vhf', 'ada.security', 'ada.finance', 'ada.marina', 'ada.weather'][Math.floor(Math.random() * 5)];
