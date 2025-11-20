@@ -4,10 +4,13 @@
 
 
 
+
+
 export const wimMasterData = {
   "identity": {
     "name": "West Istanbul Marina",
     "code": "WIM",
+    "alias": "Beylikdüzü Marina",
     "operator": "Enelka Taahhüt İmalat ve Ticaret A.Ş.",
     "awards": ["5 Gold Anchors", "Blue Flag (10 Years Continuous)"],
     "location": {
@@ -201,18 +204,33 @@ export const wimMasterData = {
       "travel_lift_major": "700 Ton Travel Lift (Mega Yachts)",
       "travel_lift_minor": "75 Ton Travel Lift",
       "haul_out": "Available (60.000m2 Hardstanding)",
-      "pressure_wash": "Available"
+      "pressure_wash": "Available",
+      "bilgin_yachts": "Shipyard On-site"
     },
     "amenities": {
-      "restaurants": ["Zeytinlik Balık", "BigChefs", "Fersah", "Calisto", "Poem", "Port of Point", "Happy Moon's"],
-      "lifestyle": ["Kumsal İstanbul Sokağı", "Plaj (Beach)", "Yacht Club"],
-      "sports": ["Fitness", "Sauna", "Indoor/Outdoor Pools", "Tennis", "Basketball", "Football", "Sailing School (TYF/RYA)"],
-      "shopping": "Shopping Center & Market",
+      "restaurants": [
+        "Poem Restaurant", "Port Of Point", "The Roof Kingdom Kitchen & Bar", "FERSAH RESTAURANT",
+        "LAMORE BALIK - ET MANGALBAŞI", "ISKARMOZ RESTAURANT", "CALİSTO BALIK", "Can samimiy et",
+        "Seferi Ocakbaşı Meyhane", "Sade coffee & drink", "Mask Beach Music & Food", "ELLA ITALIAN",
+        "Happy Moon's", "Deniz Kızı Şefin Yeri", "Zeytinlik Balık", "Pargalı Rum meyhanesi",
+        "West Maya Marin", "Quki Meyhane", "Big Chefs", "İkitek Ocakbaşı", "Sefam Olsun Meyhane",
+        "Spoint Meyhane", "Mavi Mey-hane", "Cümbüş Yeni Nesil Marina", "West Kanat", "Fısıltı Lounge"
+      ],
+      "lifestyle": [
+        "Kumsal İstanbul Sokağı", "Kumsal Plajı (Beach)", "Yacht Club", 
+        "Mask Beach", "Paris Saint-Germain Academy Beylikdüzü"
+      ],
+      "sports": [
+        "West Life Sports Club", "Fitness", "Sauna", "Indoor/Outdoor Pools", 
+        "Tennis (WEST İstanbul Marina Tenis Spor Kulübü)", "Basketball", "Football", "Sailing School (TYF/RYA)"
+      ],
+      "shopping": "Shopping Center & Market, BoatFest Satılık Tekne Pontonu",
       "electricity": "Metered (16A-63A) + Fiber Internet",
       "water": "Metered",
       "fuel": "Station Available (Duty-free subject to conditions)",
       "security": "24/7 Private Security + Helipad + Customs Gate",
-      "parking": "550 Car Capacity"
+      "parking": "550 Car Capacity",
+      "atm": "Garanti BBVA ATM"
     }
   },
   "penalties": {

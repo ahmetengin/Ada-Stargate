@@ -194,12 +194,12 @@ E.2.14. No fuel, flammable, toxic or hazardous substances or liquids, paints, ch
 E.2.15. Yachts cannot perform radio, phone, television and internet broadcasts in the Marina.
 E.2.16. Demands for duty-paid fuel can only be met by the fuel stations located in the Marina. If the Company cannot supply fuel by its own means, entry of fuel outside shall not be permitted except for the supply of special consumption tax-free or duty-free fuel. It is obligatory that transporters that bring duty-free fuel and that have entered into an agreement solely with the Company hold third party liability insurance within the limits set by the Company. The Company shall not permit the access of, and supply of fuel by transportation vehicles that do not hold effective and adequate third-party liability insurance within the borders of the Marina.
 E.2.17. The Yacht Owner shall be directly, severally and jointly responsible for the behaviors and acts of the Yacht Crew and anybody falling within the definition of Yacht Client directly in respect of their own Yacht, and for the indemnification of any damages or losses that these people may cause on the Company and personnel, other Yachts and crew and third parties in the Marina.
-E.1.18. The Yacht Owner cannot perform commercial sales of yachts. Such sales shall be permitted only if it is not a part of a business or trade but is performed between persons. The Yacht Owner may sell their Yacht in the Marina provided that the Yacht Owner themselves or their representative shall be present while the yacht is shown to potential buyers. The Yacht Owner cannot hang a for-sale sign or any similar sign on the information board or on any area of the Marina without receiving prior written consent from the Company.
-E.1.19. If the ownership of Yacht, which has an applicable Contract with the Company, changes, the former and/or the new Yacht Owner is not entitled to request any refund from the Company for the remaining days of the Contract, if any. The Company is free to execute or refuse to enter into a Mooring Agreement with the new Owner at its own discretion. If the Company approves to execute a Contract with the new Yacht Owner, then the new Yacht Owner is obliged to execute a new Contract with the Company immediately (within maximum 7 days). Otherwise, the former Yacht Owner agrees and undertakes that they shall be liable for any issues that may arise in connection to the Yacht or its new Owner.
-E.1.20. Mooring and Dry Berthing Contracts are applicable only for the Yacht listed in the contract, and cannot be assigned to any other Yacht.
-E.1.21. The Contracts are valid between the dates indicated in the Contract. The Contract may be automatically extended for matching terms through mutual agreement 15 days prior to the expiry of the term thereof upon the request of the Yacht Owner. The Marina reserves the right to refuse Contract renewal.
-E.1.22. The personnel to be appointed by the Company is entitled to access the Yacht in all extraordinary and emergency situations where it deems it necessary for the safety of Yacht, in order to be informed in a timely manner about dangerous situations which may arise in the Yacht and to take actions such as re-mooring, untying, changing position, maneuvering, lifting, launching and salvaging, and other actions that are not listed herein. When such services are provided, the Yacht Owner shall pay fees for the operations performed by the Company. It is fully at the discretion of the Company to evaluate in which cases the measures which are listed and not listed herein are to be taken.
-E.1.23. The Marina and Yachts cannot be used for commercial purposes unless the Company gives a written consent before or during the contract.
+E.2.18. The Yacht Owner cannot perform commercial sales of yachts. Such sales shall be permitted only if it is not a part of a business or trade but is performed between persons. The Yacht Owner may sell their Yacht in the Marina provided that the Yacht Owner themselves or their representative shall be present while the yacht is shown to potential buyers. The Yacht Owner cannot hang a for-sale sign or any similar sign on the information board or on any area of the Marina without receiving prior written consent from the Company.
+E.2.19. If the ownership of Yacht, which has an applicable Contract with the Company, changes, the former and/or the new Yacht Owner is not entitled to request any refund from the Company for the remaining days of the Contract, if any. The Company is free to execute or refuse to enter into a Mooring Agreement with the new Owner at its own discretion. If the Company approves to execute a Contract with the new Yacht Owner, then the new Yacht Owner is obliged to execute a new Contract with the Company immediately (within maximum 7 days). Otherwise, the former Yacht Owner agrees and undertakes that they shall be liable for any issues that may arise in connection to the Yacht or its new Owner.
+E.2.20. Mooring and Dry Berthing Contracts are applicable only for the Yacht listed in the contract, and cannot be assigned to any other Yacht.
+E.2.21. The Contracts are valid between the dates indicated in the Contract. The Contract may be automatically extended for matching terms through mutual agreement 15 days prior to the expiry of the term thereof upon the request of the Yacht Owner. The Marina reserves the right to refuse Contract renewal.
+E.2.22. The personnel to be appointed by the Company is entitled to access the Yacht in all extraordinary and emergency situations where it deems it necessary for the safety of Yacht, in order to be informed in a timely manner about dangerous situations which may arise in the Yacht and to take actions such as re-mooring, untying, changing position, maneuvering, lifting, launching and salvaging, and other actions that are not listed herein. When such services are provided, the Yacht Owner shall pay fees for the operations performed by the Company. It is fully at the discretion of the Company to evaluate in which cases the measures which are listed and not listed herein are to be taken.
+E.2.23. The Marina and Yachts cannot be used for commercial purposes unless the Company gives a written consent before or during the contract.
 
 ### E.3. LAUNCHING- LIFTING
 E.3.1. Loss and damage caused by events such as the breaking of decayed or weak parts of the Yacht or separation of the drop keel from the keel or vice versa during the transportation of the Yacht on water or on a carrier with the help of a travel lift to the places on the boatyard, or transportation from the places on the boatyard or on the carrier to the sea or to another carrier are not covered by the scope of the Financial Liability Insurance and are not under the responsibility of the Company.
@@ -511,20 +511,20 @@ The Turkish Straits are one of the most difficult waterways in the world due to 
   'wim_general_guide.md': `
 # İstanbul'un Kalbinde Beş Altın Çıpa Değerinde Bir Deniz Cenneti
 
-Avrupa'nın en gelişmiş ve fonksiyonel mega yat limanlarından biri olarak tasarlanan bu tesis, denize olan tutkunuzu lüks ve konforla birleştiriyor. İstanbul'un yanı başında, şehrin karmaşasından uzak ama tüm imkanlarına kolayca erişilebilir bir konumda, size ve teknenize eşsiz bir deneyim sunuyor. On yıldır üst üste Mavi Bayrak ödülüne layık görülen bu özel destinasyon, çevresel duyarlılığı ve üstün hizmet kalitesiyle öne çıkıyor.
+Avrupa'nın en gelişmiş ve fonksiyonel mega yat limanlarından biri olarak tasarlanan bu tesis (aynı zamanda **Beylikdüzü Marina** olarak da bilinir), denize olan tutkunuzu lüks ve konforla birleştiriyor. İstanbul'un yanı başında, şehrin karmaşasından uzak ama tüm imkanlarına kolayca erişilebilir bir konumda, size ve teknenize eşsiz bir deneyim sunuyor. On yıldır üst üste Mavi Bayrak ödülüne layık görülen bu özel destinasyon, çevresel duyarlılığı ve üstün hizmet kalitesiyle öne çıkıyor.
 
 ### Teknik Mükemmellik ve Üstün Kapasite
 
-*   **Devasa Alan:** 155.000 m² toplam alan üzerine kurulu eşsiz bir tesis.
 *   **Devasa Çekek Alanı:** 60.000 m²'lik geniş ve modern çekek alanı ile her türlü bakım ve onarım ihtiyacınız için kusursuz bir altyapı sunar.
 *   **Etkileyici Kaldırma Gücü:** **700 ton** ve **75 ton** kapasiteli dev travel liftler ile mega yatlar dahil her boyutta tekneye güvenli ve profesyonel karaya alma hizmeti verilir.
 *   **Geniş Konaklama:** Denizde **600**, karada ise **300** tekneye aynı anda ev sahipliği yapabilme kapasitesiyle bölgenin en büyüklerinden biridir.  7 metreye kadar tekneler için **96 kapasiteli özel raf park sistemi** ve 90 metreye kadar tekneler için **11 adet hangar** ile geniş depolama çözümleri sunulmaktadır.
+*   **Toplam Alan:** 155.000 m² toplam alan üzerine kurulu eşsiz bir tesis.
 
 ### Yaşam ve Sosyal Olanaklar
 
 Denizdeki yaşamınızı karada da aynı kaliteyle sürdürmeniz için her detay düşünüldü.
 
-*   **Gastronomi ve Eğlence Dünyası:** Her damak zevkine hitap eden şık **restoranlar** (Zeytinlik Balık, BigChefs, Fersah, Calisto, Poem, Port of Point, Happy Moon's ve diğer **marka restoranlar**), keyifli sohbetler için sıcak **kafeler** ve günün yorgunluğunu atabileceğiniz modern **barlar** sizi bekliyor. Ayrıca, benzersiz bir konsept olan **Kumsal İstanbul Sokağı** ile hem yerel hem de uluslararası lezzetleri ve eğlenceyi bir arada bulacaksınız. Yaz aylarının tadını çıkarabileceğiniz pırıl pırıl bir **plaj** da mevcuttur.
+*   **Gastronomi ve Eğlence Dünyası:** Her damak zevkine hitap eden şık **restoranlar** (Zeytinlik Balık, BigChefs, Fersah, Calisto, Poem, Port of Point, Happy Moon's ve diğer seçkin **marka restoranlar**), keyifli sohbetler için sıcak **kafeler** ve günün yorgunluğunu atabileceğiniz modern **barlar** sizi bekliyor. Ayrıca, benzersiz bir konsept olan **Kumsal İstanbul Sokağı** ve **Kumsal Plajı** ile hem yerel hem de uluslararası lezzetleri, eğlenceyi ve pırıl pırıl denizin tadını bir arada bulacaksınız.
 *   **Alışveriş ve Kolaylık:** Günlük ihtiyaçlarınızdan tekne malzemelerine kadar her şeyi bulabileceğiniz bir **alışveriş merkezi** ve **market** elinizin altında.
 *   **Spor ve Sağlık:** Formda kalmanız için tam donanımlı bir **fitness salonu**, **sauna**, **kapalı ve açık yüzme havuzları** ile yenilenin. Ayrıca **tenis kortları**, **basketbol, voleybol ve futbol sahaları** ile aktif bir yaşam tarzını destekler. Yelken tutkunları için **TYF ve RYA eğitim programları sunan bir yelken okulu** da mevcuttur.
 *   **Pratik Hizmetler:** Seyahatinizi kolaylaştırmak için **çamaşırhane**, **bulaşıkhane** ve modern **WC-duş üniteleri** gibi temel hizmetler en yüksek hijyen standartlarında sunulur.
@@ -537,5 +537,43 @@ Denizdeki yaşamınızı karada da aynı kaliteyle sürdürmeniz için her detay
 *   **Çevre Dostu:** Atık su toplama istasyonları, motor yağı imha tankları ve katı atık toplama hizmetleri ile mavi sulara olan saygısını gösterir.
 
 Burada sadece bir bağlama yeri değil, denize adanmış seçkin bir yaşam tarzı bulacaksınız.
+
+## Marina Restoranları ve Mekanlar
+*   Poem Restaurant
+*   Port Of Point
+*   The Roof Kingdom Kitchen & Bar
+*   FERSAH RESTAURANT
+*   LAMORE BALIK - ET MANGALBAŞI RESTAURANT®️
+*   ISKARMOZ RESTAURANT
+*   CALİSTO BALIK
+*   Can samimiy et
+*   Seferi Ocakbaşı Meyhane
+*   Sade coffee & drink
+*   Mask Beach Music & Food
+*   ELLA ITALIAN
+*   Happy Moon's West İstanbul Marina
+*   Deniz Kızı Şefin Yeri
+*   Zeytinlik Balık Restaurant
+*   Pargalı Rum meyhanesi
+*   West Maya Marin Restorant
+*   Maya Marin / Beylikdüzü Marina
+*   Quki Meyhane - West İstanbul Marina
+*   Big Chefs West İstanbul Marina Şubesi
+*   İkitek Ocakbaşı West İstanbul Marina
+*   Sefam Olsun Meyhane
+*   Spoint Meyhane
+*   Mavi Mey-hane
+*   Cümbüş Yeni Nesil Marina
+*   West Kanat
+*   Fısıltı Lounge
+*   Validemin Elinden Şarküteri & Restaurant
+
+## Marina Hizmetleri ve Diğer Olanaklar
+*   BoatFest Satılık Tekne Pontonu
+*   Garanti BBVA ATM
+*   Paris Saint-Germain Academy Beylikdüzü
+*   WEST İstanbul Marina Tenis Spor Kulübü Derneği
+*   West Life Sports Club
+*   Bilgin Yachts
   `
 };

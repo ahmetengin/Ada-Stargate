@@ -65,7 +65,9 @@ export default function App() {
       { day: 'Tomorrow', temp: 22, condition: 'Windy', windSpeed: 28, windDir: 'N', alertLevel: 'ADVISORY' },
       { day: 'Wed', temp: 19, condition: 'Rain', windSpeed: 15, windDir: 'NE', alertLevel: 'NONE' },
   ]);
-  const [vesselsInPort, setVesselsInPort] = useState(602); 
+  
+  // FIX: Lowered from 602 to 540 to ensure vacancy logic allows entry (Capacity is 600)
+  const [vesselsInPort, setVesselsInPort] = useState(540); 
   
   const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({
     'ada.vhf': 'connected', 'ada.sea': 'connected', 'ada.marina': 'connected',
@@ -96,6 +98,7 @@ export default function App() {
       };
       setRegistry(prev => [newRegistryEntry, ...prev]);
       setTrafficQueue(prev => prev.filter(t => t.id !== trafficId));
+      setVesselsInPort(prev => prev + 1); // Increment vessel count
   };
 
   useEffect(() => {
