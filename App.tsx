@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, AgentObservation, WeatherForecast, TrafficEntry, DecisionStepLog, AgentAction, AgentPersona, UserRole } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
@@ -9,7 +8,6 @@ import { streamChatResponse } from './services/geminiService';
 import { VoiceModal } from './components/VoiceModal';
 import { TypingIndicator } from './components/TypingIndicator';
 import { StatusBar } from './components/StatusBar';
-import { AdaBrain } from './services/brain/AdaBrain';
 import { AgentTraceModal } from './components/AgentTraceModal';
 import { orchestratorService } from './services/orchestratorService';
 
@@ -36,6 +34,14 @@ export default function App() {
   const [useSearch, setUseSearch] = useState(false);
   const [useThinking, setUseThinking] = useState(true);
   
+  // Theme State
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') as ThemeMode || 'dark'; // Default to dark if not set
+    }
+    return 'dark';
+  });
+
   const [agentTraces, setAgentTraces] = useState<AgentTraceLog[]>([]);
   const [isTraceModalOpen, setIsTraceModalOpen] = useState(false);
 
@@ -66,7 +72,6 @@ export default function App() {
       { day: 'Wed', temp: 19, condition: 'Rain', windSpeed: 15, windDir: 'NE', alertLevel: 'NONE' },
   ]);
   
-  // FIX: Lowered from 602 to 540 to ensure vacancy logic allows entry (Capacity is 600)
   const [vesselsInPort, setVesselsInPort] = useState(540); 
   
   const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({
@@ -77,13 +82,26 @@ export default function App() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // --- THEME LOGIC ---
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+
+    if (theme === 'auto') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   // --- AUTONOMOUS AI TRAFFIC CONTROLLER LOGIC ---
-  // Ada.Marina periodically checks the Traffic Queue and authorizes vessels automatically.
-  // This satisfies "Why do I have to click? Everything should be automatic."
   const handleCheckIn = (trafficId: string) => {
       const entry = trafficQueue.find(t => t.id === trafficId);
       if (!entry) return;
@@ -98,18 +116,16 @@ export default function App() {
       };
       setRegistry(prev => [newRegistryEntry, ...prev]);
       setTrafficQueue(prev => prev.filter(t => t.id !== trafficId));
-      setVesselsInPort(prev => prev + 1); // Increment vessel count
+      setVesselsInPort(prev => prev + 1); 
   };
 
   useEffect(() => {
     if (!isMonitoring || trafficQueue.length === 0) return;
 
     const autoAuthInterval = setInterval(() => {
-       // Find the highest priority vessel waiting
        const target = trafficQueue.find(t => t.status === 'INBOUND' || t.status === 'HOLDING');
        
-       if (target && Math.random() > 0.5) { // Simulate AI decision making time
-          // Simulate AI Decision
+       if (target && Math.random() > 0.5) { 
           const logId = Date.now();
           setLogs(prev => [{
              id: logId,
@@ -121,7 +137,7 @@ export default function App() {
 
           handleCheckIn(target.id);
        }
-    }, 5000); // Fast AI response
+    }, 5000);
 
     return () => clearInterval(autoAuthInterval);
   }, [trafficQueue, isMonitoring]);
@@ -139,7 +155,6 @@ export default function App() {
        switch (sourceNode) {
          case 'ada.vhf':
            if (activeChannel === 'SCAN') {
-                // Random channel chatter for scan mode
                 channel = ['16', '73', '12', '13', '14'][Math.floor(Math.random() * 5)];
            } else {
                 channel = activeChannel;
@@ -181,7 +196,6 @@ export default function App() {
     return () => clearInterval(simInterval);
   }, [isMonitoring, activeChannel]);
 
-  // Role switching handler
   const handleRoleChange = (newRole: UserRole) => {
       setUserProfile(prev => ({
           ...prev,
@@ -197,12 +211,10 @@ export default function App() {
       setMessages(prev => [...prev, sysMsg]);
   };
 
-  // Handler for actions triggered by the Orchestrator
   const handleAgentAction = (action: AgentAction) => {
       if (action.name === 'ada.marina.tenderDispatched') {
           const tenderName = action.params.tender; 
           const tenderId = tenders.find(t => t.name === tenderName)?.id || 't1';
-          // Assign Tender
           setTenders(prev => prev.map(t => {
             if (t.id === tenderId) {
                 return { ...t, status: 'Busy' as const, assignment: action.params.vessel };
@@ -210,7 +222,6 @@ export default function App() {
             return t;
           }));
           
-          // Log the event
           const newLog = {
             id: Date.now() + Math.random(),
             timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -237,11 +248,8 @@ export default function App() {
     };
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
-    setAgentTraces([]); // Clear previous traces
-
-    // --- NETWORK ROUTING LOGIC (FastRTC / Edge vs. Cloud/LLM) ---
+    setAgentTraces([]); 
     
-    // CASE 1: CH 73 (MARINA OPS) -> Routes to Gemini LLM (Ada Core)
     if (activeChannel === '73') {
         const orchestrationResult = await orchestratorService.processRequest(text, userProfile);
         setAgentTraces(orchestrationResult.traces);
@@ -283,10 +291,9 @@ export default function App() {
             setIsLoading(false);
         }
     } 
-    // CASE 2: OTHER CHANNELS -> Routes to Simulated Edge/FastRTC Nodes (Low Latency, No Token Cost)
     else {
         let simulatedResponse = "";
-        const delay = 800; // Simulate network latency (ms)
+        const delay = 800;
 
         switch(activeChannel) {
             case '16':
@@ -330,7 +337,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#09090b] text-zinc-200 overflow-hidden font-sans selection:bg-indigo-500/30">
+    <div className="flex flex-col h-screen w-full bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-200 overflow-hidden font-sans selection:bg-indigo-500/30 transition-colors duration-300">
       
       <div className="flex flex-1 overflow-hidden min-h-0">
         <Sidebar {...{ 
@@ -340,20 +347,22 @@ export default function App() {
             isMonitoring, 
             onMonitoringToggle: () => setIsMonitoring(!isMonitoring), 
             userProfile, 
-            onRoleChange: handleRoleChange 
+            onRoleChange: handleRoleChange,
+            theme,
+            onThemeChange: setTheme
         }} />
         
         {/* Main Chat Zone */}
-        <div className="flex flex-col flex-1 relative min-w-0 border-r border-transparent bg-[#09090b]">
+        <div className="flex flex-col flex-1 relative min-w-0 border-r border-transparent bg-zinc-50 dark:bg-[#09090b]">
           
-          {/* Header matched to h-12 to align with Canvas */}
+          {/* Header */}
           <header className="h-12 flex items-center justify-between px-6 flex-shrink-0 z-10 mt-1 border-b border-transparent">
              <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity select-none">
-                <h1 className="text-[11px] font-bold tracking-[0.2em] text-zinc-400 uppercase font-mono">Ada.Marina | <span className="text-indigo-500">Ready</span></h1>
+                <h1 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 dark:text-zinc-400 uppercase font-mono">Ada.Marina | <span className="text-indigo-600 dark:text-indigo-500">Ready</span></h1>
              </div>
              <div className="flex items-center gap-2">
                 {activeChannel !== 'SCAN' && (
-                    <span className={`text-[10px] font-mono ${activeChannel === '73' ? 'text-indigo-400 font-bold' : 'text-zinc-500'}`}>
+                    <span className={`text-[10px] font-mono ${activeChannel === '73' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}`}>
                         VHF CH {activeChannel} {activeChannel === '73' ? '[AI ACTIVE]' : '[MESH NET]'}
                     </span>
                 )}
@@ -373,7 +382,7 @@ export default function App() {
           </div>
           
           {/* Input Area */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 z-30 bg-gradient-to-t from-[#09090b] via-[#09090b] to-transparent pt-12">
+          <div className="absolute bottom-0 left-0 right-0 p-6 z-30 bg-gradient-to-t from-zinc-50 via-zinc-50 to-transparent dark:from-[#09090b] dark:via-[#09090b] dark:to-transparent pt-12">
              <InputArea 
                 onSend={handleSend} 
                 isLoading={isLoading} 

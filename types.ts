@@ -1,5 +1,3 @@
-
-
 // types.ts
 
 export enum MessageRole {
@@ -7,6 +5,8 @@ export enum MessageRole {
   Model = 'model',
   System = 'system'
 }
+
+export type ThemeMode = 'light' | 'dark' | 'auto';
 
 export interface Attachment {
   mimeType: string;
