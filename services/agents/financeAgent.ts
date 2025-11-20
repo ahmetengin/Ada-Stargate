@@ -3,7 +3,14 @@ import { AgentAction, UserProfile, AgentTraceLog } from '../../types';
 
 // Mock API integrations for Paraşüt and Iyzico
 const PARASUT_API_MOCK = {
-    createInvoice: (vessel: string, amount: number) => ({ id: `INV-${Math.floor(Math.random()*10000)}`, provider: 'PARASUT', status: 'DRAFT', amount })
+    createInvoice: (vessel: string, amount: number) => ({ id: `INV-${Math.floor(Math.random()*10000)}`, provider: 'PARASUT', status: 'DRAFT', amount }),
+    getBalance: (vessel: string) => {
+        // Simulate a small debt for 'S/Y Phisedelia' to demonstrate blocking/override logic
+        if (vessel.includes('Phisedelia')) {
+            return { balance: 850, currency: 'EUR' };
+        }
+        return { balance: 0, currency: 'EUR' }; 
+    }
 };
 
 const IYZICO_API_MOCK = {
@@ -11,6 +18,15 @@ const IYZICO_API_MOCK = {
 };
 
 export const financeAgent = {
+  // New Helper for Orchestrator Fast-Path
+  checkDebt: async (vesselName: string): Promise<{ status: 'CLEAR' | 'DEBT', amount: number }> => {
+      const data = PARASUT_API_MOCK.getBalance(vesselName);
+      return { 
+          status: data.balance > 0 ? 'DEBT' : 'CLEAR', 
+          amount: data.balance 
+      };
+  },
+
   process: async (params: any, user: UserProfile, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
     const actions: AgentAction[] = [];
     

@@ -6,7 +6,6 @@ import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
 import { MessageBubble } from './components/MessageBubble';
 import { streamChatResponse } from './services/geminiService';
-import { BrainCircuit } from 'lucide-react';
 import { VoiceModal } from './components/VoiceModal';
 import { TypingIndicator } from './components/TypingIndicator';
 import { StatusBar } from './components/StatusBar';
@@ -19,12 +18,12 @@ const INITIAL_MESSAGE: Message = {
   role: MessageRole.Model,
   text: `**Ada Stargate v3.2 Distributed Initialized**
 
-**[ OK ]** Ada Marina: Orchestrator Active.
+**[ OK ]** Ada Marina: Core System Active.
 **[ OK ]** Ada Sea: COLREGs Protocol Online.
 **[ OK ]** Ada Finance: Paraşüt/Iyzico Integrated.
 **[ OK ]** Ada Legal: RAG Knowledge Graph Ready.
 
-*System is operating in Distributed Mode. Authentication required for sensitive nodes.*`,
+*System is operating in Distributed Mode via FastRTC Mesh. Authentication required for sensitive nodes.*`,
   timestamp: Date.now()
 };
 
@@ -150,6 +149,31 @@ export default function App() {
       setMessages(prev => [...prev, sysMsg]);
   };
 
+  // Handler for actions triggered by the Orchestrator
+  const handleAgentAction = (action: AgentAction) => {
+      if (action.name === 'ada.marina.tenderDispatched') {
+          const tenderName = action.params.tender; 
+          const tenderId = tenders.find(t => t.name === tenderName)?.id || 't1';
+          // Assign Tender
+          setTenders(prev => prev.map(t => {
+            if (t.id === tenderId) {
+                return { ...t, status: 'Busy' as const, assignment: action.params.vessel };
+            }
+            return t;
+          }));
+          
+          // Log the event
+          const newLog = {
+            id: Date.now() + Math.random(),
+            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            source: 'ada.marina',
+            message: `Tender Ops: ${tenderName} dispatched to ${action.params.vessel}.`,
+            type: 'info',
+          };
+          setLogs(prev => [newLog, ...prev]);
+      }
+  };
+
   const handleSend = async (text: string, attachments: File[]) => {
     const userMessage: Message = {
       id: Date.now().toString(), role: MessageRole.User, text, timestamp: Date.now(),
@@ -167,58 +191,87 @@ export default function App() {
     setIsLoading(true);
     setAgentTraces([]); // Clear previous traces
 
-    // 1. ORCHESTRATION: Determine if a specific node should handle this locally or if it needs LLM
-    // We use the new Orchestrator Service to preprocess the intent
-    const orchestrationResult = await orchestratorService.processRequest(text, userProfile);
+    // --- NETWORK ROUTING LOGIC (FastRTC / Edge vs. Cloud/LLM) ---
     
-    // Update Logs with traces from the orchestration
-    setAgentTraces(orchestrationResult.traces);
+    // CASE 1: CH 73 (MARINA OPS) -> Routes to Gemini LLM (Ada Core)
+    if (activeChannel === '73') {
+        const orchestrationResult = await orchestratorService.processRequest(text, userProfile);
+        setAgentTraces(orchestrationResult.traces);
+        orchestrationResult.actions.forEach(handleAgentAction);
 
-    // If the Orchestrator handled it fully (e.g. blocked by Finance/Legal, or created an Invoice)
-    // we can just display the text.
-    // However, if it was a "Standard Inquiry", we fall back to the LLM stream.
-    
-    const isStandardInquiry = orchestrationResult.actions.length === 0 && !orchestrationResult.text.includes('Orchestrator: Request acknowledged');
+        const isStandardInquiry = !orchestrationResult.text;
 
-    if (!isStandardInquiry) {
-        // The orchestrator service generated a specific response (e.g. Invoice link, Access Denied)
-        setTimeout(() => {
-            setMessages(prev => [...prev, { 
-                id: `resp-${Date.now()}`, 
-                role: MessageRole.Model, 
-                text: orchestrationResult.text, 
-                timestamp: Date.now() 
-            }]);
+        if (!isStandardInquiry) {
+            setTimeout(() => {
+                setMessages(prev => [...prev, { 
+                    id: `resp-${Date.now()}`, 
+                    role: MessageRole.Model, 
+                    text: orchestrationResult.text, 
+                    timestamp: Date.now() 
+                }]);
+                setIsLoading(false);
+            }, 600);
+        } else {
+            let currentResponse = "";
+            const responseId = (Date.now() + 1).toString();
+            setMessages(prev => [...prev, { id: responseId, role: MessageRole.Model, text: "", timestamp: Date.now(), isThinking: true }]);
+
+            await streamChatResponse(
+              messages.concat(userMessage),
+              selectedModel,
+              useSearch,
+              useThinking,
+              registry,
+              tenders,
+              userProfile,
+              vesselsInPort,
+              (chunk, grounding) => {
+                 currentResponse += chunk;
+                 setMessages(prev => prev.map(m =>
+                   m.id === responseId ? { ...m, text: currentResponse, isThinking: false, groundingSources: grounding } : m
+                 ));
+              }
+            );
             setIsLoading(false);
-        }, 600); // Small artificial delay for realism
-    } else {
-        // Fallback to standard LLM Chat for general queries
-        let currentResponse = "";
-        const responseId = (Date.now() + 1).toString();
-        setMessages(prev => [...prev, { id: responseId, role: MessageRole.Model, text: "", timestamp: Date.now(), isThinking: true }]);
+        }
+    } 
+    // CASE 2: OTHER CHANNELS -> Routes to Simulated Edge/FastRTC Nodes (Low Latency, No Token Cost)
+    else {
+        let simulatedResponse = "";
+        const delay = 800; // Simulate network latency (ms)
 
-        await streamChatResponse(
-          messages.concat(userMessage),
-          selectedModel,
-          useSearch,
-          useThinking,
-          registry,
-          tenders,
-          userProfile,
-          vesselsInPort,
-          (chunk, grounding) => {
-             currentResponse += chunk;
-             setMessages(prev => prev.map(m =>
-               m.id === responseId ? { ...m, text: currentResponse, isThinking: false, groundingSources: grounding } : m
-             ));
-          }
-        );
-        setIsLoading(false);
+        switch(activeChannel) {
+            case '16':
+                simulatedResponse = `**[COAST GUARD / CH 16]**\n\nDistress signal received. Identifying Station... \n**Note:** For non-emergency marina operations, switch to Channel 73.`;
+                break;
+            case '14':
+                simulatedResponse = `**[TENDER OPS / CH 14]**\n\nTender Alpha copies. Proceeding to waypoint. \n*(This is a local mesh network message. No AI processing required.)*`;
+                break;
+            case '06':
+                simulatedResponse = `**[ASSIST / CH 06]**\n\nTechnical support team notified via pager system. Stand by.`;
+                break;
+            case '12':
+            case '13':
+                 simulatedResponse = `**[VTS TRAFFIC / CH ${activeChannel}]**\n\nSector Kadikoy VTS: Copy. Maintain course and speed.`;
+                 break;
+            default:
+                simulatedResponse = `**[RADIO SILENCE]**\n\nNo active stations on Channel ${activeChannel}.`;
+        }
+
+        setTimeout(() => {
+            const radioMessage: Message = {
+                id: `rtc-${Date.now()}`,
+                role: MessageRole.System,
+                text: simulatedResponse,
+                timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, radioMessage]);
+            setIsLoading(false);
+        }, delay);
     }
   };
   
   const toggleAuth = async () => {
-      // Placeholder for real auth
       handleRoleChange(userProfile.role === 'GUEST' ? 'GENERAL_MANAGER' : 'GUEST');
   };
 
@@ -254,26 +307,24 @@ export default function App() {
             onChannelChange: setActiveChannel, 
             isMonitoring, 
             onMonitoringToggle: () => setIsMonitoring(!isMonitoring), 
-            userProfile,
+            userProfile, 
             onRoleChange: handleRoleChange 
         }} />
         
         {/* Main Chat Zone */}
-        <div className="flex flex-col flex-1 relative min-w-0 border-r border-zinc-900/50 bg-[#09090b]">
+        <div className="flex flex-col flex-1 relative min-w-0 border-r border-transparent bg-[#09090b]">
           
-          <header className="h-14 flex items-center justify-between px-6 flex-shrink-0 z-10 mt-2">
-             <div className="flex items-center gap-3 opacity-40 hover:opacity-100 transition-opacity select-none">
-                <h1 className="text-[11px] font-bold tracking-[0.2em] text-zinc-400 uppercase">Orchestrator // <span className="text-indigo-500">Ready</span></h1>
+          {/* Header matched to h-12 to align with Canvas */}
+          <header className="h-12 flex items-center justify-between px-6 flex-shrink-0 z-10 mt-1 border-b border-transparent">
+             <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity select-none">
+                <h1 className="text-[11px] font-bold tracking-[0.2em] text-zinc-400 uppercase font-mono">Ada.Marina | <span className="text-indigo-500">Ready</span></h1>
              </div>
              <div className="flex items-center gap-2">
                 {activeChannel !== 'SCAN' && (
-                    <span className="text-[10px] font-mono bg-zinc-900 px-2 py-1 rounded text-zinc-400">
-                        VHF CH {activeChannel}
+                    <span className={`text-[10px] font-mono ${activeChannel === '73' ? 'text-indigo-400 font-bold' : 'text-zinc-500'}`}>
+                        VHF CH {activeChannel} {activeChannel === '73' ? '[AI ACTIVE]' : '[MESH NET]'}
                     </span>
                 )}
-                <button onClick={() => setIsTraceModalOpen(true)} className="p-2 text-zinc-600 hover:text-indigo-400 transition-all" title="View Agent Traces">
-                    <BrainCircuit size={18} />
-                </button>
              </div>
           </header>
 
@@ -291,12 +342,35 @@ export default function App() {
           
           {/* Input Area */}
           <div className="absolute bottom-0 left-0 right-0 p-6 z-30 bg-gradient-to-t from-[#09090b] via-[#09090b] to-transparent pt-12">
-             <InputArea {...{ onSend: handleSend, isLoading, selectedModel, onModelChange: setSelectedModel, onInitiateVhfCall: handleInitiateVhfCall, isMonitoring }} />
+             <InputArea 
+                onSend={handleSend} 
+                isLoading={isLoading} 
+                selectedModel={selectedModel} 
+                onModelChange={setSelectedModel} 
+                onInitiateVhfCall={handleInitiateVhfCall} 
+                isMonitoring={isMonitoring}
+                useSearch={useSearch}
+                onToggleSearch={() => setUseSearch(!useSearch)}
+                useThinking={useThinking}
+                onToggleThinking={() => setUseThinking(!useThinking)}
+             />
           </div>
         </div>
 
         {isCanvasOpen && (
-          <Canvas {...{ logs, registry, tenders, trafficQueue, weatherData, activeChannel, isMonitoring, userProfile, vesselsInPort, onCheckIn: handleCheckIn }} />
+          <Canvas {...{ 
+              logs, 
+              registry, 
+              tenders, 
+              trafficQueue, 
+              weatherData, 
+              activeChannel, 
+              isMonitoring, 
+              userProfile, 
+              vesselsInPort, 
+              onCheckIn: handleCheckIn,
+              onOpenTrace: () => setIsTraceModalOpen(true)
+          }} />
         )}
       </div>
       <StatusBar {...{ userProfile, onToggleAuth: toggleAuth, nodeHealth: "working", latency: 12, activeChannel }} />

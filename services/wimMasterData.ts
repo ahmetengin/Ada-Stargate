@@ -1,5 +1,6 @@
 
 
+
 export const wimMasterData = {
   "identity": {
     "name": "West Istanbul Marina",
@@ -24,6 +25,19 @@ export const wimMasterData = {
       },
       "call_sign": "West Istanbul Marina"
     }
+  },
+  "system_architecture": {
+      "philosophy": "Agentic IDE (Code-First Paradigm)",
+      "core_stack": "Claude Code + Bash + Skills + Context Engineering",
+      "observability": "Code Hooks -> Bun/SQLite -> Vue Dashboard",
+      "orchestration_model": "FastRTC Mesh + Gemini 3.0 Pro / Claude 3.5 Sonnet",
+      "documentation_path": "docs/architecture/",
+      "components": {
+          "skills": "Modular capabilities (Sea, Travel, Marina) defined as code.",
+          "context": "Unified Context Architecture (.claude/context/)",
+          "mcp_builder": "Self-generating FastMCP servers for tool execution.",
+          "seal": "Self-Adapting Language Models for regulation learning."
+      }
   },
   "security_policy": {
     "authority": "ada.passkit (IAM Node)",

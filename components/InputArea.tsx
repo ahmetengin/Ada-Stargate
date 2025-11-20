@@ -10,6 +10,10 @@ interface InputAreaProps {
   onModelChange: (model: ModelType) => void;
   onInitiateVhfCall: () => void;
   isMonitoring: boolean;
+  useSearch: boolean;
+  onToggleSearch: () => void;
+  useThinking: boolean;
+  onToggleThinking: () => void;
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({ 
@@ -18,7 +22,11 @@ export const InputArea: React.FC<InputAreaProps> = ({
   selectedModel, 
   onModelChange,
   onInitiateVhfCall,
-  isMonitoring
+  isMonitoring,
+  useSearch,
+  onToggleSearch,
+  useThinking,
+  onToggleThinking
 }) => {
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -95,13 +103,23 @@ export const InputArea: React.FC<InputAreaProps> = ({
     }
   };
 
+  // Updated to return text colors instead of backgrounds
+  const getModelActiveColor = (modelName: string) => {
+      switch (modelName) {
+          case 'Flash': return 'text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]';
+          case 'Pro': return 'text-red-600 shadow-[0_0_15px_rgba(220,38,38,0.4)]';
+          case 'Image': return 'text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)]';
+          default: return 'text-indigo-500';
+      }
+  };
+
   return (
-    <div className="w-full max-w-3xl mx-auto relative pb-2">
+    <div className="w-full max-w-3xl mx-auto relative pb-4 font-mono">
       
-      {/* Floating Controls Row */}
-      <div className="flex items-center justify-between px-2 mb-3">
-        {/* Left: Model Selectors */}
-        <div className="flex items-center gap-1 bg-[#18181b] p-1 rounded-lg border border-zinc-800/50">
+      {/* --- COMMAND DECK HEADER (Model & Tools) --- */}
+      <div className="flex items-center justify-between px-1 mb-2">
+        {/* Model Selectors (Text Only) */}
+        <div className="flex items-center gap-4 pl-2">
           {(['Flash', 'Pro', 'Image'] as const).map(modelName => {
             const modelValue = ModelType[modelName];
             const isActive = selectedModel === modelValue;
@@ -109,10 +127,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
               <button
                 key={modelValue}
                 onClick={() => onModelChange(modelValue)}
-                className={`px-3 py-1 text-[10px] font-medium rounded-md transition-all ${
+                className={`text-[10px] uppercase tracking-widest transition-all duration-300 ${
                   isActive
-                    ? 'bg-zinc-700 text-zinc-100 shadow-sm'
-                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
+                    ? `font-black scale-105 ${getModelActiveColor(modelName)}`
+                    : 'font-medium text-zinc-600 hover:text-zinc-400'
                 }`}
               >
                 {modelName}
@@ -121,93 +139,123 @@ export const InputArea: React.FC<InputAreaProps> = ({
           })}
         </div>
 
-        {/* Right: Tools */}
+        {/* Right Side Tools */}
         <div className="flex items-center gap-2">
-             <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#18181b] border border-zinc-800/50 text-cyan-400 hover:bg-zinc-800 transition-colors">
-                 <Brain size={14} />
-             </button>
-             <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#18181b] border border-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
-                 <Search size={14} />
-             </button>
+             <div 
+                onClick={onToggleThinking}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 cursor-pointer ${
+                    useThinking 
+                    ? 'text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
+                    : 'text-zinc-600 hover:text-zinc-400'
+                }`}
+                title="Toggle Reasoning (Deep Thinking)"
+             >
+                 <Brain size={16} />
+             </div>
+             <div 
+                onClick={onToggleSearch}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 cursor-pointer ${
+                    useSearch 
+                    ? 'text-blue-400 shadow-[0_0_10px_rgba(96,165,250,0.2)]' 
+                    : 'text-zinc-600 hover:text-zinc-400'
+                }`}
+                title="Toggle Web Search"
+             >
+                 <Search size={16} />
+             </div>
         </div>
       </div>
 
-      {/* Main Input Capsule */}
-      <div className="relative flex items-end bg-[#18181b] border border-zinc-800 rounded-[28px] p-1.5 pl-4 shadow-xl shadow-black/20 focus-within:border-zinc-700 transition-colors">
+      {/* --- MAIN INPUT CAPSULE --- */}
+      <div className="relative flex items-end bg-[#121214] rounded-[26px] p-1.5 pl-4 shadow-2xl shadow-black/50 transition-all duration-300">
         
-        {/* Left: Attach */}
+        {/* Attachment Button */}
         <input type="file" multiple onChange={handleFileChange} ref={fileInputRef} className="hidden" />
         <button 
             onClick={() => fileInputRef.current?.click()} 
-            className="p-2 text-zinc-500 hover:text-zinc-200 transition-colors mb-0.5"
+            className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors mb-1.5 -ml-1"
             title="Attach File"
         >
-            <Paperclip size={18} className="-rotate-45" />
+            <Paperclip size={18} />
         </button>
 
-        {/* Center: Text Input */}
+        {/* Text Area */}
         <textarea
             ref={textareaRef}
             rows={1}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Orchestrate..."
-            className="flex-1 bg-transparent border-none focus:outline-none text-[14px] text-zinc-200 placeholder:text-zinc-600 py-3 px-3 resize-none min-h-[44px] max-h-[120px] leading-relaxed font-light"
+            placeholder="Instructions..."
+            className="flex-1 bg-transparent border-none focus:outline-none text-[13px] text-zinc-200 placeholder:text-zinc-700 py-3.5 px-3 resize-none min-h-[48px] max-h-[160px] leading-relaxed tracking-tight font-mono"
             disabled={isLoading}
         />
 
-        {/* Right: Actions Group */}
-        <div className="flex items-center gap-1 pr-1 mb-0.5">
+        {/* Right Controls Group */}
+        <div className="flex items-center gap-1 mb-0.5 mr-0.5">
              
-             {/* Mic */}
+             {/* Mic Toggle */}
              <button 
                 onClick={toggleRecording} 
-                className={`p-2 rounded-full transition-colors ${isRecording ? 'text-red-500 bg-red-500/10' : 'text-zinc-500 hover:text-zinc-200'}`}
+                className={`p-2.5 rounded-full transition-all duration-300 ${
+                    isRecording 
+                    ? 'text-red-500 animate-pulse' 
+                    : 'text-zinc-600 hover:text-zinc-400'
+                }`}
             >
                 <Mic size={18} />
             </button>
 
-            {/* VHF Signal */}
+            {/* VHF Link */}
             <button 
                 onClick={onInitiateVhfCall}
-                className={`p-2 rounded-full transition-colors ${isMonitoring ? 'text-red-500/80 hover:text-red-500' : 'text-zinc-600'}`}
-                title="VHF Radio Link"
+                className={`p-2.5 rounded-full transition-all duration-300 ${
+                    isMonitoring 
+                    ? 'text-red-500 hover:text-red-400' 
+                    : 'text-zinc-600 hover:text-zinc-400'
+                }`}
+                title="VHF Channel Link"
             >
                 <AudioLines size={18} />
             </button>
-
-            {/* Divider */}
-            <div className="w-px h-5 bg-zinc-800 mx-1"></div>
 
             {/* Send Button */}
             <button
                 onClick={handleSend}
                 disabled={(!text.trim() && files.length === 0) || isLoading}
                 className={`
-                    w-9 h-9 rounded-full flex items-center justify-center transition-all
+                    w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ml-1
                     ${(!text.trim() && files.length === 0) || isLoading 
-                        ? 'bg-zinc-800 text-zinc-600' 
-                        : 'bg-zinc-200 text-zinc-900 hover:bg-white hover:scale-105 shadow-lg shadow-zinc-900/50'
+                        ? 'bg-zinc-800/30 text-zinc-700 cursor-not-allowed' 
+                        : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white'
                     }
                 `}
             >
-                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={18} strokeWidth={2.5} />}
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <ArrowUp size={18} strokeWidth={2} />}
             </button>
         </div>
 
-        {/* File Preview Overlay */}
+        {/* File Previews (Floating above input) */}
         {files.length > 0 && (
-          <div className="absolute bottom-full left-0 mb-2 px-4 flex flex-wrap gap-2">
+          <div className="absolute bottom-full left-4 mb-3 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2">
             {files.map((file, i) => (
-              <div key={i} className="flex items-center gap-2 bg-[#27272a] border border-zinc-700 rounded-lg pl-3 pr-2 py-1.5 shadow-lg">
-                <span className="text-[11px] text-zinc-300 truncate max-w-[120px]">{file.name}</span>
-                <button onClick={() => removeFile(i)} className="text-zinc-500 hover:text-zinc-300"><X size={14} /></button>
+              <div key={i} className="flex items-center gap-2 bg-[#27272a] rounded-lg pl-3 pr-2 py-2 shadow-xl">
+                <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                <span className="text-[11px] text-zinc-200 font-mono truncate max-w-[150px]">{file.name}</span>
+                <button onClick={() => removeFile(i)} className="text-zinc-500 hover:text-red-400 ml-1 p-0.5 hover:bg-zinc-800 rounded"><X size={12} /></button>
               </div>
             ))}
           </div>
         )}
 
+      </div>
+
+      {/* LEGAL / RECORDING DISCLAIMER */}
+      <div className="flex items-center justify-center gap-2 mt-3 opacity-60 select-none">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-[pulse_2s_infinite]"></div>
+          <span className="text-[9px] text-zinc-600 font-mono tracking-[0.2em] uppercase">
+              Bu görüşme kayıt altına alınmaktadır / Recorded Line
+          </span>
       </div>
     </div>
   );
