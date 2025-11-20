@@ -1,8 +1,17 @@
 // services/agents/customerAgent.ts
 
+import { AgentAction, AgentTraceLog, NodeName, VesselIntelligenceProfile } from '../../types';
 
+// Helper to create a log (copied from orchestratorService.ts for local use)
+const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
+    id: `trace_${Date.now()}_${Math.random()}`,
+    timestamp: new Date().toLocaleTimeString(),
+    node,
+    step,
+    content,
+    persona
+});
 
-import { AgentAction, AgentTraceLog } from '../../types';
 
 // A simple, low-cost Knowledge Base for General Inquiries
 // In a real scenario, this could be a simple SQL query or a cheap LLM (Gemini Flash) call.
@@ -41,14 +50,7 @@ export const customerAgent = {
   // Lightweight Processor for General Info
   handleGeneralInquiry: async (query: string, addTrace: (t: AgentTraceLog) => void): Promise<{ text: string, actions: AgentAction[] }> => {
     
-    addTrace({
-        id: `trace_cust_info_${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        node: 'ada.customer',
-        step: 'THINKING',
-        content: `Searching General Info Database for keywords in: "${query}"`,
-        persona: 'WORKER'
-    });
+    addTrace(createLog('ada.customer', 'THINKING', `Searching General Info Database for keywords in: "${query}"`, 'WORKER'));
 
     const lowerQuery = query.toLowerCase();
     let response = "";
@@ -58,14 +60,7 @@ export const customerAgent = {
 
     if (match) {
         response = WIM_INFO_DB[match];
-        addTrace({
-            id: `trace_cust_hit_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            node: 'ada.customer',
-            step: 'OUTPUT',
-            content: `Match found for '${match}'.`,
-            persona: 'WORKER'
-        });
+        addTrace(createLog('ada.customer', 'OUTPUT', `Match found for '${match}'.`, 'WORKER'));
     } else {
         // Fallback to a generic helpful response if specific keyword not found, but hint at categories
         if (lowerQuery.includes('food') || lowerQuery.includes('eat') || lowerQuery.includes('restaurant')) {
@@ -80,19 +75,51 @@ export const customerAgent = {
              response = "Specific info not found. Please contact Front Office (09:00-18:00) or check the WIM App. Available topics: Wifi, Market, Gym, Taxi, Restaurants, Fuel, Lift, Beach.";
         }
         
-        addTrace({
-            id: `trace_cust_miss_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            node: 'ada.customer',
-            step: 'OUTPUT',
-            content: `Direct match processed or fallback used.`,
-            persona: 'WORKER'
-        });
+        addTrace(createLog('ada.customer', 'OUTPUT', `Direct match processed or fallback used.`, 'WORKER'));
     }
 
     return {
         text: `**ADA CUSTOMER (INFO DESK):**\n${response}`,
         actions: []
     };
+  },
+
+  // Skill: Propose Payment Plan (New)
+  proposePaymentPlan: async (vesselProfile: VesselIntelligenceProfile, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
+      addTrace(createLog('ada.customer', 'THINKING', `Analyzing payment plan request for ${vesselProfile.name}...`, 'EXPERT'));
+
+      let recommendationToGM = "Standard payment plan (3 installments).";
+      let customerMessage = `We understand you are facing difficulties. We can offer a payment plan for your outstanding balance.`;
+
+      // Simulate logic based on payment history and loyalty (once added to profile)
+      if (vesselProfile.paymentHistoryStatus === 'OVERDUE') {
+          recommendationToGM = "Strict payment plan (immediate deposit, 2 installments).";
+          customerMessage = `Due to your overdue status, we require an immediate deposit to initiate a payment plan.`;
+      } else if (vesselProfile.paymentHistoryStatus === 'RECENTLY_LATE') {
+          recommendationToGM = "Flexible payment plan (4 installments, 30-day grace period).";
+          customerMessage = `Considering your recent payment history, we can offer a more flexible payment plan to assist you.`;
+      }
+      
+      // Add loyalty tier considerations (once loyaltyTier is added to VesselIntelligenceProfile)
+      if (vesselProfile.loyaltyTier === 'VIP') {
+          recommendationToGM = "Highly flexible payment plan (6 installments, extended grace period).";
+          customerMessage = `As a valued VIP customer, we are pleased to offer a highly flexible payment plan.`;
+      }
+
+      const actions: AgentAction[] = [];
+      actions.push({
+          id: `cust_pay_plan_${Date.now()}`,
+          kind: 'internal',
+          name: 'ada.finance.proposePaymentPlan', // This action would trigger finance to formalize the plan
+          params: {
+              vesselName: vesselProfile.name,
+              loyaltyTier: vesselProfile.loyaltyTier || 'Standard',
+              paymentHistoryStatus: vesselProfile.paymentHistoryStatus || 'REGULAR',
+              recommendation: recommendationToGM,
+              customerMessage: customerMessage
+          }
+      });
+      addTrace(createLog('ada.customer', 'OUTPUT', `Proposed payment plan for ${vesselProfile.name}.`, 'EXPERT'));
+      return actions;
   }
 };

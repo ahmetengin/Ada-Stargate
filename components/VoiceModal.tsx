@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { X, Mic, Radio, SignalHigh, Waves, Power } from 'lucide-react';
 import { LiveSession } from '../services/geminiService';
 import { LiveConnectionState } from '../types';
+import { wimMasterData } from '../services/wimMasterData'; // Import wimMasterData
 
 interface VoiceModalProps {
   isOpen: boolean;
@@ -12,6 +13,24 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
   const [status, setStatus] = useState<LiveConnectionState>(LiveConnectionState.Disconnected);
   const [audioLevel, setAudioLevel] = useState(0);
   const [session, setSession] = useState<LiveSession | null>(null);
+
+  // Get coordinates from wimMasterData
+  const { lat, lng } = wimMasterData.identity.location.coordinates;
+
+  // Function to format decimal degrees to degrees, minutes, seconds
+  const formatCoordinate = (coord: number, type: 'lat' | 'lng') => {
+    const direction = type === 'lat' ? (coord >= 0 ? 'N' : 'S') : (coord >= 0 ? 'E' : 'W');
+    const absCoord = Math.abs(coord);
+    const degrees = Math.floor(absCoord);
+    const minutesFloat = (absCoord - degrees) * 60;
+    const minutes = Math.floor(minutesFloat);
+    const seconds = Math.round((minutesFloat - minutes) * 60);
+    return `${direction} ${degrees}°${minutes}’${seconds}’’`;
+  };
+
+  const formattedLat = formatCoordinate(lat, 'lat');
+  const formattedLng = formatCoordinate(lng, 'lng');
+  const displayCoordinates = `${formattedLat} ${formattedLng}`;
 
   useEffect(() => {
     if (isOpen && status === LiveConnectionState.Disconnected) {
@@ -71,8 +90,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
            {/* Channel Indicator */}
            <div className="mb-8 text-center">
              <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest block mb-1">Priority Channel</span>
+             {/* Prominently displayed coordinates */}
+             <div className="text-lg font-mono text-zinc-300 mb-2">{displayCoordinates}</div>
              <div className="text-6xl font-mono font-bold text-indigo-500 tracking-tighter flex items-center justify-center gap-2 text-shadow-glow">
-               73 <span className="text-xl text-zinc-600">MARINA</span>
+               72 <span className="text-xl text-zinc-600">MARINA</span>
              </div>
            </div>
 

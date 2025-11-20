@@ -35,6 +35,24 @@ export const wimMasterData = {
           "endpoint_live": "https://api.kpler.com/v1/ais/wim-region/live",
           "endpoint_vessel_intel": "https://api.kpler.com/v1/vessels/details",
           "documentation": "https://docs.kpler.com/mcp-ais-api"
+      },
+      "parasut_api": {
+          "name": "Parasut Accounting & E-Invoicing",
+          "endpoint_invoices": "https://api.parasut.com/v4/sales_invoices",
+          "endpoint_clients": "https://api.parasut.com/v4/clients",
+          "documentation": "docs/parasut_apidok.md"
+      },
+      "iyzico_api": {
+          "name": "Iyzico Payment Gateway",
+          "endpoint_payment_link": "https://api.iyzico.com/payment/auth",
+          "endpoint_notifications": "https://api.ada.marina/payment/notification",
+          "documentation": "docs/iyzico_api_integration.md"
+      },
+      "garanti_bbva_api": {
+          "name": "Garanti BBVA Bank API",
+          "endpoint_transactions": "https://api.garantibbva.com.tr/accounts/transactions",
+          "endpoint_balance": "https://api.garantibbva.com.tr/accounts/balance",
+          "documentation": "docs/garanti_bbva_api_integration.md"
       }
   },
   "system_architecture": {
@@ -94,6 +112,13 @@ export const wimMasterData = {
         "rack_park": "96 (up to 7m)",
         "hangars": "11 (up to 90m)",
         "hardstanding": "60.000 m2"
+    },
+    "berth_map": {
+        "A": { "type": "Concrete", "max_loa": 25, "depth": 5.5, "capacity": 40, "status": "90%" },
+        "B": { "type": "Concrete", "max_loa": 20, "depth": 4.5, "capacity": 50, "status": "85%" },
+        "C": { "type": "Concrete", "max_loa": 15, "depth": 4.0, "capacity": 60, "status": "FULL" },
+        "VIP": { "type": "Quay", "max_loa": 90, "depth": 8.0, "capacity": 10, "status": "AVAILABLE" },
+        "T": { "type": "T-Head", "max_loa": 40, "depth": 6.0, "capacity": 8, "status": "AVAILABLE" }
     }
   },
   "legal_framework": {
@@ -101,7 +126,12 @@ export const wimMasterData = {
     "jurisdiction": "Istanbul Central Courts & Enforcement Offices (Article K.1)",
     "currency": "EUR",
     "payment_terms": "Advance Payment",
-    "contract_types": ["Mooring", "Lifting", "Launching", "Dry Berthing"]
+    "contract_types": ["Mooring", "Lifting", "Launching", "Dry Berthing"],
+    "base_pricing": {
+        "mooring_daily": 1.5, // EUR per m2
+        "electricity": 0.35, // EUR per kW
+        "water": 3.50 // EUR per m3
+    }
   },
   "traffic_control": {
       "system_type": "ATC-Style Sequencing (Tower Control)",

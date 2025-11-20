@@ -102,17 +102,21 @@ export interface VesselIntelligenceProfile {
     imo: string;
     type: string;
     flag: string;
-    dwt: number; // Deadweight Tonnage
-    loa: number; // Length Overall
-    beam: number;
-    status: string;
-    location: string;
-    coordinates: { lat: number, lng: number };
-    voyage: {
+    dwt?: number; // Deadweight Tonnage
+    loa?: number; // Length Overall
+    beam?: number;
+    status?: string;
+    location?: string;
+    coordinates?: { lat: number, lng: number };
+    voyage?: {
         lastPort: string;
         nextPort: string;
         eta: string;
     };
+    outstandingDebt?: number; // Added to store financial status
+    paymentHistoryStatus?: 'REGULAR' | 'RECENTLY_LATE' | 'OVERDUE';
+    // FIX: Add missing property loyaltyTier
+    loyaltyTier?: string;
 }
 
 
@@ -177,7 +181,8 @@ export interface AgentContext {
 }
 
 // --- NEW: Agent Orchestration Types ---
-export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit';
+// FIX: Add missing node types ('ada.vhf', 'ada.security', 'ada.weather') identified from components/Sidebar.tsx
+export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather';
 
 export type AgentPersona = 'ORCHESTRATOR' | 'EXPERT' | 'WORKER';
 

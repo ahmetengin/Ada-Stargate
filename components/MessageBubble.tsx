@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Message, MessageRole } from '../types';
+import { Message, MessageRole, VesselIntelligenceProfile } from '../types';
 import { Anchor, Copy, Check, Volume2, StopCircle, Cpu } from 'lucide-react';
 import { TypingIndicator } from './TypingIndicator';
+import { marinaAgent } from '../services/agents/marinaAgent';
+import { VESSEL_KEYWORDS } from '../services/constants';
 
 interface MessageBubbleProps {
   message: Message;
@@ -13,6 +15,33 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [copied, setCopied] = useState(false);
   const isSystem = message.role === MessageRole.System;
+
+  // State for vessel intelligence profiles
+  const [vesselProfiles, setVesselProfiles] = useState<Record<string, VesselIntelligenceProfile>>({});
+  const [loadingVessel, setLoadingVessel] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Only process model messages that have text and are not currently thinking
+    if (message.role === MessageRole.Model && message.text && !message.isThinking) {
+      const lowerText = message.text.toLowerCase();
+      // Find a vessel name from our keywords in the message text
+      const matchedVesselKeyword = VESSEL_KEYWORDS.find(keyword => lowerText.includes(keyword));
+
+      if (matchedVesselKeyword && !vesselProfiles[matchedVesselKeyword] && loadingVessel !== matchedVesselKeyword) {
+        setLoadingVessel(matchedVesselKeyword);
+        marinaAgent.getVesselIntelligence(matchedVesselKeyword)
+          .then(profile => {
+            if (profile) {
+              setVesselProfiles(prev => ({ ...prev, [matchedVesselKeyword]: profile }));
+            }
+          })
+          .finally(() => {
+            setLoadingVessel(null);
+          });
+      }
+    }
+  }, [message, vesselProfiles, loadingVessel]);
+
 
   const handleSpeak = () => {
     if (isSpeaking) {
@@ -123,6 +152,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                     <TypingIndicator />
                 )}
             </div>
+
+            {/* Vessel Intelligence Profile Display */}
+            {Object.values(vesselProfiles).map((profile, idx) => (
+                profile && (
+                    <div key={idx} className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-900 flex flex-col gap-2">
+                        <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Vessel Intelligence Profile</div>
+                        <div className="bg-sky-50 dark:bg-sky-900/10 p-3 rounded-lg border border-sky-200 dark:border-sky-900/20 text-[11px] leading-snug">
+                            <p className="mb-1"><strong>Name:</strong> {profile.name} (IMO: {profile.imo})</p>
+                            <p className="mb-1"><strong>Type:</strong> {profile.type} | <strong>Flag:</strong> {profile.flag}</p>
+                            <p className="mb-1"><strong>Dimensions:</strong> {profile.loa}m LOA x {profile.beam}m Beam | {profile.dwt} DWT</p>
+                            <p className="mb-1"><strong>Status:</strong> {profile.status} at {profile.location}</p>
+                            <p className="mb-0"><strong>Voyage:</strong> {profile.voyage.lastPort} &rarr; <strong>{profile.voyage.nextPort}</strong> (ETA: {profile.voyage.eta})</p>
+                        </div>
+                    </div>
+                )
+            ))}
 
             {/* Grounding / Sources Footer */}
             {message.groundingSources && message.groundingSources.length > 0 && (

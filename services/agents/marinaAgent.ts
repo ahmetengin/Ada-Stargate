@@ -4,7 +4,7 @@ import { AgentAction, AgentTraceLog, KplerAisTarget, TrafficEntry, VesselIntelli
 import { wimMasterData } from '../wimMasterData';
 
 // --- MOCK FLEET DATABASE (System of Record) - Enriched with Kpler MCP-style data ---
-const FLEET_DB: VesselIntelligenceProfile[] = [
+let FLEET_DB: VesselIntelligenceProfile[] = [
     { name: 'S/Y Phisedelia', imo: '987654321', type: 'Sailing Yacht', flag: 'MT', dwt: 150, loa: 18.4, beam: 5.2, status: 'DOCKED', location: 'Pontoon C-12', coordinates: { lat: 40.9634, lng: 28.6289 }, voyage: { lastPort: 'Piraeus', nextPort: 'Sochi', eta: '2025-11-25' } },
     { name: 'M/Y Blue Horizon', imo: '123456789', type: 'Motor Yacht', flag: 'KY', dwt: 300, loa: 24.0, beam: 6.1, status: 'DOCKED', location: 'Pontoon A-05', coordinates: { lat: 40.9640, lng: 28.6295 }, voyage: { lastPort: 'Monaco', nextPort: 'WIM', eta: 'N/A' } },
     { name: 'S/Y Mistral', imo: '555666777', type: 'Sailing Yacht', flag: 'TR', dwt: 120, loa: 14.2, beam: 4.1, status: 'AT_ANCHOR', location: 'Sector Zulu', coordinates: { lat: 40.9500, lng: 28.6300 }, voyage: { lastPort: 'Bodrum', nextPort: 'WIM', eta: 'N/A' } },
@@ -42,12 +42,10 @@ export const marinaHandlers: Record<string, TaskHandlerFn> = {
   'marina.dispatchTender': dispatchTender,
 };
 
-// --- DIRECT AGENT INTERFACE ---
+// --- DIRECT AGENT INTERFACE (Ada.marina.wim Node) ---
 export const marinaAgent = {
-    // FIX: Add missing isContractedVessel method to resolve error in App.tsx
     isContractedVessel: (imo: string): boolean => {
         if (!imo) return false;
-        // A vessel is considered "contracted" if it exists in our master fleet database.
         return FLEET_DB.some(v => v.imo === imo);
     },
 
@@ -65,16 +63,50 @@ export const marinaAgent = {
         }];
     },
 
-    // NEW: Vessel Intelligence Briefing Skill
+    // Skill: Vessel Intelligence Briefing (Kpler MCP)
     getVesselIntelligence: async (vesselName: string): Promise<VesselIntelligenceProfile | null> => {
-        // Simulates calling the Kpler MCP endpoint: wimMasterData.api_integrations.kpler_ais.endpoint_vessel_intel
         const targetName = vesselName.toLowerCase();
         const vessel = FLEET_DB.find(v => v.name.toLowerCase().includes(targetName));
         return vessel || null;
     },
 
+    // Skill: Expose entire fleet for UI display
+    getAllFleetVessels: (): VesselIntelligenceProfile[] => {
+        return FLEET_DB;
+    },
+
+    // Skill: Register New Vessel
+    registerVessel: async (name: string, imo: string, type: string, flag: string, loa?: number, beam?: number): Promise<{ success: boolean, message: string, vessel?: VesselIntelligenceProfile }> => {
+        if (!name || !imo || !type || !flag) {
+            return { success: false, message: "Error: Vessel name, IMO, type, and flag are required for registration." };
+        }
+
+        const existingVessel = FLEET_DB.find(v => v.imo === imo);
+        if (existingVessel) {
+            return { success: false, message: `Error: Vessel with IMO ${imo} is already registered as ${existingVessel.name}.` };
+        }
+
+        const newVessel: VesselIntelligenceProfile = {
+            name,
+            imo,
+            type,
+            flag,
+            loa: loa || 0, // Default to 0 if not provided
+            beam: beam || 0, // Default to 0 if not provided
+            dwt: (loa && beam) ? Math.round(loa * beam * 0.4) : 0, // Simple DWT estimation
+            status: 'REGISTERED',
+            location: 'Not yet assigned',
+            coordinates: wimMasterData.identity.location.coordinates, // Default to marina's location
+            voyage: { lastPort: 'N/A', nextPort: 'N/A', eta: 'N/A' },
+            outstandingDebt: 0
+        };
+
+        FLEET_DB.push(newVessel);
+        return { success: true, message: `Vessel ${name} (IMO: ${imo}) successfully registered.`, vessel: newVessel };
+    },
+
+    // Skill: Fleet Query
     queryFleet: async (queryType: 'LOCATE' | 'FILTER', params: any, addTrace: (t: AgentTraceLog) => void): Promise<{ text: string, actions: AgentAction[] }> => {
-        
         if (queryType === 'LOCATE') {
             const targetName = params.vesselName.toLowerCase();
             const vessel = FLEET_DB.find(v => v.name.toLowerCase().includes(targetName));
@@ -89,7 +121,7 @@ export const marinaAgent = {
             });
 
             if (vessel) {
-                 const mapLink = `https://www.google.com/maps/search/?api=1&query=${vessel.coordinates.lat},${vessel.coordinates.lng}`;
+                 const mapLink = `https://www.google.com/maps/search/?api=1&query=${vessel.coordinates?.lat},${vessel.coordinates?.lng}`;
                  return {
                      text: `**STATUS REPORT: ${vessel.name}**\n\n**Status:** ${vessel.status}\n**Location:** ${vessel.location}\n**Specs:** ${vessel.loa}m / ${vessel.type}\n\n[📍 LIVE LOCATION](${mapLink})`,
                      actions: []
@@ -101,7 +133,6 @@ export const marinaAgent = {
                  };
             }
         }
-
         if (queryType === 'FILTER') {
             const minLength = params.minLength || 0;
             addTrace({
@@ -112,43 +143,36 @@ export const marinaAgent = {
                 content: `Executing Filter: LOA > ${minLength}m`,
                 persona: 'WORKER'
             });
-
-            const results = FLEET_DB.filter(v => v.loa > minLength);
-            
+            const results = FLEET_DB.filter(v => v.loa && v.loa > minLength);
             if (results.length === 0) return { text: "No vessels found matching criteria.", actions: [] };
-
-            // Format as a Markdown Table
+            
             let report = `**FLEET REPORT (LOA > ${minLength}m)**\n\n`;
             report += `| Vessel Name | LOA | Location | Map |\n|---|---|---|---|\n`;
             results.forEach(v => {
-                const link = `[📍View](https://www.google.com/maps/search/?api=1&query=${v.coordinates.lat},${v.coordinates.lng})`;
+                const link = `[📍View](https://www.google.com/maps/search/?api=1&query=${v.coordinates?.lat},${v.coordinates?.lng})`;
                 report += `| **${v.name}** | ${v.loa}m | ${v.location} | ${link} |\n`;
             });
-
             return { text: report, actions: [] };
         }
-
         return { text: "Query not understood.", actions: [] };
     },
 
+    // Skill: AIS Monitor (Kpler Live Feed Simulation)
     fetchLiveAisData: async (): Promise<TrafficEntry[]> => {
         try {
-            // --- MOCK API DATA GENERATION (from enriched DB) ---
+            // Simulate querying the Kpler MCP: https://api.kpler.com/v1/ais/wim-region/live
             const mockApiData = FLEET_DB.map((v, i) => ({
                 id: `kpler-${v.imo}`,
                 vessel_name: v.name,
                 status: v.status as any,
-                latitude: v.coordinates.lat + (Math.random() - 0.5) * 0.005,
-                longitude: v.coordinates.lng + (Math.random() - 0.5) * 0.005,
+                latitude: v.coordinates?.lat + (Math.random() - 0.5) * 0.005 || wimMasterData.identity.location.coordinates.lat + (Math.random() - 0.5) * 0.005,
+                longitude: v.coordinates?.lng + (Math.random() - 0.5) * 0.005 || wimMasterData.identity.location.coordinates.lng + (Math.random() - 0.5) * 0.005,
                 speed_knots: v.status === 'DOCKED' ? 0 : Math.random() * 8 + 2,
                 course_deg: Math.random() * 360,
                 imo: v.imo,
                 flag: v.flag,
-                nextPort: v.voyage.nextPort
+                nextPort: v.voyage?.nextPort
             }));
-            // --- END MOCK DATA ---
-
-            // Transform the API data into the format our application uses (MCP pattern)
             return mockApiData.map(target => ({
                 id: target.id,
                 vessel: target.vessel_name,
@@ -163,10 +187,51 @@ export const marinaAgent = {
                 flag: target.flag,
                 nextPort: target.nextPort
             }));
-            
         } catch (error) {
             console.error('[marinaAgent] Failed to fetch live AIS data:', error);
             return [];
         }
+    },
+
+    // Skill: Berth Allocation (Rule-Based Logic)
+    // Input: LOA, Beam, Draft
+    // Output: Berth Assignment + Maneuver Notes
+    executeSkill_BerthAllocation: async (specs: { loa: number, beam: number, draft: number }, addTrace: (t: AgentTraceLog) => void): Promise<{ berth: string, notes: string }> => {
+        
+        addTrace({
+            id: `trace_berth_algo_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            node: 'ada.marina',
+            step: 'THINKING',
+            content: `Executing Berth Allocation Algorithm v2.1 for specs: ${specs.loa}m x ${specs.beam}m (Draft: ${specs.draft}m)`,
+            persona: 'EXPERT'
+        });
+
+        const berths = wimMasterData.assets.berth_map;
+        
+        // Logic: Check VIP first if large
+        if (specs.loa > 40) {
+             if (berths.VIP.status === 'AVAILABLE' && berths.VIP.depth >= specs.draft) {
+                 return { berth: "VIP Quay (V-01)", notes: "Direct approach via main fairway. Pilot mandatory." };
+             }
+        }
+        
+        // Logic: Check Pontoons
+        if (specs.loa <= 15 && berths.C.status !== 'FULL') return { berth: "Pontoon C-08", notes: "Stern-to mooring. Lazylines available." };
+        if (specs.loa <= 20 && berths.B.status !== 'FULL') return { berth: "Pontoon B-12", notes: "Standard stern-to." };
+        if (specs.loa <= 25 && berths.A.status !== 'FULL') return { berth: "Pontoon A-04", notes: "Starboard side-to possible." };
+        if (specs.loa <= 40 && berths.T.status === 'AVAILABLE') return { berth: "T-Head (T-02)", notes: "Exposed to SW swell. Check weather." };
+
+        // Default/Fallback
+        addTrace({
+            id: `trace_berth_fail_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            node: 'ada.marina',
+            step: 'PLANNING',
+            content: `Standard berths saturated. Checking overflow capacity...`,
+            persona: 'WORKER'
+        });
+
+        return { berth: "Transit Quay (Tr-05)", notes: "Temporary allocation. Move required within 24h." };
     }
 };

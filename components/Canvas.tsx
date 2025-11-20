@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink } from 'lucide-react';
+import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink, Map as MapIcon, Anchor } from 'lucide-react';
 import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast, VesselIntelligenceProfile } from '../types';
 import { marinaAgent } from '../services/agents/marinaAgent';
+import { wimMasterData } from '../services/wimMasterData';
 
 
 interface CanvasProps {
@@ -31,7 +32,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onCheckIn,
   onOpenTrace
 }) => {
-  const [activeTab, setActiveTab] = useState<'fleet' | 'feed' | 'cloud' | 'ais'>('fleet');
+  const [activeTab, setActiveTab] = useState<'fleet' | 'feed' | 'cloud' | 'ais' | 'map'>('fleet');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [showWarningOnly, setShowWarningOnly] = useState(false);
@@ -42,6 +43,11 @@ export const Canvas: React.FC<CanvasProps> = ({
   // NEW: State for live AIS data
   const [aisTargets, setAisTargets] = useState<TrafficEntry[]>([]);
   const [isAisLoading, setIsAisLoading] = useState(false);
+
+  // NEW: State for all fleet vessels and search query for fleet tab
+  const [fleetSearchQuery, setFleetSearchQuery] = useState('');
+  const [allFleetVessels, setAllFleetVessels] = useState<VesselIntelligenceProfile[]>([]);
+
 
   const startResizing = useCallback(() => setIsResizing(true), []);
   const stopResizing = useCallback(() => setIsResizing(false), []);
@@ -61,6 +67,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       window.removeEventListener("mouseup", stopResizing);
     };
   }, [resize, stopResizing]);
+
+  // NEW: Effect for fetching all fleet vessels on component mount or tab change
+  useEffect(() => {
+      const fetchFleet = () => {
+          setAllFleetVessels(marinaAgent.getAllFleetVessels());
+      };
+      if (activeTab === 'fleet' || activeTab === 'map') {
+        fetchFleet();
+      }
+  }, [activeTab]); // Fetch when switching to fleet or map tab
 
   // NEW: Effect for fetching live AIS data when tab is active
   useEffect(() => {
@@ -172,6 +188,24 @@ export const Canvas: React.FC<CanvasProps> = ({
       return msg;
   };
 
+  const filteredFleetVessels = allFleetVessels.filter(vessel => {
+      if (!fleetSearchQuery) return true;
+      const query = fleetSearchQuery.toLowerCase();
+      return (
+          vessel.name.toLowerCase().includes(query) ||
+          (vessel.imo && vessel.imo.toLowerCase().includes(query)) ||
+          (vessel.flag && vessel.flag.toLowerCase().includes(query))
+      );
+  });
+
+  // Marina Coordinates for Map
+  const marinaLat = wimMasterData.identity.location.coordinates.lat;
+  const marinaLng = wimMasterData.identity.location.coordinates.lng;
+
+  // FIX: Define centerX and centerY for map positioning
+  const centerX = 50; // 50% from left
+  const centerY = 50; // 50% from top
+
   return (
     <div 
       className="hidden lg:flex flex-col h-full bg-white dark:bg-[#09090b] border-l border-zinc-200 dark:border-zinc-900 flex-shrink-0 relative transition-colors duration-300"
@@ -188,13 +222,14 @@ export const Canvas: React.FC<CanvasProps> = ({
            <span className="font-bold tracking-tight text-xs uppercase font-mono text-zinc-500 dark:text-zinc-500">Operations Deck</span>
         </div>
         <div className="flex items-center gap-1">
-          <a href="https://www.marinetraffic.com/en/ais/home/centerx:28.665/centery:40.955/zoom:15" target="_blank" rel="noopener noreferrer" className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" title="Open Live Marine Traffic">
+          {/* FIX: Changed 'title' to 'aria-label' to resolve TypeScript error with Lucide component props */}
+          <a href="https://www.marinetraffic.com/en/ais/home/centerx:28.665/centery:40.955/zoom:15" target="_blank" rel="noopener noreferrer" className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" aria-label="Open Live Marine Traffic">
               <ExternalLink size={14} />
           </a>
           <button 
             onClick={onOpenTrace}
             className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" 
-            title="View Agent Traces"
+            aria-label="View Agent Traces" 
           >
             <BrainCircuit size={14} />
           </button>
@@ -203,6 +238,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           <TabButton tabName="fleet" icon={Ship} currentTab={activeTab} />
           <TabButton tabName="cloud" icon={Cloud} currentTab={activeTab} />
           <TabButton tabName="ais" icon={Radar} currentTab={activeTab} />
+          <TabButton tabName="map" icon={MapIcon} currentTab={activeTab} /> {/* NEW: Map Tab */}
         </div>
       </div>
 
@@ -210,6 +246,8 @@ export const Canvas: React.FC<CanvasProps> = ({
         {activeTab === 'feed' && (
            <>
             <div className="px-3 py-2 flex items-center gap-2">
+                <button onClick={() => setShowWarningOnly(!showWarningOnly)} className={`p-1 rounded transition-colors ${showWarningOnly ? 'text-yellow-500' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'}`} title="Warnings Only"><AlertTriangle size={12} /></button>
+                <button onClick={() => setShowUrgentOnly(!showUrgentOnly)} className={`p-1 rounded transition-colors ${showUrgentOnly ? 'text-red-500' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'}`} title="Urgent Only"><AlertCircle size={12} /></button>
                 <Search size={12} className="text-zinc-400 dark:text-zinc-600 flex-shrink-0" />
                 <input 
                     type="text"
@@ -218,8 +256,6 @@ export const Canvas: React.FC<CanvasProps> = ({
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="bg-transparent w-full text-[10px] focus:outline-none text-zinc-700 dark:text-zinc-300 font-mono placeholder:text-zinc-400 dark:placeholder:text-zinc-700"
                 />
-                <button onClick={() => setShowWarningOnly(!showWarningOnly)} className={`p-1 rounded transition-colors ${showWarningOnly ? 'text-yellow-500' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'}`} title="Warnings Only"><AlertTriangle size={12} /></button>
-                <button onClick={() => setShowUrgentOnly(!showUrgentOnly)} className={`p-1 rounded transition-colors ${showUrgentOnly ? 'text-red-500' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'}`} title="Urgent Only"><AlertCircle size={12} /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-3 space-y-2 custom-scrollbar font-mono text-[10px]">
                 {filteredLogs.map(log => (
@@ -245,11 +281,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                   </div>
                    <div className="text-center">
                       <div className="text-[9px] text-zinc-500 dark:text-zinc-600 uppercase tracking-wider mb-1">Movements</div>
-                      <div className="text-2xl font-bold text-zinc-700 dark:text-zinc-300">{registry.length}</div>
+                      <div className="2xl font-bold text-zinc-700 dark:text-zinc-300">{registry.length}</div>
                   </div>
                    <div className="text-center">
                       <div className="text-[9px] text-zinc-500 dark:text-zinc-600 uppercase tracking-wider mb-1">Occupancy</div>
-                      <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">92%</div>
+                      <div className="2xl font-bold text-emerald-600 dark:text-emerald-400">92%</div>
                   </div>
               </div>
 
@@ -288,6 +324,45 @@ export const Canvas: React.FC<CanvasProps> = ({
                             <span className="text-zinc-500">{r.location}</span>
                         </div>
                     ))}
+                </div>
+              </div>
+
+              {/* NEW: Fleet Roster / Searchable Vessel List */}
+              <div>
+                <h3 className="font-bold text-zinc-500 dark:text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Fleet Roster</h3>
+                <div className="relative mb-3 flex items-center">
+                    <Search size={12} className="absolute left-2 text-zinc-400 dark:text-zinc-600" />
+                    <input 
+                        type="text"
+                        placeholder="Search vessel by name, IMO, or flag..."
+                        value={fleetSearchQuery}
+                        onChange={(e) => setFleetSearchQuery(e.target.value)}
+                        className="bg-zinc-50 dark:bg-zinc-900/30 w-full text-[10px] focus:outline-none focus:ring-1 focus:ring-indigo-500 rounded-md py-1.5 pl-8 pr-2 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-700 border border-zinc-200 dark:border-zinc-800"
+                    />
+                </div>
+                <div className="space-y-1">
+                    {filteredFleetVessels.length > 0 ? (
+                        filteredFleetVessels.map(v => (
+                            <div key={v.imo} className="flex items-center justify-between text-[10px] py-1.5 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 rounded transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800">
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-zinc-800 dark:text-zinc-300 text-[10px]">{v.name}</span>
+                                    <span className="text-[9px] text-zinc-500 dark:text-zinc-600">IMO: {v.imo} | Flag: {v.flag}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {v.outstandingDebt && v.outstandingDebt > 0 && (
+                                        <div className="text-red-500 dark:text-red-400 flex items-center gap-1 text-[9px] font-bold">
+                                            <AlertCircle size={10} /> €{v.outstandingDebt}
+                                        </div>
+                                    )}
+                                    <span className="text-[9px] text-zinc-500 dark:text-zinc-600">{v.status}</span>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="text-zinc-400 dark:text-zinc-700 text-center py-4 text-[10px]">
+                            No vessels found matching your search.
+                        </div>
+                    )}
                 </div>
               </div>
            </div>
@@ -379,7 +454,6 @@ export const Canvas: React.FC<CanvasProps> = ({
                             <div 
                                 key={t.id}
                                 className="absolute z-20 group cursor-pointer"
-                                style={{ transform: `translate(${x}px, ${y}px)` }}
                                 title={`${t.vessel}\nStatus: ${t.status}\nSpeed: ${t.speedKnots}kn\nCourse: ${t.course}°`}
                             >
                                 {/* The Dot */}
@@ -425,6 +499,53 @@ export const Canvas: React.FC<CanvasProps> = ({
                 </table>
              </div>
            </div>
+        )}
+        {activeTab === 'map' && ( // NEW: Map Tab Content
+            <div className="flex-1 relative flex items-center justify-center bg-zinc-50 dark:bg-[#050505] overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-full bg-[radial-gradient(#1a1a1a_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:20px_20px] opacity-10"></div>
+                </div>
+                <div className="relative w-[300px] h-[300px] bg-sky-200/20 dark:bg-sky-900/10 rounded-full flex items-center justify-center shadow-lg border border-sky-300/50 dark:border-sky-900/50">
+                    {/* Marina Center Marker */}
+                    <div className="absolute z-20" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                        <Anchor size={20} className="text-indigo-600 dark:text-indigo-400 animate-pulse" title="West Istanbul Marina" />
+                    </div>
+
+                    {/* Vessel Markers */}
+                    {allFleetVessels.map(vessel => {
+                        if (!vessel.coordinates || !vessel.coordinates.lat || !vessel.coordinates.lng) return null;
+
+                        // Simple relative positioning based on marina center
+                        // Adjusting scale to fit in the 300px circle
+                        const latDiff = (vessel.coordinates.lat - marinaLat) * 10000; // Scale factor
+                        const lngDiff = (vessel.coordinates.lng - marinaLng) * 10000; // Scale factor
+
+                        // Convert to percentage relative to the 300px container
+                        // Assuming max diff of ~0.005 lat/lng covers the marina area (roughly 500m)
+                        const scaleFactor = 1500; // Adjust this value to spread out the vessels more or less
+                        const relativeX = centerX + (lngDiff * scaleFactor);
+                        const relativeY = centerY - (latDiff * scaleFactor); // Y-axis is inverted for north
+
+                        // Ensure markers stay within the map boundaries (0-100%)
+                        if (relativeX < 0 || relativeX > 100 || relativeY < 0 || relativeY > 100) return null;
+
+                        return (
+                            <div 
+                                key={vessel.imo}
+                                className="absolute z-10 group cursor-pointer"
+                                style={{ 
+                                    top: `${relativeY}%`, 
+                                    left: `${relativeX}%`, 
+                                    transform: 'translate(-50%, -50%)' 
+                                }}
+                                title={`${vessel.name} (IMO: ${vessel.imo})\nStatus: ${vessel.status}\nLocation: ${vessel.location}`}
+                            >
+                                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full shadow-[0_0_5px_rgba(59,130,246,0.8)] group-hover:scale-150 transition-transform" />
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         )}
       </div>
     </div>

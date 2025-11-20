@@ -11,6 +11,8 @@ import { StatusBar } from './components/StatusBar';
 import { AgentTraceModal } from './components/AgentTraceModal';
 import { orchestratorService } from './services/orchestratorService';
 import { marinaAgent } from './services/agents/marinaAgent';
+import { VESSEL_KEYWORDS } from './services/constants'; // Import from constants
+import { wimMasterData } from './services/wimMasterData';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
@@ -26,7 +28,8 @@ const INITIAL_MESSAGE: Message = {
   timestamp: Date.now()
 };
 
-const VESSEL_NAMES = ['S/Y Phisedelia', 'M/Y Blue Horizon', 'S/Y Mistral', 'M/Y Poseidon', 'Catamaran Lir', 'S/Y Aegeas', 'Tender Bravo', 'M/Y Grand Turk'];
+// Removed from here, now imported from services/constants.ts
+// const VESSEL_NAMES = ['S/Y Phisedelia', 'M/Y Blue Horizon', 'S/Y Mistral', 'M/Y Poseidon', 'Catamaran Lir', 'S/Y Aegeas', 'Tender Bravo', 'M/Y Grand Turk'];
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
@@ -213,7 +216,7 @@ export default function App() {
   useEffect(() => {
     const generateLog = () => {
        const sourceNode = ['ada.vhf', 'ada.security', 'ada.finance', 'ada.marina', 'ada.weather'][Math.floor(Math.random() * 5)];
-       const vessel = VESSEL_NAMES[Math.floor(Math.random() * VESSEL_NAMES.length)];
+       const vessel = VESSEL_KEYWORDS[Math.floor(Math.random() * VESSEL_KEYWORDS.length)]; // Use VESSEL_KEYWORDS
        let message = '';
        let type = 'info';
        let channel = '';
@@ -407,6 +410,24 @@ export default function App() {
     }
   };
 
+  // Get coordinates from wimMasterData
+  const { lat, lng } = wimMasterData.identity.location.coordinates;
+
+  // Function to format decimal degrees to degrees, minutes, seconds
+  const formatCoordinate = (coord: number, type: 'lat' | 'lng') => {
+    const direction = type === 'lat' ? (coord >= 0 ? 'N' : 'S') : (coord >= 0 ? 'E' : 'W');
+    const absCoord = Math.abs(coord);
+    const degrees = Math.floor(absCoord);
+    const minutesFloat = (absCoord - degrees) * 60;
+    const minutes = Math.floor(minutesFloat);
+    const seconds = Math.round((minutesFloat - minutes) * 60);
+    return `${direction} ${degrees}°${minutes}’${seconds}’’`;
+  };
+
+  const formattedLat = formatCoordinate(lat, 'lat');
+  const formattedLng = formatCoordinate(lng, 'lng');
+  const displayCoordinates = `${formattedLat} ${formattedLng}`;
+
   return (
     <div className="flex flex-col h-screen w-full bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-200 overflow-hidden font-sans selection:bg-indigo-500/30 transition-colors duration-300">
       
@@ -433,8 +454,9 @@ export default function App() {
              </div>
              <div className="flex items-center gap-2">
                 {activeChannel !== 'SCAN' && (
-                    <span className={`text-[10px] font-mono ${activeChannel === '72' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}`}>
-                        VHF CH {activeChannel} {activeChannel === '72' ? '[AI ACTIVE]' : '[MESH NET]'}
+                    <span className={`text-[10px] font-mono flex items-center gap-2 ${activeChannel === '72' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}`}>
+                        <span className="text-red-500">{displayCoordinates}</span>
+                        <span>VHF CH {activeChannel} {activeChannel === '72' ? '[AI ACTIVE]' : '[MESH NET]'}</span>
                     </span>
                 )}
              </div>
