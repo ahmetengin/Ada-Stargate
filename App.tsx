@@ -108,7 +108,7 @@ export default function App() {
 
       const newRegistryEntry: RegistryEntry = {
         id: `reg-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         vessel: entry.vessel,
         action: 'CHECK-IN',
         location: entry.destination || 'Transit Quay',

@@ -27,7 +27,8 @@ export const StatusBar: React.FC<StatusBarProps> = ({
       <div className="flex items-center h-full gap-4">
         <div className="flex items-center gap-1.5 hover:text-zinc-800 dark:hover:text-zinc-300 cursor-pointer transition-colors">
           <GitBranch size={10} />
-          <span className="font-semibold">wim/main*</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> {/* Green dot for wim/main status */}
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">wim/main</span>
         </div>
         
         <div className="flex items-center gap-1.5 hover:text-zinc-800 dark:hover:text-zinc-300 cursor-pointer transition-colors">
