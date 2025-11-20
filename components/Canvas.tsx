@@ -256,7 +256,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                   <h3 className="font-bold text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Traffic Control (Queue)</h3>
                   <div className="space-y-1">
                       {trafficQueue.map(t => (
-                          <div key={t.id} className="flex items-center justify-between py-2 px-2 hover:bg-zinc-900/30 rounded group">
+                          <div key={t.id} className="flex items-center justify-between py-2 px-2 hover:bg-zinc-900/30 rounded group bg-zinc-900/10 border border-zinc-900/50">
                               <div className="flex items-center gap-3">
                                 {t.status === 'INBOUND' && <ArrowDown size={10} className="text-emerald-400"/>}
                                 {t.status === 'OUTBOUND' && <ArrowUp size={10} className="text-blue-400"/>}
@@ -270,17 +270,17 @@ export const Canvas: React.FC<CanvasProps> = ({
                               </div>
 
                               <div className="flex items-center gap-3">
-                                <span className="text-[9px] font-bold text-zinc-500">{t.status}</span>
-                                <div className="flex items-center gap-1">
-                                   <span className="text-[8px] text-zinc-700 hidden group-hover:block">AI AUTO</span>
-                                   <button 
-                                      onClick={() => onCheckIn(t.id)}
-                                      className="opacity-50 hover:opacity-100 transition-opacity text-indigo-400 hover:text-white p-1 bg-indigo-500/10 rounded"
-                                      title="Manual Override: Authorize Check-In"
-                                   >
-                                      <LogIn size={12} />
-                                   </button>
+                                <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2 py-1 rounded">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[9px] font-bold text-emerald-400">AI PROCESSING</span>
                                 </div>
+                                <button 
+                                    onClick={() => onCheckIn(t.id)}
+                                    className="opacity-20 hover:opacity-100 transition-opacity text-zinc-500 hover:text-white p-1 rounded"
+                                    title="Manual Override"
+                                >
+                                    <LogIn size={10} />
+                                </button>
                               </div>
                           </div>
                       ))}
@@ -296,7 +296,7 @@ export const Canvas: React.FC<CanvasProps> = ({
              <div className="absolute top-4 left-4 z-20 pointer-events-none">
                 <div className="flex items-center gap-2 text-emerald-500/50 mb-1">
                     <Radar size={14} />
-                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS LIVE | 3 TARGETS</span>
+                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS LIVE | {trafficQueue.length} TARGETS</span>
                 </div>
              </div>
 
@@ -325,12 +325,16 @@ export const Canvas: React.FC<CanvasProps> = ({
                                 style={{ transform: `translate(${x}px, ${y}px)` }}
                             >
                                 {/* The Dot */}
-                                <div className="w-2 h-2 bg-white rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]" />
+                                <div className="w-2 h-2 bg-white rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)] hover:scale-150 transition-transform" />
                                 
-                                {/* The Label (Tooltip) */}
-                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-zinc-900/90 text-emerald-400 text-[9px] px-2 py-1 rounded border border-zinc-800 opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 backdrop-blur-sm">
+                                {/* The Label (ALWAYS VISIBLE for clarity) */}
+                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-black/60 text-emerald-400 text-[9px] px-2 py-1 rounded border border-zinc-800 whitespace-nowrap z-50 backdrop-blur-sm flex flex-col items-center">
                                     <div className="font-bold">{t.vessel}</div>
-                                    <div className="text-zinc-400 text-[8px]">{t.status} • {t.sector}</div>
+                                    <div className="text-zinc-300 text-[8px] flex gap-1">
+                                        <span>{t.status}</span>
+                                        <span className="text-zinc-500">|</span>
+                                        <span>12kn</span>
+                                    </div>
                                 </div>
                             </div>
                         );

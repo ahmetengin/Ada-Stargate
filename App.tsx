@@ -82,6 +82,22 @@ export default function App() {
   // --- AUTONOMOUS AI TRAFFIC CONTROLLER LOGIC ---
   // Ada.Marina periodically checks the Traffic Queue and authorizes vessels automatically.
   // This satisfies "Why do I have to click? Everything should be automatic."
+  const handleCheckIn = (trafficId: string) => {
+      const entry = trafficQueue.find(t => t.id === trafficId);
+      if (!entry) return;
+
+      const newRegistryEntry: RegistryEntry = {
+        id: `reg-${Date.now()}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        vessel: entry.vessel,
+        action: 'CHECK-IN',
+        location: entry.destination || 'Transit Quay',
+        status: 'AUTHORIZED'
+      };
+      setRegistry(prev => [newRegistryEntry, ...prev]);
+      setTrafficQueue(prev => prev.filter(t => t.id !== trafficId));
+  };
+
   useEffect(() => {
     if (!isMonitoring || trafficQueue.length === 0) return;
 
@@ -89,7 +105,7 @@ export default function App() {
        // Find the highest priority vessel waiting
        const target = trafficQueue.find(t => t.status === 'INBOUND' || t.status === 'HOLDING');
        
-       if (target && Math.random() > 0.6) { // 40% chance to clear a vessel every interval
+       if (target && Math.random() > 0.5) { // Simulate AI decision making time
           // Simulate AI Decision
           const logId = Date.now();
           setLogs(prev => [{
@@ -102,7 +118,7 @@ export default function App() {
 
           handleCheckIn(target.id);
        }
-    }, 8000); // Check every 8 seconds
+    }, 5000); // Fast AI response
 
     return () => clearInterval(autoAuthInterval);
   }, [trafficQueue, isMonitoring]);
@@ -308,22 +324,6 @@ export default function App() {
     if (isMonitoring) {
       setIsVoiceModalOpen(true);
     }
-  };
-
-  const handleCheckIn = (trafficId: string) => {
-      const entry = trafficQueue.find(t => t.id === trafficId);
-      if (!entry) return;
-
-      const newRegistryEntry: RegistryEntry = {
-        id: `reg-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        vessel: entry.vessel,
-        action: 'CHECK-IN',
-        location: entry.destination || 'Transit Quay',
-        status: 'AUTHORIZED'
-      };
-      setRegistry(prev => [newRegistryEntry, ...prev]);
-      setTrafficQueue(prev => prev.filter(t => t.id !== trafficId));
   };
 
   return (

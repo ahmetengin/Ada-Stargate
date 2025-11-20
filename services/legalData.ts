@@ -8,7 +8,7 @@ export const LEGAL_DOCUMENTS: Record<string, string> = {
 Bu belge, West Istanbul Marina'nın Kişisel Verilerin Korunması Kanunu (KVKK) ve Genel Veri Koruma Tüzüğü (GDPR) uyumluluğuna ilişkin genel bir çerçeve sunmaktadır.
 
 ## 1. Giriş
-West Istanbul Marina olarak, kişisel verilerin korunmasına büyük önem vermekteyiz.
+West Istanbul Marina olarak, kişisel verilerin korunmasına büyük önem vermekteyiz. Bu politika, müşterilerimizin, çalışanlarımızın, tedarikçilerimizin ve diğer ilgili kişilerin kişisel verilerinin nasıl toplandığını, işlendiğini, saklandığını ve korunduğunu açıklamaktadır.
 
 ## 2. Veri İşleme Amaçları
 Hizmetlerin sunulması, güvenliğin sağlanması ve yasal yükümlülükler.
@@ -17,7 +17,7 @@ Hizmetlerin sunulması, güvenliğin sağlanması ve yasal yükümlülükler.
 # WEST ISTANBUL MARINA OPERATION REGULATIONS
 
 ## A. PURPOSE
-To provide a clean, safe and agreeable environment.
+To provide a clean, safe and agreeable living and working environment for Yachts and Owners.
 
 ## E. PRINCIPLES
 **E.1.10.** Speed limit inside marina is **3 knots**.
