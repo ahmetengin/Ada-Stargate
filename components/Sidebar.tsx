@@ -58,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'ada.vhf', label: 'VHF' },
     { id: 'ada.sea', label: 'SEA (COLREGs)' },
     { id: 'ada.marina', label: 'MARINA (Orch)' },
-    { id: 'ada.finance', label: 'FINANCE (Paraşüt)' },
+    { id: 'ada.finance', label: 'FINANCE (Parasut)' },
     { id: 'ada.customer', label: 'CUSTOMER (CRM)' },
     { id: 'ada.passkit', label: 'PASSKIT (Wallet)' },
     { id: 'ada.legal', label: 'LEGAL (RAG)' },
@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const channels = ['16', '73', '69', '06', '12', '13', '14', 'SCAN'];
+  const channels = ['16', '72', '69', '06', '12', '13', '14', 'SCAN'];
 
   const cycleTheme = () => {
     if (theme === 'auto') onThemeChange('light');

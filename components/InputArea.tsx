@@ -253,7 +253,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
       <div className="flex items-center justify-center gap-2 mt-3 opacity-60 select-none">
           <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-[pulse_2s_infinite]"></div>
           <span className="text-[9px] text-zinc-400 dark:text-zinc-600 font-mono tracking-[0.2em] uppercase">
-              Bu görüşme kayıt altına alınmaktadır / Recorded Line
+              This conversation is being recorded / Recorded Line
           </span>
       </div>
     </div>

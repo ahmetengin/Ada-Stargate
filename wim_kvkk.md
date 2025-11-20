@@ -1,86 +1,86 @@
-# West Istanbul Marina KVKK / GDPR Veri Koruma Politikası
+# West Istanbul Marina Privacy Policy (KVKK / GDPR)
 
-Bu belge, West Istanbul Marina'nın Kişisel Verilerin Korunması Kanunu (KVKK) ve Genel Veri Koruma Tüzüğü (GDPR) uyumluluğuna ilişkin genel bir çerçeve sunmaktadır. Bu belge, marina'nın özel veri işleme faaliyetlerine göre uyarlanmalı ve güncellenmelidir.
+This document provides a general framework for West Istanbul Marina's compliance with the Law on the Protection of Personal Data (KVKK) and the General Data Protection Regulation (GDPR). This document should be adapted and updated according to the specific data processing activities of the marina.
 
-## 1. Giriş
+## 1. Introduction
 
-West Istanbul Marina olarak, kişisel verilerin korunmasına büyük önem vermekteyiz. Bu politika, müşterilerimizin, çalışanlarımızın, tedarikçilerimizin ve diğer ilgili kişilerin kişisel verilerinin nasıl toplandığını, işlendiğini, saklandığını ve korunduğunu açıklamaktadır.
+As West Istanbul Marina, we place great importance on the protection of personal data. This policy explains how the personal data of our customers, employees, suppliers, and other relevant individuals are collected, processed, stored, and protected.
 
-## 2. Veri Sorumlusu Bilgileri
+## 2. Data Controller Information
 
-**Veri Sorumlusu:** West Istanbul Marina
-**Adres:** [West Istanbul Marina'nın Adresi]
-**E-posta:** [West Istanbul Marina'nın E-posta Adresi]
-**Telefon:** [West Istanbul Marina'nın Telefon Numarası]
+**Data Controller:** West Istanbul Marina
+**Address:** [Address of West Istanbul Marina]
+**Email:** [Email Address of West Istanbul Marina]
+**Phone:** [Phone Number of West Istanbul Marina]
 
-## 3. Kişisel Verilerin Toplanması ve İşlenmesi
+## 3. Collection and Processing of Personal Data
 
-### 3.1. Toplanan Kişisel Veri Kategorileri
+### 3.1. Categories of Personal Data Collected
 
-West Istanbul Marina tarafından toplanabilecek kişisel veri kategorileri şunları içerebilir:
-*   **Kimlik Bilgileri:** Ad, soyad, T.C. kimlik numarası, pasaport numarası, doğum tarihi, cinsiyet.
-*   **İletişim Bilgileri:** Telefon numarası, e-posta adresi, adres.
-*   **Finansal Bilgiler:** Banka hesap bilgileri, kredi kartı bilgileri (ödeme işlemleri sırasında).
-*   **Tekne Bilgileri:** Tekne adı, kayıt numarası, boyutu, tipi.
-*   **Güvenlik Bilgileri:** Kamera kayıtları, giriş-çıkış kayıtları.
-*   **Diğer:** Marina hizmetlerinden yararlanma bilgileri, anket yanıtları, şikayetler.
+The categories of personal data that may be collected by West Istanbul Marina include:
+*   **Identity Information:** Name, surname, T.R. identity number, passport number, date of birth, gender.
+*   **Contact Information:** Phone number, email address, address.
+*   **Financial Information:** Bank account details, credit card information (during payment transactions).
+*   **Vessel Information:** Vessel name, registration number, size, type.
+*   **Security Information:** Camera recordings, entry-exit records.
+*   **Other:** Information on the use of marina services, survey responses, complaints.
 
-### 3.2. Kişisel Veri İşleme Amaçları
+### 3.2. Purposes of Processing Personal Data
 
-Kişisel verileriniz aşağıdaki amaçlarla işlenebilir:
-*   Marina hizmetlerinin sunulması ve yönetimi (bağlama, bakım, onarım vb.).
-*   Sözleşmelerin ifası.
-*   Yasal yükümlülüklerin yerine getirilmesi.
-*   Güvenliğin sağlanması.
-*   Müşteri ilişkileri yönetimi ve şikayetlerin çözümlenmesi.
-*   Pazarlama ve tanıtım faaliyetleri (onayınız dahilinde).
-*   İstatistiksel analizler ve iş geliştirme.
+Your personal data may be processed for the following purposes:
+*   Providing and managing marina services (mooring, maintenance, repair, etc.).
+*   Fulfillment of contracts.
+*   Compliance with legal obligations.
+*   Ensuring security.
+*   Customer relationship management and complaint resolution.
+*   Marketing and promotional activities (with your consent).
+*   Statistical analysis and business development.
 
-### 3.3. Kişisel Veri İşlemenin Hukuki Sebepleri
+### 3.3. Legal Basis for Processing Personal Data
 
-Kişisel verileriniz KVKK'nın 5. ve 6. maddelerinde ve GDPR'ın 6. ve 9. maddelerinde belirtilen hukuki sebeplere dayanarak işlenmektedir:
-*   Açık rızanızın bulunması.
-*   Kanunlarda açıkça öngörülmesi.
-*   Bir sözleşmenin kurulması veya ifasıyla doğrudan ilgili olması.
-*   Veri sorumlusunun hukuki yükümlülüğünü yerine getirebilmesi için zorunlu olması.
-*   İlgili kişinin kendisi tarafından alenileştirilmiş olması.
-*   Bir hakkın tesisi, kullanılması veya korunması için veri işlemenin zorunlu olması.
-*   İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla, veri sorumlusunun meşru menfaatleri için veri işlemenin zorunlu olması.
+Your personal data is processed based on the legal grounds specified in Articles 5 and 6 of the KVKK and Articles 6 and 9 of the GDPR:
+*   Existence of your explicit consent.
+*   Being clearly provided for by the laws.
+*   Being directly related to the establishment or performance of a contract.
+*   Being necessary for the data controller to fulfill its legal obligation.
+*   Having been made public by the data subject himself/herself.
+*   Being necessary for the establishment, exercise, or protection of a right.
+*   Being necessary for the legitimate interests of the data controller, provided that it does not harm the fundamental rights and freedoms of the data subject.
 
-## 4. Kişisel Verilerin Aktarılması
+## 4. Transfer of Personal Data
 
-Kişisel verileriniz, yukarıda belirtilen amaçlar doğrultusunda ve KVKK'nın 8. ve 9. maddeleri ile GDPR'ın 44. ve devamı maddelerinde belirtilen şartlara uygun olarak üçüncü kişilere aktarılabilir. Bu üçüncü kişiler şunları içerebilir:
-*   İş ortakları ve tedarikçiler (bakım, güvenlik, IT hizmetleri vb.).
-*   Yasal olarak yetkili kamu kurum ve kuruluşları.
-*   Denetim firmaları.
-*   Gerekli durumlarda yurt dışındaki ilgili taraflar (açık rıza veya yeterli koruma sağlanması koşuluyla).
+Your personal data may be transferred to third parties in line with the purposes mentioned above and in accordance with the conditions specified in Articles 8 and 9 of the KVKK and Articles 44 and onwards of the GDPR. These third parties may include:
+*   Business partners and suppliers (maintenance, security, IT services, etc.).
+*   Legally authorized public institutions and organizations.
+*   Audit firms.
+*   Relevant parties abroad where necessary (subject to explicit consent or adequate protection).
 
-## 5. Kişisel Verilerin Saklanması ve Güvenliği
+## 5. Storage and Security of Personal Data
 
-Kişisel verileriniz, işleme amaçlarının gerektirdiği süre boyunca veya yasal yükümlülükler uyarınca saklanmaktadır. Verilerinizin güvenliğini sağlamak amacıyla uygun teknik ve idari tedbirler alınmaktadır. Bu tedbirler şunları içerebilir:
-*   Verilere erişim yetkilendirme kontrolleri.
-*   Şifreleme ve maskeleme teknikleri.
-*   Güvenlik duvarları ve antivirüs yazılımları.
-*   Fiziksel güvenlik önlemleri.
-*   Veri yedekleme ve kurtarma planları.
+Your personal data is stored for the period required by the processing purposes or as stipulated by legal obligations. Appropriate technical and administrative measures are taken to ensure the security of your data. These measures may include:
+*   Access authorization controls for data.
+*   Encryption and masking techniques.
+*   Firewalls and antivirus software.
+*   Physical security measures.
+*   Data backup and recovery plans.
 
-## 6. Veri Sahibinin Hakları
+## 6. Rights of the Data Subject
 
-KVKK'nın 11. maddesi ve GDPR'ın 12-22. maddeleri uyarınca, kişisel verisi işlenen herkes aşağıdaki haklara sahiptir:
-*   Kişisel verilerinin işlenip işlenmediğini öğrenme.
-*   Kişisel verileri işlenmişse buna ilişkin bilgi talep etme.
-*   Kişisel verilerin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme.
-*   Yurt içinde veya yurt dışında kişisel verilerin aktarıldığı üçüncü kişileri bilme.
-*   Kişisel verilerin eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme.
-*   KVKK 7. maddede öngörülen şartlar çerçevesinde kişisel verilerin silinmesini veya yok edilmesini isteme.
-*   Yukarıda belirtilen düzeltme, silme veya yok etme işlemlerinin, kişisel verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme.
-*   İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle kişinin kendisi aleyhine bir sonucun ortaya çıkmasına itiraz etme.
-*   Kişisel verilerin kanuna aykırı olarak işlenmesi sebebiyle zarara uğraması hâlinde zararın giderilmesini talep etme.
+Under Article 11 of the KVKK and Articles 12-22 of the GDPR, everyone whose personal data is processed has the following rights:
+*   To learn whether their personal data is processed.
+*   To request information if their personal data has been processed.
+*   To learn the purpose of processing their personal data and whether they are used in accordance with their purpose.
+*   To know the third parties to whom personal data is transferred at home or abroad.
+*   To request the correction of personal data if it is incomplete or incorrectly processed.
+*   To request the deletion or destruction of personal data within the framework of the conditions stipulated in Article 7 of the KVKK.
+*   To request that the correction, deletion, or destruction processes mentioned above be notified to the third parties to whom the personal data has been transferred.
+*   To object to the occurrence of a result against the person himself/herself by analyzing the processed data exclusively through automated systems.
+*   To demand the compensation of damages in case of loss due to unlawful processing of personal data.
 
-Bu haklarınızı kullanmak için [West Istanbul Marina'nın E-posta Adresi] adresine yazılı olarak başvurabilirsiniz.
+To exercise these rights, you can apply in writing to [Email Address of West Istanbul Marina].
 
-## 7. Politika Değişiklikleri
+## 7. Policy Changes
 
-Bu politika, değişen yasal düzenlemelere ve şirket uygulamalarına göre güncellenebilir. Güncellemeler web sitemizde veya diğer uygun iletişim kanalları aracılığıyla duyurulacaktır.
+This policy may be updated according to changing legal regulations and company practices. Updates will be announced on our website or through other appropriate communication channels.
 
-**Son Güncelleme Tarihi:** 20 Kasım 2025
+**Last Updated:** 20 November 2025

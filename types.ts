@@ -65,16 +65,56 @@ export interface Tender {
   name: string;
   status: 'Idle' | 'Busy' | 'Maintenance';
   assignment?: string;
+  serviceCount?: number; // Added to track how many boats this tender has served
 }
+
+export interface KplerAisTarget {
+    id: string;
+    vessel_name: string;
+    status: 'INBOUND' | 'OUTBOUND' | 'HOLDING' | 'TAXIING' | 'DOCKED' | 'AT_ANCHOR';
+    latitude: number;
+    longitude: number;
+    speed_knots: number;
+    course_deg: number;
+}
+
 
 export interface TrafficEntry {
   id: string;
   vessel: string;
-  status: 'INBOUND' | 'OUTBOUND' | 'HOLDING' | 'TAXIING' | 'DOCKED';
-  priority: number; // 1 (Emergency) - 5 (Pleasure)
-  sector: string; // e.g., "Entrance", "Sector Zulu"
+  status: 'INBOUND' | 'OUTBOUND' | 'HOLDING' | 'TAXIING' | 'DOCKED' | 'AT_ANCHOR';
+  priority: number; 
+  sector: string; 
   destination?: string;
+  lat?: number;
+  lng?: number;
+  speedKnots?: number;
+  course?: number;
+  // NEW: Richer data fields inspired by Kpler MCP
+  imo?: string;
+  flag?: string;
+  nextPort?: string;
 }
+
+// NEW: Comprehensive vessel profile based on Kpler MCP capabilities
+export interface VesselIntelligenceProfile {
+    name: string;
+    imo: string;
+    type: string;
+    flag: string;
+    dwt: number; // Deadweight Tonnage
+    loa: number; // Length Overall
+    beam: number;
+    status: string;
+    location: string;
+    coordinates: { lat: number, lng: number };
+    voyage: {
+        lastPort: string;
+        nextPort: string;
+        eta: string;
+    };
+}
+
 
 export interface WeatherForecast {
   day: string; // "Today", "Tomorrow", "Monday"

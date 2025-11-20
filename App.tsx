@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode, VesselIntelligenceProfile } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
@@ -10,6 +10,7 @@ import { TypingIndicator } from './components/TypingIndicator';
 import { StatusBar } from './components/StatusBar';
 import { AgentTraceModal } from './components/AgentTraceModal';
 import { orchestratorService } from './services/orchestratorService';
+import { marinaAgent } from './services/agents/marinaAgent';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
@@ -18,7 +19,7 @@ const INITIAL_MESSAGE: Message = {
 
 **[ OK ]** Ada Marina: Core System Active.
 **[ OK ]** Ada Sea: COLREGs Protocol Online.
-**[ OK ]** Ada Finance: Paraşüt/Iyzico Integrated.
+**[ OK ]** Ada Finance: Parasut/Iyzico Integrated.
 **[ OK ]** Ada Legal: RAG Knowledge Graph Ready.
 
 *System is operating in Distributed Mode via FastRTC Mesh. Authentication required for sensitive nodes.*`,
@@ -45,7 +46,7 @@ export default function App() {
   const [agentTraces, setAgentTraces] = useState<AgentTraceLog[]>([]);
   const [isTraceModalOpen, setIsTraceModalOpen] = useState(false);
 
-  const [activeChannel, setActiveChannel] = useState('73');
+  const [activeChannel, setActiveChannel] = useState('72');
   const [isMonitoring, setIsMonitoring] = useState(true);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(true);
@@ -57,9 +58,9 @@ export default function App() {
   const [logs, setLogs] = useState<any[]>([]);
   const [registry, setRegistry] = useState<RegistryEntry[]>([]);
   const [tenders, setTenders] = useState<Tender[]>([
-    { id: 't1', name: 'Tender Alpha', status: 'Idle' },
-    { id: 't2', name: 'Tender Bravo', status: 'Idle' },
-    { id: 't3', name: 'Tender Charlie', status: 'Maintenance' },
+    { id: 't1', name: 'Tender Alpha', status: 'Idle', serviceCount: 0 },
+    { id: 't2', name: 'Tender Bravo', status: 'Idle', serviceCount: 0 },
+    { id: 't3', name: 'Tender Charlie', status: 'Maintenance', serviceCount: 0 },
   ]);
   const [trafficQueue, setTrafficQueue] = useState<TrafficEntry[]>([
       { id: 'tq1', vessel: 'M/Y Solaris', status: 'INBOUND', priority: 4, sector: 'North Approach' },
@@ -79,6 +80,9 @@ export default function App() {
     'ada.finance': 'connected', 'ada.customer': 'connected', 'ada.passkit': 'connected',
     'ada.legal': 'connected', 'ada.security': 'connected', 'ada.weather': 'connected',
   });
+  
+  // State for the new proactive agent
+  const [profiledVessels, setProfiledVessels] = useState<Set<string>>(new Set());
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +105,68 @@ export default function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // --- AUTONOMOUS VESSEL PROFILER AGENT ---
+  useEffect(() => {
+    const profilerInterval = setInterval(async () => {
+      if (!isMonitoring) return;
+
+      const currentTargets = await marinaAgent.fetchLiveAisData();
+      if (currentTargets.length === 0) return;
+
+      const unprofiledTarget = currentTargets.find(t => t.vessel && !profiledVessels.has(t.vessel));
+      
+      if (unprofiledTarget?.vessel) {
+        const intelProfile = await marinaAgent.getVesselIntelligence(unprofiledTarget.vessel);
+
+        if (intelProfile) {
+          const newLog = {
+            id: `intel_${intelProfile.imo}_${Date.now()}`,
+            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            source: 'ada.intelligence',
+            message: intelProfile,
+            type: 'intelligence_briefing'
+          };
+          setLogs(prev => [newLog, ...prev]);
+          setProfiledVessels(prev => new Set(prev).add(unprofiledTarget.vessel!));
+          setNodeStates(prev => ({...prev, 'ada.marina': 'working' }));
+          setTimeout(() => setNodeStates(prev => ({...prev, 'ada.marina': 'connected' })), 500);
+        }
+      }
+    }, 30000); // Run every 30 seconds
+
+    return () => clearInterval(profilerInterval);
+  }, [isMonitoring, profiledVessels]);
+
+
+  // --- AUTONOMOUS PROACTIVE ATC LOGIC ---
+  useEffect(() => {
+    const atcInterval = setInterval(async () => {
+       if (!isMonitoring) return;
+       const liveTargets = await marinaAgent.fetchLiveAisData();
+       const inboundContracted = liveTargets.find(t => t.status === 'INBOUND' && marinaAgent.isContractedVessel(t.imo || ''));
+
+       if (inboundContracted) {
+          const logExists = logs.some(l => l.type === 'atc_log' && l.vessel === inboundContracted.vessel);
+          if (!logExists) {
+              const atcLog = {
+                id: `atc_${Date.now()}`,
+                timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                source: 'ada.atc',
+                vessel: inboundContracted.vessel,
+                message: `PROACTIVE ATC: Contracted vessel ${inboundContracted.vessel} detected INBOUND.
+- Instruct to hold at Sector Zulu.
+- Alert: Heavy traffic from Ambarlı Port reported.
+- Action: Pre-assign Tender Bravo for docking assist.`,
+                type: 'atc_log'
+              };
+              setLogs(prev => [atcLog, ...prev]);
+          }
+       }
+    }, 900000); // 15 minutes
+
+    return () => clearInterval(atcInterval);
+  }, [isMonitoring, logs]);
+
   // --- AUTONOMOUS AI TRAFFIC CONTROLLER LOGIC ---
   const handleCheckIn = (trafficId: string) => {
       const entry = trafficQueue.find(t => t.id === trafficId);
@@ -108,7 +174,7 @@ export default function App() {
 
       const newRegistryEntry: RegistryEntry = {
         id: `reg-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
         vessel: entry.vessel,
         action: 'CHECK-IN',
         location: entry.destination || 'Transit Quay',
@@ -155,7 +221,7 @@ export default function App() {
        switch (sourceNode) {
          case 'ada.vhf':
            if (activeChannel === 'SCAN') {
-                channel = ['16', '73', '12', '13', '14'][Math.floor(Math.random() * 5)];
+                channel = ['16', '72', '12', '13', '14'][Math.floor(Math.random() * 5)];
            } else {
                 channel = activeChannel;
            }
@@ -166,7 +232,7 @@ export default function App() {
            message = `Gate A: Vehicle entry authorized. Plate 34-AD-123.`;
            break;
          case 'ada.finance':
-           message = `Paraşüt: Invoice synced for ${vessel}. Iyzico: Payment Pending.`;
+           message = `Parasut: Invoice synced for ${vessel}. Iyzico: Payment Pending.`;
            break;
          case 'ada.marina':
             message = 'Berth C-14 power restored';
@@ -214,10 +280,15 @@ export default function App() {
   const handleAgentAction = (action: AgentAction) => {
       if (action.name === 'ada.marina.tenderDispatched') {
           const tenderName = action.params.tender; 
-          const tenderId = tenders.find(t => t.name === tenderName)?.id || 't1';
+          const vessel = action.params.vessel;
           setTenders(prev => prev.map(t => {
-            if (t.id === tenderId) {
-                return { ...t, status: 'Busy' as const, assignment: action.params.vessel };
+            if (t.name === tenderName) {
+                return { 
+                    ...t, 
+                    status: 'Busy' as const, 
+                    assignment: vessel,
+                    serviceCount: (t.serviceCount || 0) + 1 // Increment service count
+                };
             }
             return t;
           }));
@@ -250,7 +321,7 @@ export default function App() {
     setIsLoading(true);
     setAgentTraces([]); 
     
-    if (activeChannel === '73') {
+    if (activeChannel === '72') {
         const orchestrationResult = await orchestratorService.processRequest(text, userProfile);
         setAgentTraces(orchestrationResult.traces);
         orchestrationResult.actions.forEach(handleAgentAction);
@@ -297,7 +368,7 @@ export default function App() {
 
         switch(activeChannel) {
             case '16':
-                simulatedResponse = `**[COAST GUARD / CH 16]**\n\nDistress signal received. Identifying Station... \n**Note:** For non-emergency marina operations, switch to Channel 73.`;
+                simulatedResponse = `**[COAST GUARD / CH 16]**\n\nDistress signal received. Identifying Station... \n**Note:** For non-emergency marina operations, switch to Channel 72.`;
                 break;
             case '14':
                 simulatedResponse = `**[TENDER OPS / CH 14]**\n\nTender Alpha copies. Proceeding to waypoint. \n*(This is a local mesh network message. No AI processing required.)*`;
@@ -362,8 +433,8 @@ export default function App() {
              </div>
              <div className="flex items-center gap-2">
                 {activeChannel !== 'SCAN' && (
-                    <span className={`text-[10px] font-mono ${activeChannel === '73' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}`}>
-                        VHF CH {activeChannel} {activeChannel === '73' ? '[AI ACTIVE]' : '[MESH NET]'}
+                    <span className={`text-[10px] font-mono ${activeChannel === '72' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}`}>
+                        VHF CH {activeChannel} {activeChannel === '72' ? '[AI ACTIVE]' : '[MESH NET]'}
                     </span>
                 )}
              </div>

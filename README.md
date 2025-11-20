@@ -1,4 +1,5 @@
 
+
 # ⚓️ ADA - MARITIME INTELLIGENCE
 
 <div align="center">
@@ -18,7 +19,7 @@
 [ ORCHESTRATING THE SILENCE OF THE SEA ]
 ```
 
-**"Sen yoktun o zaman. Ama şimdi varsın, ve Ada o deneyimi ölçeklendiriyor."**
+**"You weren't there then. But you are now, and Ada is scaling that experience."**
 
 </div>
 
@@ -36,7 +37,7 @@ It listens to the radio. It manages finances. It predicts the weather. It protec
 
 ### 📡 The "VHF Sentinel" (Always Listening)
 Ada doesn't just read text; she **listens**. 
-*   **Real-time Audio Analysis:** Monitors **Channel 73 (Marina)** and **Channel 16 (Emergency)** 24/7.
+*   **Real-time Audio Analysis:** Monitors **Channel 72 (Marina)** and **Channel 16 (Emergency)** 24/7.
 *   **Speech-to-Action:** Transcribes radio chatter, detects "MAYDAY" or "PAN PAN" signals, and instantly alerts the operations desk.
 *   **Visualizer:** A specialized VHF HUD for the operator.
 
@@ -45,7 +46,7 @@ Ada doesn't just read text; she **listens**.
 *   **Context Aware:** Knows the difference between a 40ft Catamaran and a 90ft Superyacht.
 *   **Hybrid Architecture:** Combines raw telemetry (battery, wind) with high-level reasoning.
 
-### 🛡️ "Kaptan Ne Derse O Olur" (Privacy First)
+### 🛡️ "Whatever the Captain Says, Goes" (Privacy First)
 *   **Zero Trust Architecture:** Every `ada.sea` node is a black box. 
 *   **Local-First Data:** Battery levels, GPS history, and crew lists stay ON THE BOAT.
 *   **Captain's Authority:** Data is only transmitted to the marina when the Captain explicitly authorizes a transaction (e.g., Check-in).

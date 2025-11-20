@@ -1,4 +1,5 @@
 
+
 import { AgentAction, UserProfile, AgentTraceLog } from '../../types';
 import { LEGAL_DOCUMENTS } from '../legalData';
 
@@ -24,7 +25,7 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
 
     const lines = docContent.split('\n');
     const allSections: { article: string; text: string; score: number }[] = [];
-    let currentArticle = "Genel Bilgi";
+    let currentArticle = "General Information";
     let sectionBuffer: string[] = [];
 
     const addSection = () => {
@@ -55,7 +56,7 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
     addSection();
 
     if (allSections.length === 0) {
-        return `**${documentId}** belgesinde "${query}" ile ilgili doğrudan bir madde bulunamadı.`;
+        return `No direct article related to "${query}" was found in the **${documentId}** document.`;
     }
 
     // Sort by score
@@ -65,17 +66,17 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
     let formattedResponse = "";
 
     if (documentId.includes('colregs') || documentId.includes('maritime')) {
-         formattedResponse += "Pusulayı doğrult kaptan! Denizcilik kuralları ve mevzuat hakkında bilmen gerekenler şunlar:\n\n";
+         formattedResponse += "Set your compass straight, Captain! Here's what you need to know about maritime rules and regulations:\n\n";
     } else {
-         formattedResponse += `**West Istanbul Marina Yönetmeliği ("${query}" ile ilgili):**\n\n`;
+         formattedResponse += `**West Istanbul Marina Regulations (related to "${query}"):**\n\n`;
     }
 
     topSnippets.forEach(snippet => {
-        formattedResponse += `--- **Madde ${snippet.article}:** ---\n${snippet.text}\n\n`;
+        formattedResponse += `--- **Article ${snippet.article}:** ---\n${snippet.text}\n\n`;
     });
 
     if (documentId.includes('colregs')) {
-        formattedResponse += "\nUnutma, denizde emniyet her şeyden önce gelir.";
+        formattedResponse += "\nRemember, safety at sea comes before all else.";
     }
 
     return formattedResponse;
@@ -121,29 +122,29 @@ export const legalAgent = {
             kind: 'internal',
             name: 'ada.legal.consultation',
             params: { 
-                advice: `Ada Marina, West Istanbul Marina'nın yasal mevzuatında uzmanlaşmıştır. Türkiye'de KVKK/GDPR yasal bir zorunluluktur. Başka kurumlarla ilgili sorularınız için lütfen doğrudan ilgili kurumla iletişime geçiniz.`,
-                context: "Genel Yasal Bilgilendirme",
+                advice: `Ada Marina specializes in the legal regulations of West Istanbul Marina. KVKK/GDPR is a legal requirement in Turkey. For inquiries about other institutions, please contact them directly.`,
+                context: "General Legal Information",
                 references: []
             }
         }];
     } 
     
     // Document Selection
-    if (lowerQuery.includes('colregs') || lowerQuery.includes('kural') || lowerQuery.includes('seyir') || lowerQuery.includes('çatışma')) {
+    if (lowerQuery.includes('colregs') || lowerQuery.includes('rule') || lowerQuery.includes('navigation') || lowerQuery.includes('collision')) {
         documentToQuery = 'colregs_and_straits.md';
-        queryContext = "COLREGs ve Seyir Kuralları";
-    } else if (lowerQuery.includes('rehber') || lowerQuery.includes('belge') || lowerQuery.includes('donanım')) {
+        queryContext = "COLREGs & Navigation Rules";
+    } else if (lowerQuery.includes('guide') || lowerQuery.includes('document') || lowerQuery.includes('equipment')) {
         documentToQuery = 'turkish_maritime_guide.md';
-        queryContext = "Denizcilik Rehberi";
-    } else if (lowerQuery.includes('kvkk') || lowerQuery.includes('veri')) {
+        queryContext = "Maritime Guide";
+    } else if (lowerQuery.includes('kvkk') || lowerQuery.includes('data') || lowerQuery.includes('privacy')) {
         documentToQuery = 'wim_kvkk.md';
-        queryContext = "WIM KVKK Politikası";
+        queryContext = "WIM Privacy Policy";
     } else {
         documentToQuery = 'wim_contract_regulations.md';
-        queryContext = "WIM İşletme Yönetmeliği";
+        queryContext = "WIM Operation Regulations";
     }
 
-    const ragResult = documentToQuery ? simulateRagLookup(query, documentToQuery, addTrace) : "Bilgi bulunamadı.";
+    const ragResult = documentToQuery ? simulateRagLookup(query, documentToQuery, addTrace) : "Information not found.";
 
     return [{
         id: `legal_resp_${Date.now()}`,

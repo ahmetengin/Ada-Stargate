@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn } from 'lucide-react';
-import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast } from '../types';
+import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink } from 'lucide-react';
+import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast, VesselIntelligenceProfile } from '../types';
+import { marinaAgent } from '../services/agents/marinaAgent';
+
 
 interface CanvasProps {
   logs: any[];
@@ -36,6 +38,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   
   const [width, setWidth] = useState(450);
   const [isResizing, setIsResizing] = useState(false);
+  
+  // NEW: State for live AIS data
+  const [aisTargets, setAisTargets] = useState<TrafficEntry[]>([]);
+  const [isAisLoading, setIsAisLoading] = useState(false);
 
   const startResizing = useCallback(() => setIsResizing(true), []);
   const stopResizing = useCallback(() => setIsResizing(false), []);
@@ -55,13 +61,37 @@ export const Canvas: React.FC<CanvasProps> = ({
       window.removeEventListener("mouseup", stopResizing);
     };
   }, [resize, stopResizing]);
+
+  // NEW: Effect for fetching live AIS data when tab is active
+  useEffect(() => {
+    let intervalId: number | undefined;
+
+    const fetchAisData = async () => {
+        setIsAisLoading(true);
+        const data = await marinaAgent.fetchLiveAisData();
+        setAisTargets(data);
+        setIsAisLoading(false);
+    };
+
+    if (activeTab === 'ais') {
+        fetchAisData(); // Fetch immediately on tab switch
+        intervalId = window.setInterval(fetchAisData, 15000); // Then refresh every 15 seconds
+    }
+
+    return () => {
+        if (intervalId) {
+            clearInterval(intervalId); // Cleanup on component unmount or tab change
+        }
+    };
+  }, [activeTab]);
   
   // Flat style: No borders, use text color and weight
   const getRowStyle = (log: any) => {
     const type = log.type || 'info';
     if (type === 'critical') return 'text-red-600 dark:text-red-400 font-bold';
-    if (type === 'alert') return 'text-amber-600 dark:text-amber-400 font-medium';
+    if (type === 'alert' || type === 'atc_log') return 'text-amber-600 dark:text-amber-400 font-medium';
     if (type === 'warning') return 'text-yellow-600 dark:text-yellow-400';
+    if (type === 'intelligence_briefing') return 'text-sky-600 dark:text-sky-400';
     return 'text-zinc-600 dark:text-zinc-400';
   };
 
@@ -72,6 +102,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (s.includes('finance')) return 'text-emerald-600 dark:text-emerald-400';
     if (s.includes('vhf')) return 'text-orange-500 dark:text-orange-400';
     if (s.includes('weather')) return 'text-sky-600 dark:text-sky-400';
+    if (s.includes('atc')) return 'text-amber-500 dark:text-amber-400';
+    if (s.includes('intelligence')) return 'text-sky-500 dark:text-sky-400';
     return 'text-zinc-500';
   };
   
@@ -81,7 +113,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     const query = searchQuery.toLowerCase();
     const type = log.type || 'info';
 
-    if (showUrgentOnly && type !== 'critical' && type !== 'alert') return false;
+    if (showUrgentOnly && type !== 'critical' && type !== 'alert' && type !== 'atc_log') return false;
     if (showWarningOnly && type !== 'warning') return false;
     
     return message.includes(query) || source.includes(query);
@@ -115,7 +147,25 @@ export const Canvas: React.FC<CanvasProps> = ({
     </button>
   );
 
-  const renderMessage = (msg: any) => {
+  const renderMessage = (msg: any, type?: string) => {
+      if (type === 'intelligence_briefing' && typeof msg === 'object' && msg !== null && msg.imo) {
+        const profile = msg as VesselIntelligenceProfile;
+        return (
+            <div className="mt-1 text-[10px] leading-relaxed bg-sky-50 dark:bg-sky-900/10 p-2 rounded border border-sky-200 dark:border-sky-900/20">
+                <div className="font-bold text-sky-700 dark:text-sky-400">
+                    AUTO-PROFILE: {profile.name}
+                </div>
+                <div className="text-zinc-600 dark:text-zinc-400/80 mt-1">
+                    <span>IMO: `{profile.imo}` | </span>
+                    <span>Flag: {profile.flag} | </span>
+                    <span>Type: {profile.type} ({profile.loa}m)</span>
+                </div>
+                <div className="text-zinc-500 dark:text-zinc-500 mt-1">
+                    Voyage: {profile.voyage.lastPort} → **{profile.voyage.nextPort}** (ETA: {profile.voyage.eta})
+                </div>
+            </div>
+        );
+      }
       if (typeof msg === 'object') {
           return JSON.stringify(msg);
       }
@@ -138,9 +188,12 @@ export const Canvas: React.FC<CanvasProps> = ({
            <span className="font-bold tracking-tight text-xs uppercase font-mono text-zinc-500 dark:text-zinc-500">Operations Deck</span>
         </div>
         <div className="flex items-center gap-1">
+          <a href="https://www.marinetraffic.com/en/ais/home/centerx:28.665/centery:40.955/zoom:15" target="_blank" rel="noopener noreferrer" className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" title="Open Live Marine Traffic">
+              <ExternalLink size={14} />
+          </a>
           <button 
             onClick={onOpenTrace}
-            className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all mr-2" 
+            className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" 
             title="View Agent Traces"
           >
             <BrainCircuit size={14} />
@@ -174,7 +227,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                         <div className="opacity-60 w-12 text-zinc-400 dark:text-zinc-500 flex-shrink-0">{log.timestamp}</div>
                         <div className={`font-bold w-24 truncate flex-shrink-0 transition-colors ${getSourceColor(log.source)}`}>{log.source}</div>
                         <div className={`flex-1 break-words leading-relaxed whitespace-pre-wrap ${getRowStyle(log)}`}>
-                            {renderMessage(log.message)}
+                            {renderMessage(log.message, log.type)}
                         </div>
                     </div>
                 ))}
@@ -211,7 +264,12 @@ export const Canvas: React.FC<CanvasProps> = ({
                                     <span className="font-bold text-zinc-800 dark:text-zinc-300 text-[10px]">{t.name}</span>
                                     <span className="text-[9px] text-zinc-500 dark:text-zinc-600">{t.assignment || 'Station'}</span>
                                 </div>
-                                <div className={`text-[9px] font-bold uppercase ${text}`}>{t.status}</div>
+                                <div className="flex items-center gap-2">
+                                    {t.serviceCount !== undefined && t.serviceCount > 0 && (
+                                        <span className="text-[9px] text-zinc-400 dark:text-zinc-600">Served: {t.serviceCount}</span>
+                                    )}
+                                    <div className={`text-[9px] font-bold uppercase ${text}`}>{t.status}</div>
+                                </div>
                             </div>
                         )
                     })}
@@ -255,7 +313,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                   <h3 className="font-bold text-zinc-500 dark:text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Traffic Control (Queue)</h3>
                   <div className="space-y-1">
                       {trafficQueue.map(t => (
-                          <div key={t.id} className="flex items-center justify-between py-2 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 rounded group bg-zinc-50 dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-900/50">
+                          <div className="flex items-center justify-between py-2 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 rounded group bg-zinc-50 dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-900/50">
                               <div className="flex items-center gap-3">
                                 {t.status === 'INBOUND' && <ArrowDown size={10} className="text-emerald-500 dark:text-emerald-400"/>}
                                 {t.status === 'OUTBOUND' && <ArrowUp size={10} className="text-blue-500 dark:text-blue-400"/>}
@@ -294,8 +352,8 @@ export const Canvas: React.FC<CanvasProps> = ({
            <div className="flex-1 flex flex-col bg-indigo-50/30 dark:bg-[#050505] relative overflow-hidden font-mono transition-colors duration-500">
              <div className="absolute top-4 left-4 z-20 pointer-events-none">
                 <div className="flex items-center gap-2 text-emerald-600/50 dark:text-emerald-500/50 mb-1">
-                    <Radar size={14} />
-                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS LIVE | {trafficQueue.length} TARGETS</span>
+                    <Radar size={14} className={isAisLoading ? 'animate-spin' : ''} />
+                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS LIVE | {aisTargets.length} TARGETS</span>
                 </div>
              </div>
 
@@ -309,10 +367,10 @@ export const Canvas: React.FC<CanvasProps> = ({
                     <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-500 rounded-full z-10 animate-ping" />
                     <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-500 rounded-full z-10 absolute" />
 
-                    {trafficQueue.map((t, idx) => {
-                        // Deterministic positioning based on vessel name hash
+                    {aisTargets.map((t) => {
+                        // Deterministic positioning based on vessel name hash and live coordinates
                         const hash = t.vessel.split('').reduce((a,b)=>a+b.charCodeAt(0),0);
-                        const angle = (hash % 360) * (Math.PI / 180);
+                        const angle = (t.course || hash % 360) * (Math.PI / 180);
                         const distance = 50 + (hash % 80); 
                         const x = Math.cos(angle) * distance;
                         const y = Math.sin(angle) * distance;
@@ -322,6 +380,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                                 key={t.id}
                                 className="absolute z-20 group cursor-pointer"
                                 style={{ transform: `translate(${x}px, ${y}px)` }}
+                                title={`${t.vessel}\nStatus: ${t.status}\nSpeed: ${t.speedKnots}kn\nCourse: ${t.course}°`}
                             >
                                 {/* The Dot */}
                                 <div className="w-2 h-2 bg-emerald-600 dark:bg-white rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] hover:scale-150 transition-transform" />
@@ -330,9 +389,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-black/60 text-emerald-700 dark:text-emerald-400 text-[9px] px-2 py-1 rounded border border-emerald-100 dark:border-zinc-800 whitespace-nowrap z-50 backdrop-blur-sm flex flex-col items-center shadow-sm">
                                     <div className="font-bold">{t.vessel}</div>
                                     <div className="text-zinc-500 dark:text-zinc-300 text-[8px] flex gap-1">
-                                        <span>{t.status}</span>
-                                        <span className="text-zinc-300 dark:text-zinc-500">|</span>
-                                        <span>12kn</span>
+                                        <span>{t.nextPort}</span>
                                     </div>
                                 </div>
                             </div>
@@ -345,19 +402,25 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <table className="w-full text-left">
                     <thead className="sticky top-0 bg-indigo-50/50 dark:bg-[#050505] z-10 backdrop-blur-sm">
                         <tr>
-                            <th className="py-1 text-[9px] text-zinc-500 dark:text-zinc-600 font-normal">ID</th>
                             <th className="py-1 text-[9px] text-zinc-500 dark:text-zinc-600 font-normal">VESSEL</th>
-                            <th className="py-1 text-[9px] text-zinc-500 dark:text-zinc-600 font-normal text-right">DST</th>
+                            <th className="py-1 text-[9px] text-zinc-500 dark:text-zinc-600 font-normal">STATUS</th>
+                            <th className="py-1 text-[9px] text-zinc-500 dark:text-zinc-600 font-normal text-right">SPD</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {trafficQueue.map((t, idx) => (
+                        {aisTargets.length > 0 ? aisTargets.map((t) => (
                             <tr key={t.id} className="text-[9px] hover:bg-emerald-100/50 dark:hover:bg-zinc-900/30 group transition-colors">
-                                <td className="py-1 text-zinc-500 dark:text-zinc-600 font-mono">TRK-{idx + 10}</td>
                                 <td className="py-1 text-emerald-700 dark:text-emerald-400 font-bold group-hover:text-emerald-900 dark:group-hover:text-white transition-colors">{t.vessel}</td>
-                                <td className="py-1 text-zinc-400 dark:text-zinc-500 text-right">{((t.vessel.length * 0.8) % 10).toFixed(1)} nm</td>
+                                 <td className="py-1 text-zinc-500 dark:text-zinc-400 font-mono">{t.status}</td>
+                                <td className="py-1 text-zinc-400 dark:text-zinc-500 text-right">{t.speedKnots} kn</td>
                             </tr>
-                        ))}
+                        )) : (
+                            <tr>
+                                <td colSpan={3} className="text-center py-4 text-zinc-500 text-[9px]">
+                                    {isAisLoading ? 'Acquiring targets...' : 'No AIS targets in range.'}
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
              </div>

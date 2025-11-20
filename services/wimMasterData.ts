@@ -1,11 +1,6 @@
+// services/wimMasterData.ts
 
-
-
-
-
-
-
-
+// No longer importing from itself, as the object is defined in this file.
 export const wimMasterData = {
   "identity": {
     "name": "West Istanbul Marina",
@@ -19,19 +14,28 @@ export const wimMasterData = {
       "city": "Istanbul",
       "country": "Turkey",
       "coordinates": {
-        "lat": 40.9634,
-        "lng": 28.6289
+        "lat": 40.9628,
+        "lng": 28.6636
       }
     },
     "vision": "To provide a clean, safe and agreeable living and working environment for Yachts and Owners.",
     "contact": {
       "vhf_channels": {
-        "public": ["73", "16"],
+        "public": ["72", "16"],
         "internal_ops": ["14"],
         "vts_sectors": ["11", "12", "13"] 
       },
-      "call_sign": "West Istanbul Marina"
+      "call_sign": "West Istanbul Marina",
+      "phone": "+90 212 850 22 00"
     }
+  },
+  "api_integrations": {
+      "kpler_ais": {
+          "name": "Kpler Marine Traffic MCP",
+          "endpoint_live": "https://api.kpler.com/v1/ais/wim-region/live",
+          "endpoint_vessel_intel": "https://api.kpler.com/v1/vessels/details",
+          "documentation": "https://docs.kpler.com/mcp-ais-api"
+      }
   },
   "system_architecture": {
       "philosophy": "Agentic IDE (Code-First Paradigm)",
@@ -54,7 +58,7 @@ export const wimMasterData = {
       "RESTRICTED (Level 5 - GM)": ["Financial Debt", "Legal Disputes", "Full Telemetry History", "Security Logs"]
     },
     "protocols": {
-      "kvkk_compliance": "Strictly enforce Article 20. No personal data on public channels (Ch 73).",
+      "kvkk_compliance": "Strictly enforce Article 20. No personal data on public channels (Ch 72).",
       "gdpr_compliance": "Right to be forgotten active. Data encryption required for Level 1+."
     }
   },
@@ -79,9 +83,9 @@ export const wimMasterData = {
   },
   "assets": {
     "tenders": [
-      { "id": "T-01", "callsign": "Tender Alpha", "type": "Palamar Botu", "status": "Active" },
-      { "id": "T-02", "callsign": "Tender Bravo", "type": "Palamar Botu", "status": "Active" },
-      { "id": "T-03", "callsign": "Tender Charlie", "type": "Palamar Botu", "status": "Standby" }
+      { "id": "T-01", "callsign": "Tender Alpha", "type": "Mooring Boat", "status": "Active" },
+      { "id": "T-02", "callsign": "Tender Bravo", "type": "Mooring Boat", "status": "Active" },
+      { "id": "T-03", "callsign": "Tender Charlie", "type": "Mooring Boat", "status": "Standby" }
     ],
     "capacities": {
         "total_area": "155.000 m2",
@@ -96,7 +100,7 @@ export const wimMasterData = {
     "governing_law": "Republic of Türkiye",
     "jurisdiction": "Istanbul Central Courts & Enforcement Offices (Article K.1)",
     "currency": "EUR",
-    "payment_terms": "Advance Payment (Peşin)",
+    "payment_terms": "Advance Payment",
     "contract_types": ["Mooring", "Lifting", "Launching", "Dry Berthing"]
   },
   "traffic_control": {
@@ -118,18 +122,18 @@ export const wimMasterData = {
       "emergency_broadcast_protocols": {
           "code_red": {
               "condition": "Fire / Collision / Explosion",
-              "broadcast_tr": "ACİL DURUM. TÜM İSTASYONLAR. LİMAN GİRİŞ-ÇIKIŞ KAPATILMIŞTIR. MEVCUT POZİSYONUNUZU KORUYUN.",
-              "broadcast_en": "EMERGENCY. ALL STATIONS. PORT CLOSED. HOLD POSITION.",
+              "broadcast_tr": "EMERGENCY. ALL STATIONS. PORT IS CLOSED. HOLD YOUR PRESENT POSITION.",
+              "broadcast_en": "EMERGENCY. ALL STATIONS. PORT IS CLOSED. HOLD YOUR PRESENT POSITION.",
               "action": "Block all traffic. Dispatch Fire Tenders."
           },
           "clear_fairway": {
               "condition": "Incoming Emergency Vessel / Deep Draft",
-              "broadcast_tr": "DİKKAT. KANAL GİRİŞİNİ DERHAL BOŞALTIN. SANCAĞA KAÇIN.",
+              "broadcast_tr": "ATTENTION. CLEAR FAIRWAY IMMEDIATELY. ALTER COURSE TO STARBOARD.",
               "broadcast_en": "ATTENTION. CLEAR FAIRWAY IMMEDIATELY. ALTER COURSE TO STARBOARD."
           },
           "stand_by": {
               "condition": "Congestion / Traffic Conflict",
-              "broadcast_tr": "TÜM TEKNELER. TRAFİK YOĞUNLUĞU NEDENİYLE BEKLEMEDE KALIN. SEKTÖR ZULU'DA ALARGA OLUN.",
+              "broadcast_tr": "ALL VESSELS. STAND BY DUE TO TRAFFIC. PROCEED TO ANCHORAGE AT SECTOR ZULU.",
               "broadcast_en": "ALL VESSELS. STAND BY DUE TO TRAFFIC. PROCEED TO ANCHORAGE AT SECTOR ZULU."
           }
       }
@@ -151,22 +155,22 @@ export const wimMasterData = {
   },
   "maritime_authorities": {
       "KEGM": {
-          "name": "Kıyı Emniyeti Genel Müdürlüğü (Coastal Safety)",
+          "name": "Directorate General of Coastal Safety",
           "role": "VTS, Pilotage, Salvage, Towage",
           "comms": "VHF Ch 11/12/13 (VTS), Ch 16 (Emergency)"
       },
       "SG": {
-          "name": "Sahil Güvenlik (Coast Guard)",
+          "name": "Coast Guard",
           "role": "Security, Border Control, SAR, Pollution Control",
           "comms": "VHF Ch 08 / 16"
       },
       "Liman_Baskanligi": {
-          "name": "Ambarlı Liman Başkanlığı (Harbour Master)",
+          "name": "Ambarlı Harbour Master",
           "role": "Port State Control, Permissions, Anchor Areas",
           "comms": "VHF Ch 16 / Phone"
       },
       "DZKK": {
-          "name": "Deniz Kuvvetleri (Navy)",
+          "name": "Naval Forces",
           "role": "Restricted Zones, SAT/SAS Ops",
           "comms": "Special Circuits"
       }
@@ -186,7 +190,7 @@ export const wimMasterData = {
       }
     },
     "financial_default": {
-      "action": "Right of Retention (Hapis Hakkı)",
+      "action": "Right of Retention",
       "consequence": "Vessel Seizure & Departure Ban (Article H.2)"
     },
     "overstay_penalty": {
@@ -217,14 +221,14 @@ export const wimMasterData = {
         "Spoint Meyhane", "Mavi Mey-hane", "Cümbüş Yeni Nesil Marina", "West Kanat", "Fısıltı Lounge"
       ],
       "lifestyle": [
-        "Kumsal İstanbul Sokağı", "Kumsal Plajı (Beach)", "Yacht Club", 
+        "Kumsal Istanbul Street", "Kumsal Beach", "Yacht Club", 
         "Mask Beach", "Paris Saint-Germain Academy Beylikdüzü"
       ],
       "sports": [
         "West Life Sports Club", "Fitness", "Sauna", "Indoor/Outdoor Pools", 
-        "Tennis (WEST İstanbul Marina Tenis Spor Kulübü)", "Basketball", "Football", "Sailing School (TYF/RYA)"
+        "WEST Istanbul Marina Tennis Sports Club", "Basketball", "Football", "Sailing School (TYF/RYA)"
       ],
-      "shopping": "Shopping Center & Market, BoatFest Satılık Tekne Pontonu",
+      "shopping": "Shopping Center & Market, BoatFest For-Sale Boat Pontoon",
       "electricity": "Metered (16A-63A) + Fiber Internet",
       "water": "Metered",
       "fuel": "Station Available (Duty-free subject to conditions)",

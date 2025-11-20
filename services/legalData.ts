@@ -4,92 +4,92 @@
 
 export const LEGAL_DOCUMENTS: Record<string, string> = {
   'wim_kvkk.md': `
-# West Istanbul Marina KVKK / GDPR Veri Koruma Politikası
+# West Istanbul Marina Privacy Policy (KVKK / GDPR)
 
-Bu belge, West Istanbul Marina'nın Kişisel Verilerin Korunması Kanunu (KVKK) ve Genel Veri Koruma Tüzüğü (GDPR) uyumluluğuna ilişkin genel bir çerçeve sunmaktadır. Bu belge, marina'nın özel veri işleme faaliyetlerine göre uyarlanmalı ve güncellenmelidir.
+This document provides a general framework for West Istanbul Marina's compliance with the Law on the Protection of Personal Data (KVKK) and the General Data Protection Regulation (GDPR). This document should be adapted and updated according to the specific data processing activities of the marina.
 
-## 1. Giriş
+## 1. Introduction
 
-West Istanbul Marina olarak, kişisel verilerin korunmasına büyük önem vermekteyiz. Bu politika, müşterilerimizin, çalışanlarımızın, tedarikçilerimizin ve diğer ilgili kişilerin kişisel verilerinin nasıl toplandığını, işlendiğini, saklandığını ve korunduğunu açıklamaktadır.
+As West Istanbul Marina, we place great importance on the protection of personal data. This policy explains how the personal data of our customers, employees, suppliers, and other relevant individuals are collected, processed, stored, and protected.
 
-## 2. Veri Sorumlusu Bilgileri
+## 2. Data Controller Information
 
-**Veri Sorumlusu:** West Istanbul Marina
-**Adres:** [West Istanbul Marina'nın Adresi]
-**E-posta:** [West Istanbul Marina'nın E-posta Adresi]
-**Telefon:** [West Istanbul Marina'nın Telefon Numarası]
+**Data Controller:** West Istanbul Marina
+**Address:** [Address of West Istanbul Marina]
+**Email:** [Email Address of West Istanbul Marina]
+**Phone:** [Phone Number of West Istanbul Marina]
 
-## 3. Kişisel Verilerin Toplanması ve İşlenmesi
+## 3. Collection and Processing of Personal Data
 
-### 3.1. Toplanan Kişisel Veri Kategorileri
+### 3.1. Categories of Personal Data Collected
 
-West Istanbul Marina tarafından toplanabilecek kişisel veri kategorileri şunları içerebilir:
-*   **Kimlik Bilgileri:** Ad, soyad, T.C. kimlik numarası, pasaport numarası, doğum tarihi, cinsiyet.
-*   **İletişim Bilgileri:** Telefon numarası, e-posta adresi, adres.
-*   **Finansal Bilgiler:** Banka hesap bilgileri, kredi kartı bilgileri (ödeme işlemleri sırasında).
-*   **Tekne Bilgileri:** Tekne adı, kayıt numarası, boyutu, tipi.
-*   **Güvenlik Bilgileri:** Kamera kayıtları, giriş-çıkış kayıtları.
-*   **Diğer:** Marina hizmetlerinden yararlanma bilgileri, anket yanıtları, şikayetler.
+The categories of personal data that may be collected by West Istanbul Marina include:
+*   **Identity Information:** Name, surname, T.R. identity number, passport number, date of birth, gender.
+*   **Contact Information:** Phone number, email address, address.
+*   **Financial Information:** Bank account details, credit card information (during payment transactions).
+*   **Vessel Information:** Vessel name, registration number, size, type.
+*   **Security Information:** Camera recordings, entry-exit records.
+*   **Other:** Information on the use of marina services, survey responses, complaints.
 
-### 3.2. Kişisel Veri İşleme Amaçları
+### 3.2. Purposes of Processing Personal Data
 
-Kişisel verileriniz aşağıdaki amaçlarla işlenebilir:
-*   Marina hizmetlerinin sunulması ve yönetimi (bağlama, bakım, onarım vb.).
-*   Sözleşmelerin ifası.
-*   Yasal yükümlülüklerin yerine getirilmesi.
-*   Güvenliğin sağlanması.
-*   Müşteri ilişkileri yönetimi ve şikayetlerin çözümlenmesi.
-*   Pazarlama ve tanıtım faaliyetleri (onayınız dahilinde).
-*   İstatistiksel analizler ve iş geliştirme.
+Your personal data may be processed for the following purposes:
+*   Providing and managing marina services (mooring, maintenance, repair, etc.).
+*   Fulfillment of contracts.
+*   Compliance with legal obligations.
+*   Ensuring security.
+*   Customer relationship management and complaint resolution.
+*   Marketing and promotional activities (with your consent).
+*   Statistical analysis and business development.
 
-### 3.3. Kişisel Veri İşlemenin Hukuki Sebepleri
+### 3.3. Legal Basis for Processing Personal Data
 
-Kişisel verileriniz KVKK'nın 5. ve 6. maddelerinde ve GDPR'ın 6. ve 9. maddelerinde belirtilen hukuki sebeplere dayanarak işlenmektedir:
-*   Açık rızanızın bulunması.
-*   Kanunlarda açıkça öngörülmesi.
-*   Bir sözleşmenin kurulması veya ifasıyla doğrudan ilgili olması.
-*   Veri sorumlusunun hukuki yükümlülüğünü yerine getirebilmesi için zorunlu olması.
-*   İlgili kişinin kendisi tarafından alenileştirilmiş olması.
-*   Bir hakkın tesisi, kullanılması veya korunması için veri işlemenin zorunlu olması.
-*   İlgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla, veri sorumlusunun meşru menfaatleri için veri işlemenin zorunlu olması.
+Your personal data is processed based on the legal grounds specified in Articles 5 and 6 of the KVKK and Articles 6 and 9 of the GDPR:
+*   Existence of your explicit consent.
+*   Being clearly provided for by the laws.
+*   Being directly related to the establishment or performance of a contract.
+*   Being necessary for the data controller to fulfill its legal obligation.
+*   Having been made public by the data subject himself/herself.
+*   Being necessary for the establishment, exercise, or protection of a right.
+*   Being necessary for the legitimate interests of the data controller, provided that it does not harm the fundamental rights and freedoms of the data subject.
 
-## 4. Kişisel Verilerin Aktarılması
+## 4. Transfer of Personal Data
 
-Kişisel verileriniz, yukarıda belirtilen amaçlar doğrultusunda ve KVKK'nın 8. ve 9. maddeleri ile GDPR'ın 44. ve devamı maddelerinde belirtilen şartlara uygun olarak üçüncü kişilere aktarılabilir. Bu üçüncü kişiler şunları içerebilir:
-*   İş ortakları ve tedarikçiler (bakım, güvenlik, IT hizmetleri vb.).
-*   Yasal olarak yetkili kamu kurum ve kuruluşları.
-*   Denetim firmaları.
-*   Gerekli durumlarda yurt dışındaki ilgili taraflar (açık rıza veya yeterli koruma sağlanması koşuluyla).
+Your personal data may be transferred to third parties in line with the purposes mentioned above and in accordance with the conditions specified in Articles 8 and 9 of the KVKK and Articles 44 and onwards of the GDPR. These third parties may include:
+*   Business partners and suppliers (maintenance, security, IT services, etc.).
+*   Legally authorized public institutions and organizations.
+*   Audit firms.
+*   Relevant parties abroad where necessary (subject to explicit consent or adequate protection).
 
-## 5. Kişisel Verilerin Saklanması ve Güvenliği
+## 5. Storage and Security of Personal Data
 
-Kişisel verileriniz, işleme amaçlarının gerektirdiği süre boyunca veya yasal yükümlülükler uyarınca saklanmaktadır. Verilerinizin güvenliğini sağlamak amacıyla uygun teknik ve idari tedbirler alınmaktadır. Bu tedbirler şunları içerebilir:
-*   Verilere erişim yetkilendirme kontrolleri.
-*   Şifreleme ve maskeleme teknikleri.
-*   Güvenlik duvarları ve antivirüs yazılımları.
-*   Fiziksel güvenlik önlemleri.
-*   Veri yedekleme ve kurtarma planları.
+Your personal data is stored for the period required by the processing purposes or as stipulated by legal obligations. Appropriate technical and administrative measures are taken to ensure the security of your data. These measures may include:
+*   Access authorization controls for data.
+*   Encryption and masking techniques.
+*   Firewalls and antivirus software.
+*   Physical security measures.
+*   Data backup and recovery plans.
 
-## 6. Veri Sahibinin Hakları
+## 6. Rights of the Data Subject
 
-KVKK'nın 11. maddesi ve GDPR'ın 12-22. maddeleri uyarınca, kişisel verisi işlenen herkes aşağıdaki haklara sahiptir:
-*   Kişisel verilerinin işlenip işlenmediğini öğrenme.
-*   Kişisel verileri işlenmişse buna ilişkin bilgi talep etme.
-*   Kişisel verilerin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme.
-*   Yurt içinde veya yurt dışında kişisel verilerin aktarıldığı üçüncü kişileri bilme.
-*   Kişisel verilerin eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme.
-*   KVKK 7. maddede öngörülen şartlar çerçevesinde kişisel verilerin silinmesini veya yok edilmesini isteme.
-*   Yukarıda belirtilen düzeltme, silme veya yok etme işlemlerinin, kişisel verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme.
-*   İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle kişinin kendisi aleyhine bir sonucun ortaya çıkmasına itiraz etme.
-*   Kişisel verilerin kanuna aykırı olarak işlenmesi sebebiyle zarara uğraması hâlinde zararın giderilmesini talep etme.
+Under Article 11 of the KVKK and Articles 12-22 of the GDPR, everyone whose personal data is processed has the following rights:
+*   To learn whether their personal data is processed.
+*   To request information if their personal data has been processed.
+*   To learn the purpose of processing their personal data and whether they are used in accordance with their purpose.
+*   To know the third parties to whom personal data is transferred at home or abroad.
+*   To request the correction of personal data if it is incomplete or incorrectly processed.
+*   To request the deletion or destruction of personal data within the framework of the conditions stipulated in Article 7 of the KVKK.
+*   To request that the correction, deletion, or destruction processes mentioned above be notified to the third parties to whom the personal data has been transferred.
+*   To object to the occurrence of a result against the person himself/herself by analyzing the processed data exclusively through automated systems.
+*   To demand the compensation of damages in case of loss due to unlawful processing of personal data.
 
-Bu haklarınızı kullanmak için [West Istanbul Marina'nın E-posta Adresi] adresine yazılı olarak başvurabilirsiniz.
+To exercise these rights, you can apply in writing to [Email Address of West Istanbul Marina].
 
-## 7. Politika Değişiklikleri
+## 7. Policy Changes
 
-Bu politika, değişen yasal düzenlemelere ve şirket uygulamalarına göre güncellenebilir. Güncellemeler web sitemizde veya diğer uygun iletişim kanalları aracılığıyla duyurulacaktır.
+This policy may be updated according to changing legal regulations and company practices. Updates will be announced on our website or through other appropriate communication channels.
 
-**Son Güncelleme Tarihi:** 20 Kasım 2025
+**Last Updated:** 20 November 2025
   `,
   'wim_contract_regulations.md': `
 # WEST ISTANBUL MARINA OPERATION REGULATIONS (YACHTS AND YACHT OWNERS)
@@ -280,7 +280,7 @@ F.9. All individuals using the Marina undertake that they shall not operate any 
 F.10. It is forbidden to swim, dive, fish, surf or to use water skis, jet skis, or similar seacrafts in the Marina.
 F.11. It is forbidden to keep and store personal belongings, boats, boat accessories, bicycles, rafts, platforms, trailers, dinghies, tents, trailers, caravans, etc. and similar equipment except where indicated by the Management within the Marina and especially on floating jetties, fingers, quays, dry dock sites and parking lots. However, the Management may allow such equipment to be temporarily left in special circumstances. All such property left without permission will be removed to the storage of the Management and the Yacht Owner will be charged storage and transport fees. The Management is not responsible for the loss, theft or damage of such property.
 F.12. No bare light and heating sources can be used inside the Marina (except for the normal lighting installations inside the yachts and the stoves kept for cooking), barbecues etc. and any type of fire cannot be lit. It is obligatory that the installations of the yachts to receive electricity from the Management must be according to reasonable norms, and those using heaters and similar devices must use cables according to the ampere rate. Only special electrical cables and adapters approved by the Management shall be connected to the electrical installation in the Marina. The Parties agree that the cables connected to the electrical appliances inside the yacht must be laid out by the Yacht Owner in a safe and professional manner.
-F.13. It is forbidden to dispose of waste materials (bilge, sewage, waste oil, batteries, oil filters, organic wastes, recyclable wastes, etc.) outside the areas (land - sea) designated for this purpose by the Company within the boundaries of the Marina. The Company shall immediately take actions to ensure official bodies to perform necessary procedures on persons causing such a practice. The Yacht Owner shall pay a cleaning fee two times higher than the expense items such as labor force, consumables, equipment rental, etc. to be incurred by the Company in order to eliminate the pollution caused thereby. The Company shall also report the issue to relevant official bodies. If the Marina Management deems it necessary, it may unilaterally terminate the Contract of the Yacht Owner and the fees paid for the remaining period of the contract will not be reimbursed to the Yacht Owner.
+F.13. It is forbidden to dispose of waste materials (bilge, sewage, waste oil, batteries, oil filters, organic wastes, recyclable wastes, etc.) outside the areas (land - sea) designated for this purpose by the Company within the boundaries of the Marina. The method of waste disposal is specified in the relevant regulation. In the event of lack of compliance with these rules, the Company shall charge the Yacht Owner a pollution fee in accordance with the criteria and tariff determined for penalty fees by the Istanbul Metropolitan Municipality Marine Services Unit which are ascertained and updated annually. The Company shall also report the issue to relevant official bodies. If the Marina Management deems it necessary, it may unilaterally terminate the Contract of the Yacht Owner and the fees paid for the remaining period of the contract will not be reimbursed to the Yacht Owner.
 F.14. It is forbidden to wash and dry laundry, dishes, sails, canvas, tarpaulins, inflatable boats in areas other than those designated for this purpose in the dock, wharf and other open common areas within the marina.
 F.15. Marina users are obliged to fulfill the requirements of the Company in order to ensure that the Marina operates effectively and safely.
 F.16. No person can reside temporarily or permanently on board the Yacht or in any other area of the Marina without prior written permission of the Marina Management.
@@ -317,112 +317,112 @@ Notifications regarding legal procedures shall be served to the address indicate
 ## K. DISPUTES
 K.1. This Regulation is governed by the Laws of the Republic of Türkiye. Central Courts and Enforcement Offices of Istanbul shall be the competent authority in case of any dispute which may arise from the execution and implementation of these rules. Commercial ledgers and records of the Company shall be considered as conclusive, exclusive, and final evidence as per article 193 of the Code of Civil Procedure in settlement of any disputes. This article is in the nature of an evidential contract.`,
   'turkish_maritime_guide.md': `
-# Türkiye Denizleri ve Komşu Sular İçin Denizcilik Rehberi
+# Maritime Guide for Turkish Waters & Neighboring Seas
 
-Bu rehber, Karadeniz, Marmara, Ege ve Türk Boğazları'nda seyir yapacak özel tekneler için temel kanunları, kuralları, zorunlu belgeleri ve donanımları özetlemektedir. Ayrıca, Yunan adalarına yapılacak seyahatler için özel gerekliliklere de yer verilmiştir.
+This guide summarizes the fundamental laws, rules, mandatory documents, and equipment for private vessels navigating in the Black Sea, Marmara Sea, Aegean Sea, and the Turkish Straits. It also includes special requirements for trips to the Greek islands.
 
-**Yasal Uyarı:** Bu belge genel bilgilendirme amaçlıdır. Denizcilik kuralları ve kanunları zamanla değişebilir. Seyre çıkmadan önce daima Ulaştırma ve Altyapı Bakanlığı, Sahil Güvenlik Komutanlığı ve ilgili liman başkanlıklarının en güncel yönetmeliklerini kontrol ediniz.
-
----
-
-## 1. Türkiye Karasularında Genel Kurallar ve Kanunlar
-
-Türkiye'deki tüm denizcilik faaliyetleri, uluslararası ve ulusal mevzuat tarafından düzenlenir.
-
-*   **Denizde Çatışmayı Önleme Tüzüğü (COLREGs):** Tüm dünyada geçerli olan bu kurallar, teknelerin birbirlerine karşı yol haklarını, seyir fenerlerini, sesli ve görsel işaretleri düzenler. Her denizcinin bu kuralları bilmesi ve uygulaması zorunludur.
-*   **6093 sayılı Limanlar Kanunu ve İlgili Yönetmelikler:** Liman sahaları içindeki seyir, demirleme, yanaşma ve diğer faaliyetleri düzenler. Liman başkanlıklarının talimatlarına uymak zorunludur.
-*   **Çevre Kanunu:** Denizlerin kirletilmesi kesinlikle yasaktır. Sintine, çöp, pis su ve diğer atıkların denize boşaltılması ciddi cezalara tabidir. Atıkların marinalardaki atık alım tesislerine verilmesi gerekir.
+**Disclaimer:** This document is for general informational purposes only. Maritime rules and laws can change over time. Before setting sail, always check the latest regulations from the Ministry of Transport and Infrastructure, the Coast Guard Command, and relevant harbor master's offices.
 
 ---
 
-## 2. Her Teknede Bulunması Gereken Zorunlu Belgeler
+## 1. General Rules and Laws in Turkish Territorial Waters
 
-Türk bayraklı özel bir teknede bulunması gereken temel belgeler şunlardır:
+All maritime activities in Turkey are regulated by international and national legislation.
 
-1.  **Bağlama Kütüğü Ruhsatnamesi / Tonilato Belgesi:** Teknenin kimlik belgesidir. Teknenin kaydını, boyutlarını, motor gücünü ve sahibini belirtir. Her zaman teknede bulundurulmalıdır.
-2.  **Amatör Denizci Belgesi (ADB) veya Üstü Yeterlilik Belgesi:** 2.5 metreden büyük ve 24 metreden küçük tekneleri kullanmak için zorunludur. Kaptanın ehliyetidir.
-3.  **Kısa Mesafe Telsiz (KMT) Operatörü Yeterlilik Belgesi:** Teknede sabit veya el VHF telsizi varsa, kullanan kişinin bu belgeye sahip olması zorunludur.
-4.  **Zorunlu Tekne Sigortası:** Denizde üçüncü şahıslara verilebilecek zararları kapsayan sigortanın poliçesi.
-
----
-
-## 3. Zorunlu Güvenlik ve Seyir Donanımları
-
-Teknenin boyuna göre bulundurulması gereken minimum donanım listesi değişmekle birlikte, genel olarak her teknede olması gerekenler:
-
-*   **Can Güvenliği:**
-    *   Teknedeki kişi sayısı kadar **can yeleği** (çocuklar için özel boyutlarda).
-    *   En az bir adet **can simidi** (tercihen ışıklı ve salvolu).
-    *   **İşaret fişekleri** (el maytabı, paraşütlü işaret fişeği, duman kandili).
-    *   **İlk yardım çantası**.
-*   **Yangın Güvenliği:**
-    *   Teknenin boyutu ve yapısına uygun sayıda ve tipte **yangın söndürücü**.
-*   **Seyir ve Demirleme:**
-    *   **Seyir fenerleri** (sancak-iskele, silyon, pupa).
-    *   **Sesli işaret cihazı** (korna veya kampana).
-    *   **Radar reflektörü**.
-    *   **Manyetik pusula**.
-    *   **Demir, zincir ve halat** (teknenin boyuna ve ağırlığına uygun).
-    *   **Yedek acil durum yeke sistemi**.
-*   **Diğer:**
-    *   **Pis su tankı** ve atık boşaltma sistemi.
-    *   **Temel alet takımı**.
-    *   **Deniz haritaları** (seyir yapılacak bölgeye ait).
+*   **International Regulations for Preventing Collisions at Sea (COLREGs):** These globally applicable rules regulate the right of way between vessels, navigation lights, and sound and visual signals. Every mariner must know and apply these rules.
+*   **Ports Law No. 6093 and Related Regulations:** Regulates navigation, anchoring, berthing, and other activities within port areas. It is mandatory to comply with the instructions of harbor masters.
+*   **Environmental Law:** Polluting the seas is strictly prohibited. Discharging bilge, garbage, sewage, and other waste into the sea is subject to severe penalties. Waste must be delivered to waste reception facilities at marinas.
 
 ---
 
-## 4. Bayrak ve Flama Kullanımı
+## 2. Mandatory Documents to be Kept on Every Vessel
 
-*   **Türk Bayrağı:** Türk bayraklı her tekne, kıç taraftaki gönderde (direkte) veya en belirgin yerde, temiz ve yıpranmamış bir şekilde **Türk Bayrağı** taşımak zorundadır.
-*   **Kulüp Flaması (Burgee):** Üye olunan yelken veya marina kulübünün flaması, genellikle ana direğin sancak mandarında taşınır.
+The essential documents required on a Turkish-flagged private vessel are:
 
----
-
-## 5. Türk Boğazları (İstanbul ve Çanakkale) Geçiş Kuralları
-
-Türk Boğazları, uluslararası ve ulusal sıkı kurallara tabidir. Özel tekneler için temel kurallar:
-
-*   **Trafik Ayrım Şeridi (TSS - Traffic Separation Scheme):** Küçük tekneler, büyük gemiler için ayrılmış olan bu şeritlerin **dışında**, kendi yönlerine göre sağ taraftan seyretmek zorundadır.
-*   **VHF Telsiz Dinlemesi:** Geçiş boyunca ilgili **Sektör Kanalı** (İstanbul için Sektör Marmara, Sektör Kandilli vb. / Çanakkale için Sektör Nara, Sektör Gelibolu vb.) sürekli dinlenmelidir. Gemi trafiği anonsları bu kanallardan yapılır.
-*   **Geçiş Önceliği:** Trafik ayrım şeridinde ilerleyen gemilerin geçiş önceliği vardır. Onların yollarından uzak durulmalıdır.
-*   **Akıntı:** Özellikle İstanbul Boğazı'nda akıntılar çok kuvvetlidir. Seyir planı buna göre yapılmalıdır.
-*   **Raporlama:** Belirli bir boyun üzerindeki teknelerin geçiş öncesi ve sırasında Gemi Trafik Hizmetleri'ne (VTS) rapor verme zorunluluğu olabilir.
+1.  **Certificate of Registry / Tonnage Certificate:** This is the vessel's identity document. It specifies the vessel's registration, dimensions, engine power, and owner. It must always be kept on board.
+2.  **Amateur Seaman's Certificate (ADB) or Higher Competency Certificate:** Mandatory for operating vessels larger than 2.5 meters and smaller than 24 meters. It is the captain's license.
+3.  **Short Range Certificate (SRC) Operator's Certificate:** If the vessel has a fixed or handheld VHF radio, the operator must possess this certificate.
+4.  **Mandatory Vessel Insurance:** The policy for insurance covering third-party liability at sea.
 
 ---
 
-## 6. Yunan Adalarına Seyahat: Kurallar ve Zorunluluklar
+## 3. Mandatory Safety and Navigation Equipment
 
-Türkiye'den Yunanistan'a özel tekne ile giriş yapmak, bir ülkeye giriş yapmakla aynıdır ve resmi prosedürler gerektirir.
+The minimum required equipment varies depending on the vessel's length, but generally, every vessel should have:
 
-### 6.1. Gerekli Evraklar
+*   **Life Safety:**
+    *   **Life jackets** for each person on board (with special sizes for children).
+    *   At least one **lifebuoy** (preferably with a light and a drogue).
+    *   **Flares** (handheld flares, parachute flares, smoke signals).
+    *   **First-aid kit**.
+*   **Fire Safety:**
+    *   **Fire extinguishers** of a suitable number and type for the vessel's size and structure.
+*   **Navigation and Anchoring:**
+    *   **Navigation lights** (starboard-port, masthead, stern).
+    *   **Sound signaling device** (horn or bell).
+    *   **Radar reflector**.
+    *   **Magnetic compass**.
+    *   **Anchor, chain, and rope** (appropriate for the vessel's size and weight).
+    *   **Emergency tiller system**.
+*   **Other:**
+    *   **Holding tank** and waste discharge system.
+    *   **Basic toolkit**.
+    *   **Nautical charts** (for the area of navigation).
 
-*   **Geçerli Pasaportlar ve Vizeler:** Teknede bulunan herkesin geçerli pasaportu ve (gerekiyorsa) Schengen vizesi olmalıdır.
-*   **Tekne Belgeleri:**
-    *   Bağlama Kütüğü Ruhsatnamesi (İngilizce tercümesi faydalı olabilir).
-    *   Uluslararası geçerliliği olan **Tekne Sigortası** (Poliçenin Yunanca veya İngilizce olması ve Yunanistan'ı kapsadığını belirtmesi zorunludur).
-*   **Kaptan ve Mürettebat Belgeleri:**
-    *   Kaptanın Amatör Denizci Belgesi (ADB) veya eşdeğeri. Uluslararası Yeterlilik Belgesi (ICC) tavsiye edilir.
-    *   **Mürettebat Listesi (Crew List):** Teknede bulunan herkesin pasaport bilgilerini içeren liste (genellikle 4-5 kopya).
-*   **Vekaletname (Power of Attorney):** Eğer tekne sahibi teknede değilse, kaptanın tekneyi kullanma yetkisi olduğunu gösteren noter onaylı, İngilizce bir vekaletname.
+---
 
-### 6.2. Giriş (Check-in) Prosedürü
+## 4. Use of Flags and Ensigns
 
-1.  **İlk Giriş Limanı:** Yunanistan'a giriş yaparken, uluslararası giriş limanı (Port of Entry) olan bir limana gidilmelidir (örneğin: Sakız/Chios, Midilli/Mytilene, Sisam/Samos, Kos, Rodos).
-2.  **Liman Polisi (Port Police / Limenarheio):** İlk olarak Liman Polisi'ne gidilir. Pasaportlar, tekne belgeleri ve mürettebat listesi sunulur.
-3.  **Transit Log (DEKPA veya benzeri belge):** Liman Polisi, teknenin Yunan sularında serbestçe dolaşmasını sağlayan bir **Transit Log** belgesi düzenler. Bu belge, Yunanistan'dan ayrılana kadar teknede kalmalıdır.
-4.  **Gümrük ve Pasaport Kontrol:** Liman Polisi'nin yönlendirmesiyle Gümrük (Customs) ve Pasaport Polisi'ne gidilerek pasaportlara giriş damgası vurulur.
+*   **Turkish Flag:** Every Turkish-flagged vessel must fly a clean and undamaged **Turkish Flag** on the stern staff or in the most prominent position.
+*   **Club Burgee:** The burgee of the yacht or marina club to which one belongs is typically flown from the starboard spreader of the main mast.
 
-### 6.3. Bayrak Kuralı (Misafir Bayrağı)
+---
 
-*   Yunan karasularına girildiğinde, teknenin sancak mandarında (sağ taraftaki direk ipinde) **Yunan Bayrağı** çekilmelidir. Bu, uluslararası bir nezaket kuralıdır ve zorunludur. Türk Bayrağı teknenin kıçındaki yerinde kalmaya devam eder.
+## 5. Rules for Transiting the Turkish Straits (Istanbul and Çanakkale)
 
-### 6.4. Seyir Vergisi (TEPAI)
+The Turkish Straits are subject to strict international and national rules. The basic rules for private vessels are:
 
-*   Yunanistan'da seyir yapacak tüm özel tekneler, boylarına göre değişen bir seyir vergisi olan **TEPAI**'yi ödemek zorundadır. Bu ödeme online olarak veya bazı liman otoriteleri aracılığıyla yapılabilir. Ödeme makbuzu teknede bulundurulmalıdır.
+*   **Traffic Separation Scheme (TSS):** Small vessels must navigate **outside** the lanes designated for large ships, keeping to the right side according to their direction of travel.
+*   **VHF Radio Watch:** The relevant **Sector Channel** (e.g., Sector Marmara, Sector Kandilli for Istanbul / Sector Nara, Sector Gelibolu for Çanakkale) must be monitored continuously throughout the transit. Vessel traffic announcements are made on these channels.
+*   **Right of Way:** Ships proceeding within the traffic separation scheme have the right of way. Small vessels must keep clear of their path.
+*   **Currents:** Currents are very strong, especially in the Bosphorus Strait. The passage plan should account for this.
+*   **Reporting:** Vessels over a certain length may be required to report to Vessel Traffic Services (VTS) before and during transit.
 
-### 6.5. Yunanistan'dan Ayrılış (Check-out)
+---
 
-*   Yunanistan'ı terk etmeden önce, yine bir çıkış limanından (Port of Entry) Liman Polisi'ne gidilerek Transit Log sonlandırılır ve pasaportlara çıkış damgası vurdurulur.
+## 6. Traveling to the Greek Islands: Rules and Requirements
+
+Entering Greece by private vessel is the same as entering any country and requires official procedures.
+
+### 6.1. Required Documents
+
+*   **Valid Passports and Visas:** Everyone on board must have a valid passport and (if required) a Schengen visa.
+*   **Vessel Documents:**
+    *   Certificate of Registry (an English translation can be useful).
+    *   Internationally valid **Vessel Insurance** (The policy must be in Greek or English and state that it covers Greece).
+*   **Captain and Crew Documents:**
+    *   Captain's Amateur Seaman's Certificate (ADB) or equivalent. An International Certificate of Competence (ICC) is recommended.
+    *   **Crew List:** A list containing the passport details of everyone on board (usually 4-5 copies).
+*   **Power of Attorney:** If the vessel owner is not on board, a notarized power of attorney in English, authorizing the captain to operate the vessel.
+
+### 6.2. Check-in Procedure
+
+1.  **First Port of Entry:** When entering Greece, you must go to an international Port of Entry (e.g., Chios, Mytilene, Samos, Kos, Rhodes).
+2.  **Port Police (Limenarcheio):** First, visit the Port Police. Present passports, vessel documents, and the crew list.
+3.  **Transit Log (DEKPA or similar document):** The Port Police will issue a **Transit Log**, which allows the vessel to cruise freely in Greek waters. This document must remain on board until departure from Greece.
+4.  **Customs and Passport Control:** As directed by the Port Police, go to Customs and Passport Police to get entry stamps in the passports.
+
+### 6.3. Courtesy Flag Rule
+
+*   Upon entering Greek territorial waters, a **Greek Flag** must be flown from the vessel's starboard spreader. This is an international courtesy and is mandatory. The Turkish Flag remains in its position at the stern.
+
+### 6.4. Cruising Tax (TEPAI)
+
+*   All private vessels cruising in Greece are required to pay a cruising tax called **TEPAI**, which varies according to length. This payment can be made online or through some port authorities. The payment receipt must be kept on board.
+
+### 6.5. Departure from Greece (Check-out)
+
+*   Before leaving Greece, you must go to a Port of Entry, visit the Port Police to finalize the Transit Log, and get exit stamps in your passports.
 `,
   'colregs_and_straits.md': `
 # 📜 COLREGS & TURKISH STRAITS NAVIGATION RULES
@@ -509,36 +509,36 @@ The Turkish Straits are one of the most difficult waterways in the world due to 
 *   **Ada Analysis:** Entering Sector Kadikoy. Monitor VHF Ch 12. Speed Limit 10 kts. Keep Starboard.
 `,
   'wim_general_guide.md': `
-# İstanbul'un Kalbinde Beş Altın Çıpa Değerinde Bir Deniz Cenneti
+# A Five Gold Anchor Marine Paradise in the Heart of Istanbul
 
-Avrupa'nın en gelişmiş ve fonksiyonel mega yat limanlarından biri olarak tasarlanan bu tesis (aynı zamanda **Beylikdüzü Marina** olarak da bilinir), denize olan tutkunuzu lüks ve konforla birleştiriyor. İstanbul'un yanı başında, şehrin karmaşasından uzak ama tüm imkanlarına kolayca erişilebilir bir konumda, size ve teknenize eşsiz bir deneyim sunuyor. On yıldır üst üste Mavi Bayrak ödülüne layık görülen bu özel destinasyon, çevresel duyarlılığı ve üstün hizmet kalitesiyle öne çıkıyor.
+Designed as one of Europe's most advanced and functional mega yacht marinas, this facility (also known as **Beylikdüzü Marina**) combines your passion for the sea with luxury and comfort. Located right next to Istanbul, away from the city's hustle but easily accessible to all its amenities, it offers a unique experience for you and your boat. Awarded the Blue Flag for ten consecutive years, this special destination stands out for its environmental sensitivity and superior service quality.
 
-### Teknik Mükemmellik ve Üstün Kapasite
+### Technical Excellence and Superior Capacity
 
-*   **Devasa Çekek Alanı:** 60.000 m²'lik geniş ve modern çekek alanı ile her türlü bakım ve onarım ihtiyacınız için kusursuz bir altyapı sunar.
-*   **Etkileyici Kaldırma Gücü:** **700 ton** ve **75 ton** kapasiteli dev travel liftler ile mega yatlar dahil her boyutta tekneye güvenli ve profesyonel karaya alma hizmeti verilir.
-*   **Geniş Konaklama:** Denizde **600**, karada ise **300** tekneye aynı anda ev sahipliği yapabilme kapasitesiyle bölgenin en büyüklerinden biridir.  7 metreye kadar tekneler için **96 kapasiteli özel raf park sistemi** ve 90 metreye kadar tekneler için **11 adet hangar** ile geniş depolama çözümleri sunulmaktadır.
-*   **Toplam Alan:** 155.000 m² toplam alan üzerine kurulu eşsiz bir tesis.
+*   **Massive Hardstanding Area:** With a spacious and modern 60,000 m² hardstanding area, it provides a flawless infrastructure for all your maintenance and repair needs.
+*   **Impressive Lifting Power:** With giant travel lifts of **700 tons** and **75 tons** capacity, it provides safe and professional hauling services for boats of all sizes, including mega yachts.
+*   **Ample Accommodation:** It is one of the largest in the region with the capacity to host **600** boats at sea and **300** on land simultaneously. It offers extensive storage solutions with a **special rack park system for 96 boats** up to 7 meters and **11 hangars** for boats up to 90 meters.
+*   **Total Area:** A unique facility built on a total area of 155,000 m².
 
-### Yaşam ve Sosyal Olanaklar
+### Lifestyle and Social Amenities
 
-Denizdeki yaşamınızı karada da aynı kaliteyle sürdürmeniz için her detay düşünüldü.
+Every detail has been considered to ensure your life at sea continues with the same quality on land.
 
-*   **Gastronomi ve Eğlence Dünyası:** Her damak zevkine hitap eden şık **restoranlar** (Zeytinlik Balık, BigChefs, Fersah, Calisto, Poem, Port of Point, Happy Moon's ve diğer seçkin **marka restoranlar**), keyifli sohbetler için sıcak **kafeler** ve günün yorgunluğunu atabileceğiniz modern **barlar** sizi bekliyor. Ayrıca, benzersiz bir konsept olan **Kumsal İstanbul Sokağı** ve **Kumsal Plajı** ile hem yerel hem de uluslararası lezzetleri, eğlenceyi ve pırıl pırıl denizin tadını bir arada bulacaksınız.
-*   **Alışveriş ve Kolaylık:** Günlük ihtiyaçlarınızdan tekne malzemelerine kadar her şeyi bulabileceğiniz bir **alışveriş merkezi** ve **market** elinizin altında.
-*   **Spor ve Sağlık:** Formda kalmanız için tam donanımlı bir **fitness salonu**, **sauna**, **kapalı ve açık yüzme havuzları** ile yenilenin. Ayrıca **tenis kortları**, **basketbol, voleybol ve futbol sahaları** ile aktif bir yaşam tarzını destekler. Yelken tutkunları için **TYF ve RYA eğitim programları sunan bir yelken okulu** da mevcuttur.
-*   **Pratik Hizmetler:** Seyahatinizi kolaylaştırmak için **çamaşırhane**, **bulaşıkhane** ve modern **WC-duş üniteleri** gibi temel hizmetler en yüksek hijyen standartlarında sunulur.
-*   **Eğlence ve Etkinlik:** Özel anlarınız ve kutlamalarınız için bir **Yat Kulübü** ve çeşitli etkinliklere ev sahipliği yapabilecek alanlar mevcuttur.
+*   **A World of Gastronomy and Entertainment:** Stylish **restaurants** catering to every palate (Zeytinlik Balık, BigChefs, Fersah, Calisto, Poem, Port of Point, Happy Moon's, and other distinguished **brand restaurants**), cozy **cafes** for pleasant conversations, and modern **bars** to unwind await you. Additionally, with the unique concept of **Kumsal Istanbul Street** and **Kumsal Beach**, you will find both local and international flavors, entertainment, and the joy of the sparkling sea all in one place.
+*   **Shopping and Convenience:** A **shopping center** and **market** where you can find everything from daily necessities to boat supplies are at your fingertips.
+*   **Sports and Health:** Stay in shape and rejuvenate with a fully equipped **fitness center**, **sauna**, **indoor and outdoor swimming pools**. It also supports an active lifestyle with **tennis courts**, **basketball, volleyball, and football fields**. For sailing enthusiasts, a **sailing school offering TYF and RYA training programs** is also available.
+*   **Practical Services:** Essential services such as **laundry**, **dishwashing facilities**, and modern **WC-shower units** are provided at the highest hygiene standards to make your stay easier.
+*   **Entertainment and Events:** A **Yacht Club** and areas capable of hosting various events are available for your special moments and celebrations.
 
-### Güvenlik ve Konfor
+### Security and Comfort
 
-*   **7/24 Güvenlik ve Ulaşım:** Palamar botu hizmetinden dalgıç hizmetlerine, 24 saat kesintisiz güvenlikten yangın uyarı ve söndürme sistemlerine kadar her an güvendesiniz. 550 araçlık geniş **açık otopark**, **akaryakıt istasyonu**, **helikopter pisti**, **gümrük kapısı** ve **VIP şoförlü araç kiralama** hizmetleri ile hem karadan hem de havadan kesintisiz erişim ve konfor sağlanır.
-*   **Kesintisiz Bağlantı:** Tüm pontonlarda elektrik, su, TV bağlantısı ve ücretsiz hızlı **fiber internet erişimi** standart olarak sunulur.
-*   **Çevre Dostu:** Atık su toplama istasyonları, motor yağı imha tankları ve katı atık toplama hizmetleri ile mavi sulara olan saygısını gösterir.
+*   **24/7 Security and Transportation:** You are safe at all times, from mooring boat services to diver services, 24/7 uninterrupted security, and fire alarm and extinguishing systems. A large **open parking lot for 550 vehicles**, a **fuel station**, a **helipad**, a **customs gate**, and **VIP chauffeur car rental** services provide seamless access and comfort from both land and air.
+*   **Uninterrupted Connectivity:** Electricity, water, TV connection, and free high-speed **fiber internet access** are offered as standard on all pontoons.
+*   **Eco-Friendly:** It shows its respect for the blue waters with wastewater collection stations, engine oil disposal tanks, and solid waste collection services.
 
-Burada sadece bir bağlama yeri değil, denize adanmış seçkin bir yaşam tarzı bulacaksınız.
+Here, you will find not just a mooring spot, but a distinguished lifestyle dedicated to the sea.
 
-## Marina Restoranları ve Mekanlar
+## Marina Restaurants and Venues
 *   Poem Restaurant
 *   Port Of Point
 *   The Roof Kingdom Kitchen & Bar
@@ -568,11 +568,11 @@ Burada sadece bir bağlama yeri değil, denize adanmış seçkin bir yaşam tarz
 *   Fısıltı Lounge
 *   Validemin Elinden Şarküteri & Restaurant
 
-## Marina Hizmetleri ve Diğer Olanaklar
-*   BoatFest Satılık Tekne Pontonu
+## Marina Services and Other Facilities
+*   BoatFest For-Sale Boat Pontoon
 *   Garanti BBVA ATM
 *   Paris Saint-Germain Academy Beylikdüzü
-*   WEST İstanbul Marina Tenis Spor Kulübü Derneği
+*   WEST Istanbul Marina Tennis Sports Club
 *   West Life Sports Club
 *   Bilgin Yachts
   `
