@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
-import { Send, Loader2, X, Mic, StopCircle, Paperclip, FileText, Radio } from 'lucide-react';
+import { ArrowUp, Loader2, X, AudioLines, Paperclip, Mic, Search, Brain, Sparkles } from 'lucide-react';
 import { ModelType } from '../types';
 
 interface InputAreaProps {
@@ -56,7 +57,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const adjustHeight = () => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
     }
   };
 
@@ -80,25 +81,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
       recognition.lang = 'en-US';
 
       recognition.onresult = (event: any) => {
-        let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             setText(prev => prev + event.results[i][0].transcript + ' ');
-          } else {
-            interimTranscript += event.results[i][0].transcript;
           }
         }
       };
-
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setIsRecording(false);
-      };
-      
-      recognition.onend = () => {
-        setIsRecording(false);
-      };
-
+      recognition.onerror = () => setIsRecording(false);
+      recognition.onend = () => setIsRecording(false);
       recognition.start();
       recognitionRef.current = recognition;
       setIsRecording(true);
@@ -106,82 +96,118 @@ export const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      {/* Model Selection */}
-      <div className="flex items-center gap-2 mb-2">
-         {(['Flash', 'Pro', 'Image'] as const).map(modelName => {
-             const modelValue = ModelType[modelName];
-             return (
+    <div className="w-full max-w-3xl mx-auto relative pb-2">
+      
+      {/* Floating Controls Row */}
+      <div className="flex items-center justify-between px-2 mb-3">
+        {/* Left: Model Selectors */}
+        <div className="flex items-center gap-1 bg-[#18181b] p-1 rounded-lg border border-zinc-800/50">
+          {(['Flash', 'Pro', 'Image'] as const).map(modelName => {
+            const modelValue = ModelType[modelName];
+            const isActive = selectedModel === modelValue;
+            return (
               <button
                 key={modelValue}
                 onClick={() => onModelChange(modelValue)}
-                className={`px-2.5 py-1 text-[10px] font-semibold rounded-md transition-colors ${
-                  selectedModel === modelValue
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                className={`px-3 py-1 text-[10px] font-medium rounded-md transition-all ${
+                  isActive
+                    ? 'bg-zinc-700 text-zinc-100 shadow-sm'
+                    : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50'
                 }`}
               >
                 {modelName}
               </button>
-             )
-         })}
+            );
+          })}
+        </div>
+
+        {/* Right: Tools */}
+        <div className="flex items-center gap-2">
+             <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#18181b] border border-zinc-800/50 text-cyan-400 hover:bg-zinc-800 transition-colors">
+                 <Brain size={14} />
+             </button>
+             <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#18181b] border border-zinc-800/50 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors">
+                 <Search size={14} />
+             </button>
+        </div>
       </div>
 
-      <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl">
-        {/* Attachments Preview */}
-        {files.length > 0 && (
-          <div className="p-2 border-b border-zinc-800">
-            <div className="flex flex-wrap gap-2">
-              {files.map((file, i) => (
-                <div key={i} className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1">
-                  <FileText size={14} className="text-indigo-400" />
-                  <span className="text-xs font-medium text-zinc-300 truncate max-w-[120px]">{file.name}</span>
-                  <button onClick={() => removeFile(i)} className="text-zinc-500 hover:text-zinc-300">
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Main Input Capsule */}
+      <div className="relative flex items-end bg-[#18181b] border border-zinc-800 rounded-[28px] p-1.5 pl-4 shadow-xl shadow-black/20 focus-within:border-zinc-700 transition-colors">
         
-        {/* Main Input Area */}
-        <div className="flex items-end p-2 gap-2">
-          <textarea
+        {/* Left: Attach */}
+        <input type="file" multiple onChange={handleFileChange} ref={fileInputRef} className="hidden" />
+        <button 
+            onClick={() => fileInputRef.current?.click()} 
+            className="p-2 text-zinc-500 hover:text-zinc-200 transition-colors mb-0.5"
+            title="Attach File"
+        >
+            <Paperclip size={18} className="-rotate-45" />
+        </button>
+
+        {/* Center: Text Input */}
+        <textarea
             ref={textareaRef}
             rows={1}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Instructions..."
-            className="flex-1 bg-transparent resize-none focus:outline-none placeholder:text-zinc-500 text-sm py-2 px-1 custom-scrollbar"
+            placeholder="Orchestrate..."
+            className="flex-1 bg-transparent border-none focus:outline-none text-[14px] text-zinc-200 placeholder:text-zinc-600 py-3 px-3 resize-none min-h-[44px] max-h-[120px] leading-relaxed font-light"
             disabled={isLoading}
-          />
-          <div className="flex items-center flex-shrink-0 gap-1">
-             <input type="file" multiple onChange={handleFileChange} ref={fileInputRef} className="hidden" />
-             <button onClick={() => fileInputRef.current?.click()} className="p-2 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded-md" title="Attach Files">
-               <Paperclip size={16} />
-             </button>
-             <button onClick={toggleRecording} className={`p-2 rounded-md ${isRecording ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}`} title={isRecording ? "Stop Dictation" : "Dictate"}>
-               {isRecording ? <StopCircle size={16} /> : <Mic size={16} />}
-             </button>
+        />
+
+        {/* Right: Actions Group */}
+        <div className="flex items-center gap-1 pr-1 mb-0.5">
+             
+             {/* Mic */}
              <button 
+                onClick={toggleRecording} 
+                className={`p-2 rounded-full transition-colors ${isRecording ? 'text-red-500 bg-red-500/10' : 'text-zinc-500 hover:text-zinc-200'}`}
+            >
+                <Mic size={18} />
+            </button>
+
+            {/* VHF Signal */}
+            <button 
                 onClick={onInitiateVhfCall}
-                disabled={!isMonitoring || isLoading}
-                className="p-2 text-red-400 bg-red-900/50 hover:bg-red-900 rounded-md disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Hail Marina on VHF"
-              >
-                <Radio size={16} />
-             </button>
-             <button
-               onClick={handleSend}
-               disabled={(!text.trim() && files.length === 0) || isLoading}
-               className="p-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed"
-             >
-               {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-             </button>
-          </div>
+                className={`p-2 rounded-full transition-colors ${isMonitoring ? 'text-red-500/80 hover:text-red-500' : 'text-zinc-600'}`}
+                title="VHF Radio Link"
+            >
+                <AudioLines size={18} />
+            </button>
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-zinc-800 mx-1"></div>
+
+            {/* Send Button */}
+            <button
+                onClick={handleSend}
+                disabled={(!text.trim() && files.length === 0) || isLoading}
+                className={`
+                    w-9 h-9 rounded-full flex items-center justify-center transition-all
+                    ${(!text.trim() && files.length === 0) || isLoading 
+                        ? 'bg-zinc-800 text-zinc-600' 
+                        : 'bg-zinc-200 text-zinc-900 hover:bg-white hover:scale-105 shadow-lg shadow-zinc-900/50'
+                    }
+                `}
+            >
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUp size={18} strokeWidth={2.5} />}
+            </button>
         </div>
+
+        {/* File Preview Overlay */}
+        {files.length > 0 && (
+          <div className="absolute bottom-full left-0 mb-2 px-4 flex flex-wrap gap-2">
+            {files.map((file, i) => (
+              <div key={i} className="flex items-center gap-2 bg-[#27272a] border border-zinc-700 rounded-lg pl-3 pr-2 py-1.5 shadow-lg">
+                <span className="text-[11px] text-zinc-300 truncate max-w-[120px]">{file.name}</span>
+                <button onClick={() => removeFile(i)} className="text-zinc-500 hover:text-zinc-300"><X size={14} /></button>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );

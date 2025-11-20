@@ -1,5 +1,6 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
-import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, Anchor } from 'lucide-react';
+import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, Anchor, LogIn } from 'lucide-react';
 import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast } from '../types';
 
 interface CanvasProps {
@@ -12,6 +13,7 @@ interface CanvasProps {
   isMonitoring: boolean;
   userProfile: UserProfile;
   vesselsInPort: number;
+  onCheckIn: (id: string) => void;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({ 
@@ -23,7 +25,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   activeChannel, 
   isMonitoring, 
   userProfile,
-  vesselsInPort
+  vesselsInPort,
+  onCheckIn
 }) => {
   const [activeTab, setActiveTab] = useState<'fleet' | 'feed' | 'cloud' | 'ais'>('fleet');
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,28 +243,148 @@ export const Canvas: React.FC<CanvasProps> = ({
                   <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Traffic Tower (CH 73)</h3>
                   <div className="bg-black/20 border border-zinc-800/50 rounded-lg p-2 max-h-64 overflow-y-auto custom-scrollbar">
                       {trafficQueue.map(t => (
-                          <div key={t.id} className="flex items-center gap-3 text-[10px] py-1.5 border-b border-zinc-800/50 last:border-b-0">
+                          <div key={t.id} className="flex items-center gap-3 text-[10px] py-1.5 border-b border-zinc-800/50 last:border-b-0 hover:bg-zinc-800/30 transition-colors group px-1">
                               {t.status === 'INBOUND' && <ArrowDown size={10} className="text-green-400 w-4"/>}
                               {t.status === 'OUTBOUND' && <ArrowUp size={10} className="text-blue-400 w-4"/>}
                               {t.status === 'HOLDING' && <Clock size={10} className="text-yellow-400 w-4"/>}
                               {t.status === 'TAXIING' && <Navigation size={10} className="text-sky-400 w-4 animate-pulse"/>}
-                              <span className="w-32 font-bold truncate">{t.vessel}</span>
-                              <span className="flex-1 font-mono uppercase text-zinc-400">{t.status}</span>
-                              <span className="text-zinc-500 flex items-center gap-1">
-                                {t.destination ? (
-                                    <><span className="text-zinc-600">→</span> {t.destination}</>
-                                ) : t.sector}
-                              </span>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                   <span className="font-bold truncate text-zinc-200">{t.vessel}</span>
+                                   <span className="font-mono uppercase text-zinc-500 text-[9px]">{t.status}</span>
+                                </div>
+                                <div className="text-zinc-500 flex items-center gap-1 text-[9px] truncate">
+                                  {t.destination ? (
+                                      <><span className="text-zinc-600">→</span> {t.destination}</>
+                                  ) : t.sector}
+                                </div>
+                              </div>
+
+                              {/* Check-In Action Button */}
+                              <button 
+                                onClick={() => onCheckIn(t.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 bg-indigo-500/10 hover:bg-indigo-500 text-indigo-400 hover:text-white rounded"
+                                title="Check-In Vessel"
+                              >
+                                <LogIn size={12} />
+                              </button>
                           </div>
                       ))}
+                      {trafficQueue.length === 0 && (
+                          <div className="text-zinc-600 text-center py-4 italic">No active traffic in sector.</div>
+                      )}
                   </div>
                 </div>
            </div>
         )}
         {activeTab === 'ais' && (
-           <div className="flex-1 flex items-center justify-center text-zinc-600 flex-col bg-cover bg-center" style={{backgroundImage: "url('https://i.imgur.com/3Z7wV0g.png')"}}>
-             <Radar size={20} className="mb-1 animate-pulse" />
-             <p className="text-[10px] font-mono tracking-widest">SCANNING AIS...</p>
+           <div className="flex-1 flex flex-col bg-black relative overflow-hidden font-mono">
+             
+             {/* Radar Header */}
+             <div className="absolute top-4 left-4 z-20 pointer-events-none">
+                <div className="flex items-center gap-2 text-emerald-500 mb-1">
+                    <Radar size={14} className="animate-pulse" />
+                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS TACTICAL DISPLAY</span>
+                </div>
+                <div className="text-[9px] text-zinc-600 space-y-0.5">
+                    <div>SECTOR: ZULU-ALPHA</div>
+                    <div>RANGE: 12 NM</div>
+                    <div>TARGETS: {trafficQueue.length}</div>
+                </div>
+             </div>
+
+             {/* Main Radar View */}
+             <div className="flex-1 relative flex items-center justify-center bg-[#050505]">
+                
+                {/* Grid Lines */}
+                <div className="absolute inset-0" 
+                     style={{
+                        backgroundImage: 'linear-gradient(rgba(16, 185, 129, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(16, 185, 129, 0.05) 1px, transparent 1px)',
+                        backgroundSize: '40px 40px'
+                     }} 
+                />
+
+                {/* Radar Circles */}
+                <div className="relative w-[320px] h-[320px] rounded-full border border-emerald-900/40 flex items-center justify-center">
+                    <div className="absolute w-[240px] h-[240px] rounded-full border border-emerald-900/30" />
+                    <div className="absolute w-[160px] h-[160px] rounded-full border border-emerald-900/20" />
+                    <div className="absolute w-[80px] h-[80px] rounded-full border border-emerald-900/10" />
+                    
+                    {/* Crosshair */}
+                    <div className="absolute w-full h-px bg-emerald-900/30" />
+                    <div className="absolute h-full w-px bg-emerald-900/30" />
+
+                    {/* Sweep */}
+                    <div className="absolute w-full h-full rounded-full bg-[conic-gradient(from_0deg,transparent_0deg,transparent_270deg,rgba(16,185,129,0.1)_360deg)] animate-[spin_4s_linear_infinite]" />
+
+                    {/* Center Node */}
+                    <div className="w-3 h-3 bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.8)] z-10" />
+
+                    {/* Simulated Targets based on TrafficQueue */}
+                    {trafficQueue.map((t, idx) => {
+                        // Pseudo-random position based on vessel name hash
+                        const hash = t.vessel.split('').reduce((a,b)=>a+b.charCodeAt(0),0);
+                        const angle = (hash % 360) * (Math.PI / 180);
+                        const distance = 60 + (hash % 80); // Keep roughly in middle rings
+                        const x = Math.cos(angle) * distance;
+                        const y = Math.sin(angle) * distance;
+
+                        return (
+                            <div 
+                                key={t.id}
+                                className="absolute w-2 h-2 bg-white rounded-full group cursor-pointer hover:scale-150 transition-transform z-20"
+                                style={{ transform: `translate(${x}px, ${y}px)` }}
+                            >
+                                <div className="absolute -inset-2 rounded-full bg-emerald-500/20 animate-ping" />
+                                
+                                {/* Tooltip */}
+                                <div className="hidden group-hover:block absolute bottom-4 left-1/2 -translate-x-1/2 bg-zinc-900 border border-emerald-500/50 p-2 rounded min-w-[120px] z-50 shadow-xl">
+                                    <div className="text-[10px] font-bold text-emerald-400 mb-1">{t.vessel}</div>
+                                    <div className="text-[8px] text-zinc-400 grid grid-cols-2 gap-x-2 gap-y-1">
+                                        <span>STS:</span><span className="text-white">{t.status}</span>
+                                        <span>SPD:</span><span className="text-white">{(hash % 15) + 5}kn</span>
+                                        <span>BRG:</span><span className="text-white">{hash % 360}°</span>
+                                        <span>DST:</span><span className="text-white">{(distance / 40).toFixed(1)}nm</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+             </div>
+
+             {/* Target Data Table */}
+             <div className="h-40 bg-zinc-900/80 border-t border-zinc-800 overflow-y-auto custom-scrollbar p-0">
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-zinc-950/50 sticky top-0 backdrop-blur-sm z-10">
+                        <tr>
+                            <th className="p-2 text-[9px] font-normal text-zinc-500 border-b border-zinc-800">ID</th>
+                            <th className="p-2 text-[9px] font-normal text-zinc-500 border-b border-zinc-800">VESSEL</th>
+                            <th className="p-2 text-[9px] font-normal text-zinc-500 border-b border-zinc-800">STATUS</th>
+                            <th className="p-2 text-[9px] font-normal text-zinc-500 border-b border-zinc-800 text-right">DISTANCE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {trafficQueue.map((t, idx) => (
+                            <tr key={t.id} className="hover:bg-emerald-900/10 transition-colors border-b border-zinc-800/50 text-[10px]">
+                                <td className="p-2 text-zinc-600 font-mono">TRK-{idx + 10}</td>
+                                <td className="p-2 text-zinc-200 font-bold">{t.vessel}</td>
+                                <td className="p-2">
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] ${
+                                        t.status === 'INBOUND' ? 'bg-emerald-500/10 text-emerald-400' :
+                                        t.status === 'OUTBOUND' ? 'bg-blue-500/10 text-blue-400' :
+                                        'bg-yellow-500/10 text-yellow-400'
+                                    }`}>
+                                        {t.status}
+                                    </span>
+                                </td>
+                                <td className="p-2 text-zinc-400 font-mono text-right">{((t.vessel.length * 0.8) % 10).toFixed(1)} nm</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+             </div>
            </div>
         )}
       </div>

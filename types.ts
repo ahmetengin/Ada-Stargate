@@ -1,3 +1,5 @@
+
+
 // types.ts
 
 export enum MessageRole {
@@ -83,6 +85,7 @@ export interface WeatherForecast {
   alertLevel?: 'NONE' | 'ADVISORY' | 'WARNING' | 'CRITICAL';
 }
 
+// --- AUTHENTICATION & ROLES ---
 export type UserRole = 'GUEST' | 'CAPTAIN' | 'GENERAL_MANAGER';
 
 export interface UserProfile {
@@ -95,7 +98,6 @@ export interface UserProfile {
 }
 
 // --- NEW: CoALA (Cognition-Action-Loop-Agent) Types ---
-// from src/brain/types.ts
 export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
 
 export interface MemoryItem {
@@ -134,43 +136,41 @@ export interface AgentContext {
   proceduralMemory: MemoryItem[];
 }
 
-// --- NEW: MDAP (Task Decomposition) Types ---
-// from src/decomposition/types.ts
-export interface TaskNode {
-  id: string;
-  description: string;
-  module: 'travel' | 'payment' | 'crm' | 'sea' | 'generic' | 'marina' | 'weather';
-  handler: string;
-  next: string[];
-}
+// --- NEW: Agent Orchestration Types ---
+export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit';
 
-export interface MdapGraph {
-  id: string;
-  name: string;
-  nodes: TaskNode[];
-  entryNode: string;
-}
-
-export type TaskHandlerFn = (ctx: AgentContext, obs: AgentObservation) => Promise<AgentAction[]>;
-
-
-// --- NEW: Voting Types ---
-// from src/voting/consensus.ts
-export type VotingStrategy = 'plurality' | 'softmax_weighted';
-
-export interface Candidate<T> {
-  item: T;
-  score?: number;
-}
-
-// --- NEW: Multi-Agent Observability Types ---
 export type AgentPersona = 'ORCHESTRATOR' | 'EXPERT' | 'WORKER';
 
 export interface AgentTraceLog {
   id: string;
   timestamp: string;
-  persona: AgentPersona;
-  step: 'PLANNING' | 'TOOL_CALL' | 'CODE_OUTPUT' | 'ANALYSIS' | 'FINAL_ANSWER';
+  node: NodeName;
+  step: 'ROUTING' | 'THINKING' | 'TOOL_EXECUTION' | 'OUTPUT' | 'ERROR' | 'TOOL_CALL' | 'CODE_OUTPUT' | 'PLANNING' | 'FINAL_ANSWER';
   content: string;
+  metadata?: any;
   isError?: boolean;
+  persona?: AgentPersona;
+}
+
+export interface OrchestratorResponse {
+    text: string;
+    actions: AgentAction[];
+    traces: AgentTraceLog[];
+}
+
+// --- NEW: Finance Types ---
+export interface Invoice {
+    id: string;
+    provider: 'PARASUT';
+    amount: number;
+    currency: 'TRY' | 'EUR';
+    status: 'DRAFT' | 'PAID' | 'OVERDUE';
+    vesselId: string;
+}
+
+export interface PaymentLink {
+    id: string;
+    provider: 'IYZICO';
+    url: string;
+    status: 'PENDING' | 'SUCCESS';
 }

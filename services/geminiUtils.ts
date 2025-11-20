@@ -1,5 +1,3 @@
-
-
 import { Message, MessageRole, Attachment } from "../types";
 
 export const isImage = (mimeType: string) => mimeType.startsWith('image/');
@@ -37,7 +35,7 @@ export const handleGeminiError = (error: any) => {
  * Converts our app's Message format to the SDK's content format
  */
 export const formatHistory = (messages: Message[]) => {
-  return messages
+  let formatted = messages
     .filter(m => m.role !== MessageRole.System && !m.generatedImage) 
     .map(m => {
       const parts: any[] = [];
@@ -70,4 +68,12 @@ export const formatHistory = (messages: Message[]) => {
     })
     // CRITICAL FIX for 'ContentUnion is required'
     .filter(m => m.parts.length > 0); 
+
+  // FIX: Gemini API requires history to start with a 'user' turn.
+  // We remove leading 'model' messages (e.g., initial system greeting) until a user message is found.
+  while (formatted.length > 0 && formatted[0].role === MessageRole.Model) {
+    formatted.shift();
+  }
+
+  return formatted;
 };

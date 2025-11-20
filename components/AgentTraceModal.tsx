@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, Brain, AlertCircle } from 'lucide-react';
 import { AgentTraceLog } from '../types';
@@ -12,18 +13,26 @@ export const AgentTraceModal: React.FC<AgentTraceModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   const getTraceStyle = (trace: AgentTraceLog) => {
-    if (trace.isError) return 'bg-red-900/40 border-l-2 border-red-500';
+    if (trace.isError || trace.step === 'ERROR') return 'bg-red-900/40 border-l-2 border-red-500';
     switch (trace.step) {
-      case 'TOOL_CALL': return 'bg-blue-900/20 border-l-2 border-blue-500';
-      case 'CODE_OUTPUT': return 'bg-zinc-800/50 border-l-2 border-zinc-600';
-      case 'PLANNING': return 'border-l-2 border-transparent';
-      case 'FINAL_ANSWER': return 'bg-green-900/20 border-l-2 border-green-500';
+      case 'TOOL_CALL':
+      case 'TOOL_EXECUTION':
+        return 'bg-blue-900/20 border-l-2 border-blue-500';
+      case 'CODE_OUTPUT': 
+        return 'bg-zinc-800/50 border-l-2 border-zinc-600';
+      case 'PLANNING': 
+      case 'ROUTING':
+      case 'THINKING':
+        return 'border-l-2 border-transparent';
+      case 'FINAL_ANSWER': 
+      case 'OUTPUT':
+        return 'bg-green-900/20 border-l-2 border-green-500';
       default: return 'border-l-2 border-transparent';
     }
   };
 
   const getStepIcon = (trace: AgentTraceLog) => {
-    if (trace.isError) {
+    if (trace.isError || trace.step === 'ERROR') {
       return <AlertCircle size={12} className="text-red-400 animate-pulse" />;
     }
     return <div className="w-3 h-3" />;
@@ -59,7 +68,7 @@ export const AgentTraceModal: React.FC<AgentTraceModalProps> = ({ isOpen, onClos
               <div className="flex-shrink-0 w-28 font-bold uppercase tracking-wider flex items-center gap-2">
                  {getStepIcon(trace)}
                  <span className={trace.persona === 'ORCHESTRATOR' ? 'text-indigo-400' : trace.persona === 'EXPERT' ? 'text-sky-400' : 'text-zinc-400'}>
-                    {trace.persona}
+                    {trace.persona || 'NODE'}
                  </span>
               </div>
               <div className="flex-shrink-0 w-28 text-zinc-400">{trace.step}</div>
