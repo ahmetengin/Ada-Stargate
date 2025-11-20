@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { X, Brain, Code, CheckCircle, AlertCircle, Zap } from 'lucide-react';
+import { X, Brain, AlertCircle } from 'lucide-react';
 import { AgentTraceLog } from '../types';
 
 interface AgentTraceModalProps {
@@ -24,15 +23,17 @@ export const AgentTraceModal: React.FC<AgentTraceModalProps> = ({ isOpen, onClos
   };
 
   const getStepIcon = (trace: AgentTraceLog) => {
-    if(trace.isError) return <AlertCircle size={12} className="text-red-400" />;
-    switch (trace.step) {
-        case 'PLANNING': return <Brain size={12} className="text-sky-400" />;
-        case 'TOOL_CALL': return <Zap size={12} className="text-blue-400" />;
-        case 'CODE_OUTPUT': return <Code size={12} className="text-green-300" />;
-        case 'ANALYSIS': return <CheckCircle size={12} className="text-yellow-400" />;
-        case 'FINAL_ANSWER': return <CheckCircle size={12} className="text-green-400" />;
-        default: return <div className="w-3 h-3" />;
+    if (trace.isError) {
+      return <AlertCircle size={12} className="text-red-400 animate-pulse" />;
     }
+    return <div className="w-3 h-3" />;
+  };
+
+  const renderContent = (content: any) => {
+    if (typeof content === 'object') {
+      return JSON.stringify(content, null, 2);
+    }
+    return String(content);
   };
 
   return (
@@ -62,8 +63,8 @@ export const AgentTraceModal: React.FC<AgentTraceModalProps> = ({ isOpen, onClos
                  </span>
               </div>
               <div className="flex-shrink-0 w-28 text-zinc-400">{trace.step}</div>
-              <code className="break-words leading-relaxed whitespace-pre-wrap text-zinc-300 flex-1">
-                {trace.content}
+              <code className="break-words leading-relaxed whitespace-pre-wrap text-zinc-300 flex-1 font-mono">
+                {renderContent(trace.content)}
               </code>
             </div>
           )) : (

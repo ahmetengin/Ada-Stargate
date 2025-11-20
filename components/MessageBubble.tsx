@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole } from '../types';
 import { User, Anchor, Sparkles, Globe, FileText, Volume2, StopCircle } from 'lucide-react';
+import { TypingIndicator } from './TypingIndicator';
 
 interface MessageBubbleProps {
   message: Message;
@@ -40,7 +40,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
 
         {/* Content */}
         <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-          <div className={`px-4 py-3 rounded-2xl text-sm md:text-base shadow-sm ${
+          <div className={`px-4 py-3 rounded-2xl text-sm md:text-base shadow-sm group relative ${
             isUser 
               ? 'bg-zinc-800 text-zinc-200 rounded-tr-none border border-zinc-700/50' 
               : 'bg-transparent text-zinc-300 rounded-tl-none px-0 py-0' 
@@ -98,11 +98,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             )}
             
             {/* Thinking Indicator */}
-            {!message.text && !message.generatedImage && message.role === MessageRole.Model && (
-              <div className="flex items-center gap-2 text-zinc-500 text-xs italic">
-                <Anchor size={12} className="animate-spin duration-3000" />
-                <span>Processing...</span>
-              </div>
+            {!message.text && !message.generatedImage && message.isThinking && (
+              <TypingIndicator />
             )}
           </div>
 
@@ -140,7 +137,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           </div>
           
           <div className="text-[9px] text-zinc-600 mt-0.5 px-1 font-mono">
-            {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(message.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
       </div>

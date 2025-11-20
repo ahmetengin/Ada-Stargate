@@ -1,4 +1,5 @@
 
+
 import { Message, MessageRole, Attachment } from "../types";
 
 export const isImage = (mimeType: string) => mimeType.startsWith('image/');
@@ -66,5 +67,7 @@ export const formatHistory = (messages: Message[]) => {
         role: m.role,
         parts: parts
       };
-    });
+    })
+    // CRITICAL FIX for 'ContentUnion is required'
+    .filter(m => m.parts.length > 0); 
 };

@@ -1,11 +1,10 @@
-
-// src/decomposition/types.ts from scaffold
+// services/decomposition/types.ts
 import { AgentContext, AgentObservation, AgentAction } from '../brain/types';
 
 export interface TaskNode {
   id: string;
   description: string;
-  module: 'travel' | 'payment' | 'crm' | 'sea' | 'generic';
+  module: 'travel' | 'payment' | 'crm' | 'sea' | 'generic' | 'marina' | 'weather';
   handler: string;
   next: string[];
 }

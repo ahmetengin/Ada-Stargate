@@ -61,7 +61,7 @@ The UI is built like a modern **Agentic IDE**.
 
 ## 🛠️ Tech Stack
 
-*   **Core:** React 19 + TypeScript + Tailwind CSS
+*   **Core:** React 18 + TypeScript + Tailwind CSS
 *   **Intelligence:** Google GenAI SDK (Gemini 3.0 Pro & 2.5 Flash)
 *   **Voice:** Web Audio API + Gemini Live (WebSocket Streaming)
 *   **Infrastructure:** Docker (Multi-stage) + Nginx
@@ -75,10 +75,11 @@ Want to wake the giant?
 
 ```bash
 # 1. Clone the frequency
-git clone https://github.com/ahmetengin/Ada.git
+git clone https://github.com/ahmetengin/Ada-Stargate.git
 
 # 2. Inject the soul (API Key)
-cp .env.template .env
+# Create a .env file and add your Google AI Studio API key
+# API_KEY=AIzaSyYourActualKeyHere...
 
 # 3. Launch the fleet (Docker)
 docker-compose up -d --build

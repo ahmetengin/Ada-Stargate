@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, Anchor } from 'lucide-react';
 import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast } from '../types';
@@ -12,6 +11,7 @@ interface CanvasProps {
   activeChannel: string;
   isMonitoring: boolean;
   userProfile: UserProfile;
+  vesselsInPort: number;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({ 
@@ -22,9 +22,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   weatherData,
   activeChannel, 
   isMonitoring, 
-  userProfile 
+  userProfile,
+  vesselsInPort
 }) => {
-  const [activeTab, setActiveTab] = useState<'cloud' | 'feed' | 'fleet' | 'ais'>('cloud');
+  const [activeTab, setActiveTab] = useState<'fleet' | 'feed' | 'cloud' | 'ais'>('fleet');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [showWarningOnly, setShowWarningOnly] = useState(false);
@@ -60,7 +61,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   };
   
   const filteredLogs = logs.filter(log => {
-    const message = log.message.toLowerCase();
+    const message = typeof log.message === 'string' ? log.message.toLowerCase() : JSON.stringify(log.message).toLowerCase();
     const source = log.source.toLowerCase();
     const query = searchQuery.toLowerCase();
     const type = log.type || 'info';
@@ -98,6 +99,13 @@ export const Canvas: React.FC<CanvasProps> = ({
       <Icon size={14} />
     </button>
   );
+
+  const renderMessage = (msg: any) => {
+      if (typeof msg === 'object') {
+          return JSON.stringify(msg);
+      }
+      return msg;
+  };
 
   return (
     <div 
@@ -139,7 +147,9 @@ export const Canvas: React.FC<CanvasProps> = ({
                     <div key={log.id} className={`flex gap-3 p-1 rounded transition-colors ${getRowStyle(log)}`}>
                         <div className="opacity-50 w-14">{log.timestamp}</div>
                         <div className="font-semibold w-28 truncate">{log.source}</div>
-                        <div className="flex-1 text-zinc-300 break-words leading-relaxed whitespace-pre-wrap">{log.message}</div>
+                        <div className="flex-1 text-zinc-300 break-words leading-relaxed whitespace-pre-wrap">
+                            {renderMessage(log.message)}
+                        </div>
                     </div>
                 ))}
             </div>
@@ -147,19 +157,23 @@ export const Canvas: React.FC<CanvasProps> = ({
         )}
         {activeTab === 'fleet' && (
            <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-4 text-xs">
-              <div>
-                <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Port Registry (Last 50)</h3>
-                <div className="bg-black/20 border border-zinc-800/50 rounded-lg p-2 max-h-64 overflow-y-auto custom-scrollbar">
-                    {registry.map(r => (
-                        <div key={r.id} className="flex items-center gap-3 text-[10px] py-1 border-b border-zinc-800/50 last:border-b-0">
-                            <span className="w-14 text-zinc-500">{r.timestamp}</span>
-                            <span className={`font-bold w-32 truncate ${r.action === 'CHECK-IN' ? 'text-green-400' : 'text-red-400'}`}>{r.vessel}</span>
-                            <span className="w-16">{r.action}</span>
-                            <span className="flex-1 text-zinc-400 truncate">{r.location}</span>
-                        </div>
-                    ))}
-                </div>
+              
+              {/* KPI Panel */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded p-2 text-center">
+                      <div className="text-[10px] text-zinc-500 uppercase">Vessels in Port</div>
+                      <div className="text-xl font-bold text-indigo-400">{vesselsInPort}</div>
+                  </div>
+                   <div className="bg-zinc-900/50 border border-zinc-800 rounded p-2 text-center">
+                      <div className="text-[10px] text-zinc-500 uppercase">Movements Today</div>
+                      <div className="text-xl font-bold text-zinc-300">{registry.length}</div>
+                  </div>
+                   <div className="bg-zinc-900/50 border border-zinc-800 rounded p-2 text-center">
+                      <div className="text-[10px] text-zinc-500 uppercase">Occupancy</div>
+                      <div className="text-xl font-bold text-green-400">92%</div>
+                  </div>
               </div>
+
                <div>
                 <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Tender Operations (CH 14)</h3>
                 <div className="grid grid-cols-3 gap-2">
@@ -178,6 +192,20 @@ export const Canvas: React.FC<CanvasProps> = ({
                             </div>
                         )
                     })}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-zinc-400 text-[10px] uppercase mb-2 tracking-wider">Today's Port Movements (Last 24h)</h3>
+                <div className="bg-black/20 border border-zinc-800/50 rounded-lg p-2 max-h-64 overflow-y-auto custom-scrollbar">
+                    {registry.map(r => (
+                        <div key={r.id} className="flex items-center gap-3 text-[10px] py-1 border-b border-zinc-800/50 last:border-b-0">
+                            <span className="w-14 text-zinc-500">{r.timestamp}</span>
+                            <span className={`font-bold w-32 truncate ${r.action === 'CHECK-IN' ? 'text-green-400' : 'text-red-400'}`}>{r.vessel}</span>
+                            <span className="w-16">{r.action}</span>
+                            <span className="flex-1 text-zinc-400 truncate">{r.location}</span>
+                        </div>
+                    ))}
                 </div>
               </div>
            </div>
@@ -219,7 +247,11 @@ export const Canvas: React.FC<CanvasProps> = ({
                               {t.status === 'TAXIING' && <Navigation size={10} className="text-sky-400 w-4 animate-pulse"/>}
                               <span className="w-32 font-bold truncate">{t.vessel}</span>
                               <span className="flex-1 font-mono uppercase text-zinc-400">{t.status}</span>
-                              <span className="text-zinc-500">{t.sector}</span>
+                              <span className="text-zinc-500 flex items-center gap-1">
+                                {t.destination ? (
+                                    <><span className="text-zinc-600">→</span> {t.destination}</>
+                                ) : t.sector}
+                              </span>
                           </div>
                       ))}
                   </div>

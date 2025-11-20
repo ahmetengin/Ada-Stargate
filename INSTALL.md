@@ -16,37 +16,35 @@ Before you begin, ensure you have the following installed:
 
 ## 🚀 Quick Start (Local Development)
 
-Follow these steps to run Ada on your local machine for development.
+This project uses browser-native ES modules and a simple static server.
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/ahmetengin/Ada.git
-cd Ada
+git clone https://github.com/ahmetengin/Ada-Stargate.git
+cd Ada-Stargate
 ```
 
 ### 2. Configure Environment
-Copy the template to a new `.env` file and add your API Key.
+Create a file named `.env` in the root directory and add your API key.
 
-```bash
-cp .env.template .env
-```
-
-Open `.env` and paste your key:
 ```properties
 # .env
 API_KEY=AIzaSyYourActualKeyHere...
 ```
+*Note: This is a simplified setup for local development. The API key will be exposed on the client-side.*
 
-### 3. Install Dependencies
+### 3. Install a simple HTTP server
+If you don't have one, `serve` is a good option.
 ```bash
-npm install
+npm install -g serve
 ```
 
 ### 4. Run the Application
+Start the server from the project root.
 ```bash
-npm start
+serve .
 ```
-The application will launch at `http://localhost:3000`.
+The application will launch at `http://localhost:3000` (or another available port).
 
 ---
 

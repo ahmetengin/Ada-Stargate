@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Anchor, Radio, Power, Lock } from 'lucide-react';
 import { UserProfile } from '../types';
@@ -18,7 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onChannelChange, 
   isMonitoring, 
   onMonitoringToggle,
-  userProfile
+  userProfile,
 }) => {
   // Resizable Sidebar State
   const [sidebarWidth, setSidebarWidth] = useState(240); 
@@ -69,8 +68,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  const channels = ['16', '73', '12', '13', '14', '69', '06', 'SCAN'];
-  const restrictedChannels = ['12', '13', '14']; // Only for GM
+  const channels = ['16', '73', '69', '06'];
+  const restrictedChannels = ['12', '13', '14'];
+  const allChannels = [...channels, ...restrictedChannels];
+
 
   return (
     <div 
@@ -134,28 +135,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             
             <div className="grid grid-cols-4 gap-1">
-                {channels.map(ch => {
-                const isRestricted = restrictedChannels.includes(ch) && userProfile.role !== 'GENERAL_MANAGER';
-                return (
-                    <button
-                    key={ch}
-                    disabled={!isMonitoring || isRestricted}
-                    onClick={() => onChannelChange(ch)}
-                    className={`text-[9px] font-mono py-1.5 rounded border transition-all relative flex items-center justify-center ${
-                        activeChannel === ch 
-                        ? 'bg-indigo-600 text-white border-indigo-500' 
-                        : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:bg-zinc-800'
-                    } ${restrictedChannels.includes(ch) ? 'border-l-2 border-l-yellow-500/20' : ''} ${(!isMonitoring || isRestricted) ? 'opacity-40' : ''}`}
-                    >
-                    {isRestricted ? <Lock size={8} /> : ch}
-                    </button>
-                );
-                })}
-            </div>
-            </div>
-        </div>
-      </div>
-      
-    </div>
-  );
-};
+                {allChannels.map(ch => {
+                    const isRestricted = restrictedChannels.includes(ch) && userProfile.role !== 'GENERAL_MANAGER';
+                    return (
+                        <button
+                        key={ch}
+                        disabled={!isMonitoring || isRestricted}
+                        onClick={() => onChannelChange(ch)}
+                        className={`text-[9px] font-mono py-1.5 rounded border transition-all relative flex items-center justify-center ${
+                            activeChannel === ch 
+                            ? 'bg-indigo-600 text-white border-indigo-500' 
+                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-500 hover:bg-zinc-800'
+                        } ${!isMonitoring || isRestricted ? 'opacity-40 cursor-not-allowed' : ''}`}
+                        >
+                        {isRestricted && <Lock size={8} className="absolute top-1 right-1 text-zinc-600" />}
+                        {ch

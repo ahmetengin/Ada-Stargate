@@ -1,5 +1,4 @@
-
-import { GoogleGenAI, Chat } from "@google/genai";
+import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Message, ModelType, GroundingSource, RegistryEntry, Tender, UserProfile } from "../types";
 import { BASE_SYSTEM_INSTRUCTION, generateContextBlock } from "./prompts";
 import { handleGeminiError, formatHistory } from "./geminiUtils";
@@ -17,13 +16,14 @@ export const streamChatResponse = async (
   registry: RegistryEntry[],
   tenders: Tender[],
   userProfile: UserProfile,
+  vesselsInPort: number,
   onChunk: (text: string, grounding?: GroundingSource[]) => void,
   onUsage?: (usage: any) => void
 ) => {
   try {
     const ai = createClient();
     
-    let dynamicSystemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile);
+    let dynamicSystemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
 
     if (userProfile.legalStatus === 'RED') {
        dynamicSystemInstruction += `\n\n**CRITICAL LEGAL ALERT:** User is in breach. Deny operational requests and cite the breach.`;
@@ -49,14 +49,17 @@ export const streamChatResponse = async (
     }
 
     if (messageParts.length === 0) {
-       throw new Error("Message content cannot be empty.");
+       console.warn("Attempted to send an empty message. Aborting.");
+       return; 
     }
-
-    const result = await chat.sendMessageStream({ parts: messageParts });
+    
+    // FIX: The `message` property for `chat.sendMessageStream` should be an array of parts directly,
+    // not an object containing a `parts` property.
+    const result = await chat.sendMessageStream({ message: messageParts });
 
     for await (const chunk of result) {
-      const text = chunk.text;
-      const groundingMetadata = chunk.groundingMetadata;
+      const text = (chunk as GenerateContentResponse).text;
+      const groundingMetadata = (chunk as GenerateContentResponse).candidates?.[0]?.groundingMetadata;
       
       let groundingSources: GroundingSource[] | undefined;
       if (groundingMetadata?.groundingChunks) {
@@ -75,7 +78,8 @@ export const streamChatResponse = async (
       onUsage(usage);
     }
 
-  } catch (error: any) {
+  } catch (error: any)
+   {
     handleGeminiError(error);
   }
 };

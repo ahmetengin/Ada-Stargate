@@ -1,5 +1,4 @@
-
-// src/agents/customerSegmentAgent.ts from scaffold
+// services/agents/customerSegmentAgent.ts
 import { TaskHandlerFn } from '../decomposition/types';
 import { AgentContext, AgentObservation, AgentAction } from '../brain/types';
 import { vote, Candidate } from '../voting/consensus';

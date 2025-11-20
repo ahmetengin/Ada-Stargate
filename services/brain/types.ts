@@ -1,5 +1,4 @@
-
-// src/brain/types.ts from scaffold
+// services/brain/types.ts
 export type MemoryType = 'working' | 'episodic' | 'semantic' | 'procedural';
 
 export interface MemoryItem {

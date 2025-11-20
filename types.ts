@@ -1,4 +1,4 @@
-
+// types.ts
 
 export enum MessageRole {
   User = 'user',
@@ -71,6 +71,7 @@ export interface TrafficEntry {
   status: 'INBOUND' | 'OUTBOUND' | 'HOLDING' | 'TAXIING' | 'DOCKED';
   priority: number; // 1 (Emergency) - 5 (Pleasure)
   sector: string; // e.g., "Entrance", "Sector Zulu"
+  destination?: string;
 }
 
 export interface WeatherForecast {
@@ -138,7 +139,7 @@ export interface AgentContext {
 export interface TaskNode {
   id: string;
   description: string;
-  module: 'travel' | 'payment' | 'crm' | 'sea' | 'generic';
+  module: 'travel' | 'payment' | 'crm' | 'sea' | 'generic' | 'marina' | 'weather';
   handler: string;
   next: string[];
 }

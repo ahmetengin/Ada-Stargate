@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { GitBranch, RefreshCw, Wifi, Radio, AlertCircle, Key, Shield } from 'lucide-react';
+import { GitBranch, RefreshCw, Wifi, Radio, AlertCircle } from 'lucide-react';
 import { UserProfile } from '../types';
 
 interface StatusBarProps {
@@ -62,17 +61,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
            }`}
            title={isGM ? "Click to Logout" : "Click to Login"}
          >
-            {isGM ? (
-                <>
-                   <Shield size={10} />
-                   <span>{userProfile.name}</span>
-                </>
-            ) : (
-                <>
-                   <Key size={10} />
-                   <span>LOGIN</span>
-                </>
-            )}
+            {isGM ? userProfile.name : "LOGIN"}
          </button>
 
         {/* Notifications */}

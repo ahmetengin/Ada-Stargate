@@ -1,5 +1,4 @@
-
-// src/brain/AdaBrain.ts from scaffold
+// services/brain/AdaBrain.ts
 import { AgentContext, AgentObservation, AgentAction, DecisionStepLog } from './types';
 import { runMdapGraph } from '../decomposition/mdapExecutor';
 

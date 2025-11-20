@@ -1,5 +1,4 @@
-
-// src/voting/consensus.ts from scaffold
+// services/voting/consensus.ts
 export type VotingStrategy = 'plurality' | 'softmax_weighted';
 
 export interface Candidate<T> {

@@ -1,5 +1,4 @@
-
-// src/auto_seal/sealDaemon.ts from scaffold (adapted for browser)
+// services/auto_seal/sealDaemon.ts
 import { AdaBrain } from '../brain/AdaBrain';
 import { AgentObservation } from '../brain/types';
 
