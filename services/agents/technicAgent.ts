@@ -1,5 +1,7 @@
+
 import { AgentAction, AgentTraceLog, MaintenanceJob, NodeName, UserProfile } from '../../types';
 import { TaskHandlerFn } from '../decomposition/types';
+import { persistenceService, STORAGE_KEYS } from '../persistence'; // Enterprise Persistence
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -11,8 +13,8 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     persona
 });
 
-// Mock Technic Database
-let TECHNIC_DB: MaintenanceJob[] = [
+// --- DEFAULT TECHNIC DATA ---
+const DEFAULT_JOBS: MaintenanceJob[] = [
     {
         id: 'JOB-1023',
         vesselName: 'M/Y Poseidon',
@@ -44,6 +46,11 @@ let TECHNIC_DB: MaintenanceJob[] = [
         notes: 'Outboard motor electrical fault.'
     }
 ];
+
+// --- LOAD FROM PERSISTENCE ---
+let TECHNIC_DB: MaintenanceJob[] = persistenceService.load(STORAGE_KEYS.TECHNIC_JOBS, DEFAULT_JOBS);
+persistenceService.save(STORAGE_KEYS.TECHNIC_JOBS, TECHNIC_DB);
+
 
 // --- HANDLERS FOR BRAIN/MDAP ---
 const scheduleServiceHandler: TaskHandlerFn = async (ctx, obs) => {
@@ -92,6 +99,10 @@ export const technicAgent = {
         };
 
         TECHNIC_DB.push(newJob);
+        
+        // Enterprise: PERSISTENCE SAVE
+        persistenceService.save(STORAGE_KEYS.TECHNIC_JOBS, TECHNIC_DB);
+
         addTrace(createLog('ada.technic', 'TOOL_EXECUTION', `Job Ticket ${newJob.id} created in WIM Technical System.`, 'WORKER'));
 
         return { success: true, message: `Service Confirmed. Ticket #${newJob.id} created for ${vesselName}.`, job: newJob };
@@ -138,6 +149,9 @@ export const technicAgent = {
         const job = TECHNIC_DB[jobIndex];
         TECHNIC_DB[jobIndex].status = 'COMPLETED';
         
+        // Enterprise: PERSISTENCE SAVE
+        persistenceService.save(STORAGE_KEYS.TECHNIC_JOBS, TECHNIC_DB);
+
         // Calculate Final Cost (Simulated)
         let cost = 500; // Base call out
         if (job.jobType === 'HAUL_OUT') cost = 3500;

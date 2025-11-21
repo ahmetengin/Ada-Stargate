@@ -1,7 +1,9 @@
+
 import { AgentAction, UserProfile, AgentTraceLog, VesselIntelligenceProfile, NodeName } from '../../types';
 import { wimMasterData } from '../wimMasterData';
+import { persistenceService, STORAGE_KEYS } from '../persistence'; // Enterprise Persistence
 
-// Helper to create a log (copied from orchestratorService.ts for local use)
+// Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
     id: `trace_${Date.now()}_${Math.random()}`,
     timestamp: new Date().toLocaleTimeString(),
@@ -14,14 +16,29 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
 // Type alias for clarity and consistency
 type PaymentHistoryStatus = Exclude<VesselIntelligenceProfile['paymentHistoryStatus'], undefined>;
 
+type LedgerEntry = { balance: number, paymentHistoryStatus?: PaymentHistoryStatus };
+
 // Mock API integrations for Paraşüt, Iyzico, and Garanti BBVA
 const PARASUT_API_MOCK = {
-    // This mock now needs to store and update actual vessel data to reflect debt
-    vesselLedger: new Map<string, { balance: number, paymentHistoryStatus?: PaymentHistoryStatus }>([
-        ['s/y phisedelia', { balance: 850, paymentHistoryStatus: 'RECENTLY_LATE' }],
-        ['m/y blue horizon', { balance: 0, paymentHistoryStatus: 'REGULAR' }],
-        // Add other vessels as needed
-    ]),
+    // Store as Map in memory, but convert to Array for JSON storage
+    vesselLedger: new Map<string, LedgerEntry>(),
+
+    init: () => {
+        // Load from storage or use default
+        const defaultLedger: [string, LedgerEntry][] = [
+            ['s/y phisedelia', { balance: 850, paymentHistoryStatus: 'RECENTLY_LATE' }],
+            ['m/y blue horizon', { balance: 0, paymentHistoryStatus: 'REGULAR' }]
+        ];
+        
+        const loadedLedger = persistenceService.load<[string, LedgerEntry][]>(STORAGE_KEYS.FINANCE_LEDGER, defaultLedger);
+        
+        PARASUT_API_MOCK.vesselLedger = new Map(loadedLedger);
+    },
+
+    save: () => {
+        const entries = Array.from(PARASUT_API_MOCK.vesselLedger.entries());
+        persistenceService.save(STORAGE_KEYS.FINANCE_LEDGER, entries);
+    },
     
     createInvoice: (vessel: string, items: any[]) => {
         const total = items.reduce((acc, item) => acc + item.price, 0);
@@ -40,14 +57,18 @@ const PARASUT_API_MOCK = {
         if (vesselData) {
             return { balance: vesselData.balance, currency: 'EUR', paymentHistoryStatus: vesselData.paymentHistoryStatus };
         }
-        // Default when vessel not found, ensure 'REGULAR' is typed as PaymentHistoryStatus
+        // Default when vessel not found
         return { balance: 0, currency: 'EUR', paymentHistoryStatus: 'REGULAR' as PaymentHistoryStatus }; 
     },
 
     updateBalance: (vesselName: string, newBalance: number, newPaymentHistoryStatus: PaymentHistoryStatus) => {
         PARASUT_API_MOCK.vesselLedger.set(vesselName.toLowerCase(), { balance: newBalance, paymentHistoryStatus: newPaymentHistoryStatus });
+        PARASUT_API_MOCK.save(); // Persist immediately
     }
 };
+
+// Initialize Ledger on Load
+PARASUT_API_MOCK.init();
 
 const IYZICO_API_MOCK = {
     createPaymentLink: (invoiceId: string, amount: number, vesselName: string) => {
@@ -108,10 +129,6 @@ export const financeAgent = {
   processPayment: async (vesselName: string, paymentRef: string, amount: number, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
       addTrace(createLog('ada.finance', 'TOOL_EXECUTION', `Confirming payment for ${vesselName} (Ref: ${paymentRef}, Amount: €${amount})...`, 'WORKER'));
 
-      // FIX: Removed direct state mutation (updateBalance call). This function should only generate actions.
-      // The caller (e.g., fetchDailySettlement) is responsible for updating the balance state.
-      // This prevents a logical error where the balance was always reset to 0 regardless of payment amount.
-
       const actions: AgentAction[] = [];
       actions.push({
           id: `fin_pay_conf_${Date.now()}`,
@@ -129,8 +146,6 @@ export const financeAgent = {
       });
 
       // Trigger marina agent to update vessel profile (e.g., debt status)
-      // We need to get the current loyalty score to calculate the update, not just placeholder
-      const vesselData = PARASUT_API_MOCK.getBalance(vesselName);
       actions.push({
           id: `marina_profile_update_${Date.now()}`,
           kind: 'internal',
@@ -143,6 +158,11 @@ export const financeAgent = {
               } 
           }
       });
+
+      // NOTE: The balance update happens where this function is called or via reconciliation logic usually.
+      // But for immediate processing:
+      const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
+      PARASUT_API_MOCK.updateBalance(vesselName, Math.max(0, currentBalanceData.balance - amount), 'REGULAR');
 
       return actions;
   },
@@ -163,24 +183,17 @@ export const financeAgent = {
       } else {
           for (const tx of transactions) {
               settlementReport += `- **€${tx.amount}** for ${tx.description}\n`;
-              // In a real system, we'd use IMO from transaction to find vessel name if not in description
               const vesselNameMatch = tx.description.match(/for (S\/Y|M\/Y|Catamaran) ([A-Za-z ]+)/i);
               const vesselName = vesselNameMatch ? vesselNameMatch[2].trim() : `Vessel (IMO:${tx.vesselImo})`;
               
               if (vesselName) {
                   addTrace(createLog('ada.finance', 'PLANNING', `Reconciling payment for ${vesselName} (Ref: ${tx.transactionId})...`, 'EXPERT'));
-                  // In a real system, we'd use IMO from transaction to find vessel name if not in description
-                  const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
-                  // FIX: Ensure newPaymentHistoryStatus is a literal string and not undefined by providing a default.
-                  // FIX: Changed 'OVERDUE' to 'CHRONICALLY_LATE' to match the type definition.
-                  const newPaymentStatus: PaymentHistoryStatus = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
-                  // FIX: A payment (credit) should reduce the outstanding balance (debt).
-                  PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance - tx.amount, newPaymentStatus); 
+                  
+                  // This call internally updates the balance and triggers actions
                   const processPaymentActions = await financeAgent.processPayment(vesselName, tx.transactionId, tx.amount, addTrace);
                   actions.push(...processPaymentActions);
                   totalSettledAmount += tx.amount;
               } else {
-                  // FIX: Changed log step 'WARNING' to 'ERROR' to match the allowed types.
                   addTrace(createLog('ada.finance', 'ERROR', `Could not identify vessel for transaction ${tx.transactionId}. Manual reconciliation required.`, 'EXPERT'));
               }
           }
@@ -214,7 +227,6 @@ export const financeAgent = {
         // Dynamic Item Generation based on service type
         let items = [];
         if (serviceType === 'MOORING') {
-             // Example: 150m2 * 1.5 EUR
              items.push({ description: 'Daily Mooring Fee (150m2)', price: 225 });
              items.push({ description: 'Utility Connection Fee', price: 50 });
         } else {
@@ -226,8 +238,6 @@ export const financeAgent = {
         const invoice = PARASUT_API_MOCK.createInvoice(vesselName, items);
         // Update ledger with new invoice amount
         const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
-        // FIX: Ensure newPaymentHistoryStatus is a literal string and not undefined by providing a default.
-        // FIX: Changed 'OVERDUE' to 'CHRONICALLY_LATE' to match the type definition.
         const newPaymentStatus: PaymentHistoryStatus = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
         PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance + invoice.amount, newPaymentStatus);
 

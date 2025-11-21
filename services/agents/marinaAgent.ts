@@ -3,8 +3,9 @@
 import { TaskHandlerFn } from '../decomposition/types';
 import { AgentAction, AgentTraceLog, KplerAisTarget, TrafficEntry, VesselIntelligenceProfile, NodeName } from '../../types';
 import { wimMasterData } from '../wimMasterData';
-import { financeAgent } from './financeAgent'; // Import financeAgent
+import { financeAgent } from './financeAgent'; 
 import { haversineDistance } from '../utils';
+import { persistenceService, STORAGE_KEYS } from '../persistence'; // Enterprise Persistence
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -16,8 +17,8 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     persona
 });
 
-// --- MOCK FLEET DATABASE (System of Record) - Enriched with Kpler MCP-style data ---
-let FLEET_DB: VesselIntelligenceProfile[] = [
+// --- DEFAULT FLEET DATA (Fallback if storage is empty) ---
+const DEFAULT_FLEET: VesselIntelligenceProfile[] = [
     { 
         name: 'S/Y Phisedelia', imo: '987654321', type: 'Sailing Yacht', flag: 'MT', 
         ownerName: 'Ahmet Engin', ownerId: '12345678901', ownerEmail: 'ahmet.engin@example.com', ownerPhone: '+905321234567',
@@ -73,6 +74,13 @@ let FLEET_DB: VesselIntelligenceProfile[] = [
     }
 ];
 
+// --- INITIALIZE FLEET DB FROM STORAGE ---
+// Enterprise Logic: Load from persistence, fallback to default, then save back to ensure key exists.
+let FLEET_DB: VesselIntelligenceProfile[] = persistenceService.load(STORAGE_KEYS.FLEET, DEFAULT_FLEET);
+// Ensure storage is synced initially
+persistenceService.save(STORAGE_KEYS.FLEET, FLEET_DB);
+
+
 const identifyVessel: TaskHandlerFn = async (ctx, obs) => {
   const vesselName = obs.payload?.text?.match(/([A-Z/Y ]+)/)?.[0]?.trim() || 'Unknown Vessel';
   console.log(`[Agent: Marina] Identifying vessel: ${vesselName}`);
@@ -110,6 +118,15 @@ export const marinaAgent = {
 
     processDeparture: async (vesselName: string): Promise<AgentAction[]> => {
         const assignedTender = "Tender Alpha";
+        // Fetch comprehensive departure plan
+        // In a real scenario, this would calculate pilot needs, linesmen, etc.
+        const departurePlan = {
+            pilot: "Required (>20m)",
+            lineHandlers: 2,
+            berth: "Pontoon C-12",
+            coordinationChannel: "14"
+        };
+
         return [{
             id: `marina_dept_${Date.now()}`,
             kind: 'external',
@@ -117,7 +134,8 @@ export const marinaAgent = {
             params: { 
                 tender: assignedTender, 
                 mission: 'DEPARTURE_ASSIST',
-                vessel: vesselName
+                vessel: vesselName,
+                departurePlan: departurePlan // Pass detailed plan
             }
         }];
     },
@@ -173,16 +191,31 @@ export const marinaAgent = {
         };
 
         FLEET_DB.push(newVessel);
+        
+        // Enterprise: PERSISTENCE SAVE
+        persistenceService.save(STORAGE_KEYS.FLEET, FLEET_DB);
+
         return { success: true, message: `Vessel ${name} (IMO: ${imo}) successfully registered.`, vessel: newVessel };
     },
     
     // Skill: Update Vessel Profile (for loyalty updates etc.)
     updateVesselProfile: async (imo: string, updates: Partial<VesselIntelligenceProfile>): Promise<boolean> => {
-        const vesselIndex = FLEET_DB.findIndex(v => v.imo === imo);
+        // Since we don't always have IMO in finance/customer calls (sometimes just name), we search by name if IMO not found or name passed as IMO
+        // Ideally we should stick to one ID, but for prototype flexibility:
+        let vesselIndex = FLEET_DB.findIndex(v => v.imo === imo);
+        if (vesselIndex === -1) {
+             // Fallback search by name
+             vesselIndex = FLEET_DB.findIndex(v => v.name.toLowerCase() === imo.toLowerCase());
+        }
+
         if (vesselIndex === -1) {
             return false;
         }
         FLEET_DB[vesselIndex] = { ...FLEET_DB[vesselIndex], ...updates };
+        
+        // Enterprise: PERSISTENCE SAVE
+        persistenceService.save(STORAGE_KEYS.FLEET, FLEET_DB);
+        
         return true;
     },
 
@@ -228,6 +261,7 @@ export const marinaAgent = {
     fetchLiveAisData: async (): Promise<TrafficEntry[]> => {
         try {
             // Simulate querying the Kpler MCP: https://api.kpler.com/v1/ais/wim-region/live
+            // Uses FLEET_DB as the source of "truth" for simulation
             const mockApiData = FLEET_DB.map((v, i) => ({
                 id: `kpler-${v.imo}`,
                 vessel_name: v.name,
@@ -260,7 +294,7 @@ export const marinaAgent = {
         }
     },
 
-    // NEW Skill: Find Vessels Near a Coordinate
+    // Skill: Find Vessels Near a Coordinate
     findVesselsNear: async (centerLat: number, centerLng: number, radiusMiles: number, addTrace: (t: AgentTraceLog) => void): Promise<(TrafficEntry & { distanceMiles: number })[]> => {
         addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `Searching for vessels within ${radiusMiles} miles of Lat: ${centerLat}, Lng: ${centerLng}...`, 'WORKER'));
 
@@ -280,8 +314,6 @@ export const marinaAgent = {
     },
 
     // Skill: Berth Allocation (Rule-Based Logic)
-    // Input: LOA, Beam, Draft
-    // Output: Berth Assignment + Maneuver Notes
     executeSkill_BerthAllocation: async (specs: { loa: number, beam: number, draft: number }, addTrace: (t: AgentTraceLog) => void): Promise<{ berth: string, notes: string }> => {
         
         addTrace(createLog('ada.marina', 'THINKING', `Executing Berth Allocation Algorithm v2.1 for specs: ${specs.loa}m x ${specs.beam}m (Draft: ${specs.draft}m)`, 'EXPERT'));
@@ -307,13 +339,9 @@ export const marinaAgent = {
         return { berth: "Transit Quay (Tr-05)", notes: "Temporary allocation. Move required within 24h." };
     },
 
-    // NEW SKILL: Contractor Authorization (Contractor Gate)
+    // Skill: Contractor Authorization
     authorizeContractor: async (name: string, company: string, workType: string, addTrace: (t: AgentTraceLog) => void): Promise<{ authorized: boolean, message: string }> => {
         addTrace(createLog('ada.legal', 'THINKING', `Verifying credentials for ${name} (${company}). Checking SGK and Liability Insurance...`, 'EXPERT'));
-        
-        // Simulation: 
-        // If company contains "authorized", approve.
-        // If workType is dangerous ("hot work") without "safe" in company name, reject.
         
         if (workType.toLowerCase().includes('hot') || workType.toLowerCase().includes('weld')) {
              if (!company.toLowerCase().includes('safe') && !company.toLowerCase().includes('wim')) {

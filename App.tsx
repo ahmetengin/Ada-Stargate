@@ -12,9 +12,10 @@ import { StatusBar } from './components/StatusBar';
 import { AgentTraceModal } from './components/AgentTraceModal';
 import { orchestratorService } from './services/orchestratorService';
 import { marinaAgent } from './services/agents/marinaAgent';
-import { VESSEL_KEYWORDS } from './services/constants'; // Import from constants
+import { VESSEL_KEYWORDS } from './services/constants'; 
 import { wimMasterData } from './services/wimMasterData';
 import { Sun, Moon, Monitor } from 'lucide-react';
+import { persistenceService, STORAGE_KEYS } from './services/persistence'; // Enterprise Persistence
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
@@ -30,11 +31,9 @@ const INITIAL_MESSAGE: Message = {
   timestamp: Date.now()
 };
 
-// Removed from here, now imported from services/constants.ts
-// const VESSEL_NAMES = ['S/Y Phisedelia', 'M/Y Blue Horizon', 'S/Y Mistral', 'M/Y Poseidon', 'Catamaran Lir', 'S/Y Aegeas', 'Tender Bravo', 'M/Y Grand Turk'];
-
 export default function App() {
-  const [messages, setMessages] = useState<Message[]>([INITIAL_MESSAGE]);
+  // LOAD STATE FROM PERSISTENCE (or Default)
+  const [messages, setMessages] = useState<Message[]>(() => persistenceService.load(STORAGE_KEYS.MESSAGES, [INITIAL_MESSAGE]));
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>(ModelType.Pro);
   const [useSearch, setUseSearch] = useState(false);
@@ -43,7 +42,7 @@ export default function App() {
   // Theme State
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') as ThemeMode || 'dark'; // Default to dark if not set
+      return localStorage.getItem('theme') as ThemeMode || 'dark'; 
     }
     return 'dark';
   });
@@ -56,22 +55,26 @@ export default function App() {
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(true);
 
-  const [userProfile, setUserProfile] = useState<UserProfile>({
+  // Persistent User Profile
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => persistenceService.load(STORAGE_KEYS.USER_PROFILE, {
     id: 'guest-01', name: 'Ahmet Engin', role: 'GUEST', clearanceLevel: 0, legalStatus: 'GREEN'
-  });
+  }));
 
-  const [logs, setLogs] = useState<any[]>([]);
-  const [registry, setRegistry] = useState<RegistryEntry[]>([]);
-  const [tenders, setTenders] = useState<Tender[]>([
+  // Persistent Logs & Operations Data
+  const [logs, setLogs] = useState<any[]>(() => persistenceService.load(STORAGE_KEYS.LOGS, []));
+  const [registry, setRegistry] = useState<RegistryEntry[]>(() => persistenceService.load(STORAGE_KEYS.REGISTRY, []));
+  const [tenders, setTenders] = useState<Tender[]>(() => persistenceService.load(STORAGE_KEYS.TENDERS, [
     { id: 't1', name: 'Tender Alpha', status: 'Idle', serviceCount: 0 },
     { id: 't2', name: 'Tender Bravo', status: 'Idle', serviceCount: 0 },
     { id: 't3', name: 'Tender Charlie', status: 'Maintenance', serviceCount: 0 },
-  ]);
-  const [trafficQueue, setTrafficQueue] = useState<TrafficEntry[]>([
+  ]));
+  const [trafficQueue, setTrafficQueue] = useState<TrafficEntry[]>(() => persistenceService.load(STORAGE_KEYS.TRAFFIC, [
       { id: 'tq1', vessel: 'M/Y Solaris', status: 'INBOUND', priority: 4, sector: 'North Approach' },
       { id: 'tq2', vessel: 'S/Y Vertigo', status: 'HOLDING', priority: 5, sector: 'Sector Zulu' },
       { id: 'tq3', vessel: 'Catamaran 42', status: 'TAXIING', priority: 5, sector: 'Inner Harbour', destination: 'A-12' }
-  ]);
+  ]));
+
+  // Non-persistent state (Weather is external)
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([
       { day: 'Today', temp: 24, condition: 'Sunny', windSpeed: 12, windDir: 'NW', alertLevel: 'NONE' },
       { day: 'Tomorrow', temp: 22, condition: 'Windy', windSpeed: 28, windDir: 'N', alertLevel: 'ADVISORY' },
@@ -86,13 +89,18 @@ export default function App() {
     'ada.legal': 'connected', 'ada.security': 'connected', 'ada.weather': 'connected',
   });
   
-  // State for the new proactive agent
   const [profiledVessels, setProfiledVessels] = useState<Set<string>>(new Set());
-
-  // State for prefilling text from sidebar clicks
   const [prefillText, setPrefillText] = useState<string>('');
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // --- PERSISTENCE EFFECTS (Auto-Save) ---
+  useEffect(() => { persistenceService.save(STORAGE_KEYS.MESSAGES, messages); }, [messages]);
+  useEffect(() => { persistenceService.save(STORAGE_KEYS.LOGS, logs); }, [logs]);
+  useEffect(() => { persistenceService.save(STORAGE_KEYS.REGISTRY, registry); }, [registry]);
+  useEffect(() => { persistenceService.save(STORAGE_KEYS.TENDERS, tenders); }, [tenders]);
+  useEffect(() => { persistenceService.save(STORAGE_KEYS.TRAFFIC, trafficQueue); }, [trafficQueue]);
+  useEffect(() => { persistenceService.save(STORAGE_KEYS.USER_PROFILE, userProfile); }, [userProfile]);
+
 
   // --- THEME LOGIC ---
   useEffect(() => {
@@ -154,7 +162,7 @@ export default function App() {
           setTimeout(() => setNodeStates(prev => ({...prev, 'ada.marina': 'connected' })), 500);
         }
       }
-    }, 30000); // Run every 30 seconds
+    }, 30000); 
 
     return () => clearInterval(profilerInterval);
   }, [isMonitoring, profiledVessels]);
@@ -184,7 +192,7 @@ export default function App() {
               setLogs(prev => [atcLog, ...prev]);
           }
        }
-    }, 900000); // 15 minutes
+    }, 900000); 
 
     return () => clearInterval(atcInterval);
   }, [isMonitoring, logs]);
@@ -235,7 +243,7 @@ export default function App() {
   useEffect(() => {
     const generateLog = () => {
        const sourceNode = ['ada.vhf', 'ada.security', 'ada.finance', 'ada.marina', 'ada.weather', 'ada.sea (Sensor)'][Math.floor(Math.random() * 6)];
-       const vessel = VESSEL_KEYWORDS[Math.floor(Math.random() * VESSEL_KEYWORDS.length)]; // Use VESSEL_KEYWORDS
+       const vessel = VESSEL_KEYWORDS[Math.floor(Math.random() * VESSEL_KEYWORDS.length)];
        let message = '';
        let type = 'info';
        let channel = '';
@@ -264,9 +272,9 @@ export default function App() {
             break;
         case 'ada.sea (Sensor)':
             const pollution = Math.random();
-            if (pollution > 0.8) { // Increased chance for demo
+            if (pollution > 0.8) { 
                 message = `CRITICAL ALERT: Hydrocarbon sensor @ Pontoon B detected high levels! Possible bilge discharge. Dispatching drone.`;
-                type = 'ENVIRONMENTAL_ALERT'; // Use specific type
+                type = 'ENVIRONMENTAL_ALERT'; 
             } else {
                 message = `Water Quality Normal. O2: 7.8mg/L, pH: 8.1, Turbidity: Low.`;
             }
@@ -318,7 +326,7 @@ export default function App() {
                     ...t, 
                     status: 'Busy' as const, 
                     assignment: vessel,
-                    serviceCount: (t.serviceCount || 0) + 1 // Increment service count
+                    serviceCount: (t.serviceCount || 0) + 1 
                 };
             }
             return t;
@@ -346,9 +354,8 @@ export default function App() {
       }
   };
 
-  // Handle Sidebar/Canvas node clicks to prefill input
   const handleNodeClick = (nodeId: string) => {
-      const cleanNode = nodeId.replace(' (Sensor)', ''); // Clean up source names
+      const cleanNode = nodeId.replace(' (Sensor)', ''); 
       setPrefillText(`@${cleanNode} `);
   };
 
@@ -368,8 +375,6 @@ export default function App() {
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     setAgentTraces([]); 
-    
-    // Clear prefill text after sending
     setPrefillText('');
 
     if (activeChannel === '72') {
@@ -461,7 +466,6 @@ export default function App() {
   // Get coordinates from wimMasterData
   const { lat, lng } = wimMasterData.identity.location.coordinates;
 
-  // Function to format decimal degrees to degrees, minutes, seconds
   const formatCoordinate = (coord: number, type: 'lat' | 'lng') => {
     const direction = type === 'lat' ? (coord >= 0 ? 'N' : 'S') : (coord >= 0 ? 'E' : 'W');
     const absCoord = Math.abs(coord);
@@ -488,7 +492,7 @@ export default function App() {
             onMonitoringToggle: () => setIsMonitoring(!isMonitoring), 
             userProfile, 
             onRoleChange: handleRoleChange,
-            onNodeClick: handleNodeClick // Pass handler
+            onNodeClick: handleNodeClick 
         }} />
         
         {/* Main Chat Zone */}
@@ -541,7 +545,7 @@ export default function App() {
                 onToggleSearch={() => setUseSearch(!useSearch)}
                 useThinking={useThinking}
                 onToggleThinking={() => setUseThinking(!useThinking)}
-                prefillText={prefillText} // Pass state
+                prefillText={prefillText} 
              />
           </div>
         </div>
@@ -559,12 +563,11 @@ export default function App() {
               vesselsInPort, 
               onCheckIn: handleCheckIn,
               onOpenTrace: () => setIsTraceModalOpen(true),
-              onNodeClick: handleNodeClick // Pass handler
+              onNodeClick: handleNodeClick 
           }} />
         )}
       </div>
       <StatusBar {...{ userProfile, onToggleAuth: toggleAuth, nodeHealth: "working", latency: 12, activeChannel }} />
-      {/* Pass userProfile to VoiceModal */}
       <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} userProfile={userProfile} />
       <AgentTraceModal isOpen={isTraceModalOpen} onClose={() => setIsTraceModalOpen(false)} traces={agentTraces} />
     </div>
