@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink, Map as MapIcon, Anchor, Wrench, Zap, Droplets } from 'lucide-react';
+import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink, Map as MapIcon, Anchor, Wrench, Zap, Droplets, QrCode } from 'lucide-react';
 import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast, VesselIntelligenceProfile, MaintenanceJob } from '../types';
 import { marinaAgent } from '../services/agents/marinaAgent';
 import { technicAgent } from '../services/agents/technicAgent'; // Updated import
@@ -121,7 +121,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (type === 'warning') return 'text-yellow-600 dark:text-yellow-400';
     if (type === 'intelligence_briefing') return 'text-sky-600 dark:text-sky-400';
     if (type === 'customer_engagement' || type === 'customer_proposal') return 'text-purple-600 dark:text-purple-400';
-    if (type === 'ENVIRONMENTAL_ALERT') return 'text-teal-600 dark:text-teal-400 font-bold'; // NEW STYLE
+    if (type === 'ENVIRONMENTAL_ALERT') return 'text-teal-600 dark:text-teal-400 font-bold';
+    if (type === 'passkit_issued') return 'text-zinc-800 dark:text-zinc-100 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded p-2 my-1 shadow-sm';
     return 'text-zinc-600 dark:text-zinc-400';
   };
 
@@ -137,6 +138,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (s.includes('maintenance') || s.includes('technic')) return 'text-blue-500 dark:text-blue-400';
     if (s.includes('sensor') || s.includes('sea')) return 'text-teal-500 dark:text-teal-400';
     if (s.includes('customer')) return 'text-purple-500 dark:text-purple-400';
+    if (s.includes('passkit')) return 'text-pink-500 dark:text-pink-400';
     return 'text-zinc-500';
   };
   
@@ -223,6 +225,20 @@ export const Canvas: React.FC<CanvasProps> = ({
                       <BrainCircuit size={10} className="text-purple-600 dark:text-purple-400"/>
                   </div>
                   <div className="italic text-purple-800 dark:text-purple-300">{msg}</div>
+              </div>
+          )
+      }
+      if (type === 'passkit_issued' && typeof msg === 'object') {
+          return (
+              <div className="flex items-start gap-3">
+                  <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded">
+                      <QrCode size={32} className="text-zinc-800 dark:text-zinc-200" />
+                  </div>
+                  <div>
+                      <div className="font-bold text-pink-600 dark:text-pink-400 text-[10px]">ACCESS GRANTED</div>
+                      <div className="text-[9px] text-zinc-500 dark:text-zinc-400">{msg.message}</div>
+                      <div className="text-[8px] font-mono text-zinc-400 mt-1">ID: {msg.passUrl?.split('/').pop()}</div>
+                  </div>
               </div>
           )
       }

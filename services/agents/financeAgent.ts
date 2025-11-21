@@ -159,6 +159,17 @@ export const financeAgent = {
           }
       });
 
+      // TRIGGER PASSKIT: Issue new gates passes now that debt is cleared
+      actions.push({
+          id: `passkit_issue_${Date.now()}`,
+          kind: 'external',
+          name: 'ada.passkit.issuePass',
+          params: {
+              vesselName,
+              type: 'OWNER'
+          }
+      });
+
       // NOTE: The balance update happens where this function is called or via reconciliation logic usually.
       // But for immediate processing:
       const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
@@ -189,7 +200,7 @@ export const financeAgent = {
               if (vesselName) {
                   addTrace(createLog('ada.finance', 'PLANNING', `Reconciling payment for ${vesselName} (Ref: ${tx.transactionId})...`, 'EXPERT'));
                   
-                  // This call internally updates the balance and triggers actions
+                  // This call internally updates the balance and triggers actions (including PassKit)
                   const processPaymentActions = await financeAgent.processPayment(vesselName, tx.transactionId, tx.amount, addTrace);
                   actions.push(...processPaymentActions);
                   totalSettledAmount += tx.amount;

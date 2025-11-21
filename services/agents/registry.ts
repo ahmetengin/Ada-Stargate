@@ -1,3 +1,4 @@
+
 // services/agents/registry.ts
 import { TaskHandlerFn } from '../decomposition/types';
 import { travelHandlers } from './travelAgent';
@@ -5,7 +6,21 @@ import { customerSegmentHandlers } from './customerSegmentAgent';
 import { genericHandlers } from './genericAgent';
 import { marinaHandlers } from './marinaAgent';
 import { weatherHandlers } from './weatherAgent';
-import { technicHandlers } from './technicAgent'; // Import technicHandlers
+import { technicHandlers } from './technicAgent';
+import { passkitAgent } from './passkitAgent'; // Import passkit
+
+// Define a wrapper handler for passkit as it wasn't originally designed with TaskHandlerFn in mind
+const passkitIssueHandler: TaskHandlerFn = async (ctx, obs) => {
+    const { vesselName, ownerName, type } = obs.payload;
+    // Just a wrapper to make it compatible with the brain executor if needed
+    const result = await passkitAgent.issuePass(vesselName, ownerName || 'Unknown', type || 'GUEST', () => {});
+    return [{
+        id: `act_pk_${Date.now()}`,
+        kind: 'external',
+        name: 'passkit.issued',
+        params: result
+    }];
+};
 
 const handlers: Record<string, TaskHandlerFn> = {
   ...travelHandlers,
@@ -13,7 +28,8 @@ const handlers: Record<string, TaskHandlerFn> = {
   ...genericHandlers,
   ...marinaHandlers,
   ...weatherHandlers,
-  ...technicHandlers, // Register technic handlers
+  ...technicHandlers,
+  'passkit.issue': passkitIssueHandler, // Register
 };
 
 export function getTaskHandler(name: string): TaskHandlerFn {

@@ -244,3 +244,12 @@ export interface PaymentLink {
     url: string;
     status: 'PENDING' | 'SUCCESS';
 }
+
+export interface PassKit {
+    id: string;
+    holder: string;
+    vessel: string;
+    accessLevel: string;
+    validUntil: string;
+    qrCode?: string;
+}
