@@ -60,6 +60,14 @@ Ada doesn't just read text; she **listens**.
 *   **Context Aware:** Knows the difference between a 40ft Catamaran and a 90ft Superyacht.
 *   **Hybrid Architecture:** Combines raw telemetry (battery, wind) with high-level reasoning.
 
+## 🏗️ Next-Gen Architecture (Python Migration)
+
+Ada is evolving from a frontend simulation to a "Zero Error" Python backend.
+
+*   **[Big 3 Architecture Migration](./docs/architecture/NEXT_GEN_MIGRATION.md)**: Moving to LangGraph & FastMCP.
+*   **[Observability & Code Hooks](./docs/architecture/OBSERVABILITY_HOOKS.md)**: The "Glass Box" protocol for real-time event streaming.
+*   **[Python Stack Setup](./docs/architecture/PYTHON_STACK_SETUP.md)**: FastAPI, Pydantic AI, and Redis configuration.
+
 ## 📟 The Interface: "Operations Deck"
 
 The UI is built like a modern **Agentic IDE**.
@@ -69,7 +77,7 @@ The UI is built like a modern **Agentic IDE**.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack (Current v3.2)
 
 *   **Core:** React 18 + TypeScript + Tailwind CSS
 *   **Intelligence:** Google GenAI SDK (Gemini 3.0 Pro & 2.5 Flash)
