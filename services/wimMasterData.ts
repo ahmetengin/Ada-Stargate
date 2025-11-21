@@ -1,3 +1,4 @@
+
 // services/wimMasterData.ts
 
 // No longer importing from itself, as the object is defined in this file.
@@ -16,7 +17,24 @@ export const wimMasterData = {
       "coordinates": {
         "lat": 40.9628,
         "lng": 28.6636
-      }
+      },
+      "dedicated_locations": {
+        "fuel_station": {
+          "label": "Fuel Station (Lukoil)",
+          "coordinates": { "lat": 40.9618, "lng": 28.6645 }
+        },
+        "customs_area": {
+           "label": "Customs & Passport Control",
+           "coordinates": { "lat": 40.9635, "lng": 28.6625 }
+        }
+      },
+      "pontoons": [
+          { "label": "Pontoon A", "relative_position": { "lng_offset": -0.002, "lat_offset": 0.001, "width_scale": 0.5, "length_scale": 4 } },
+          { "label": "Pontoon B", "relative_position": { "lng_offset": -0.001, "lat_offset": 0.001, "width_scale": 0.5, "length_scale": 5 } },
+          { "label": "Pontoon C", "relative_position": { "lng_offset": 0, "lat_offset": 0.001, "width_scale": 0.5, "length_scale": 5 } },
+          { "label": "Pontoon D", "relative_position": { "lng_offset": 0.001, "lat_offset": 0.001, "width_scale": 0.5, "length_scale": 5 } },
+          { "label": "VIP Quay", "relative_position": { "lng_offset": 0.002, "lat_offset": 0, "width_scale": 0.8, "length_scale": 6 } }
+      ]
     },
     "vision": "To provide a clean, safe and agreeable living and working environment for Yachts and Owners.",
     "contact": {

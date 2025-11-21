@@ -1,7 +1,23 @@
 
 
+
 import { RegistryEntry, Tender, UserProfile } from "../types";
 import { wimMasterData } from "./wimMasterData";
+
+export type SystemMessageKey = 'PII_MASKING_DISCLAIMER' | 'CREDIT_CARD_DISCLAIMER' | 'FINANCIAL_DATA_USAGE_DISCLAIMER';
+
+export const generateComplianceSystemMessage = (key: SystemMessageKey): string => {
+    switch(key) {
+        case 'PII_MASKING_DISCLAIMER':
+            return "*Compliance Note: Personal Identifiable Information (PII) has been masked in accordance with KVKK/GDPR regulations.*";
+        case 'CREDIT_CARD_DISCLAIMER':
+            return "*Compliance Note: Payments are processed via secure 3D-Secure gateways (Iyzico). No card data is stored on local servers.*";
+        case 'FINANCIAL_DATA_USAGE_DISCLAIMER':
+            return "*Compliance Note: Financial data is retrieved from authorized Banking APIs (Garanti BBVA) under strict data privacy protocols.*";
+        default:
+            return "";
+    }
+};
 
 // Re-architected based on "Big 3 Super Agent" and "beyond-mcp" principles
 export const BASE_SYSTEM_INSTRUCTION = `

@@ -1,3 +1,4 @@
+
 // services/orchestratorService.ts
 
 import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, VesselIntelligenceProfile } from '../types';
@@ -6,8 +7,10 @@ import { financeAgent } from './agents/financeAgent';
 import { legalAgent } from './agents/legalAgent';
 import { marinaAgent } from './agents/marinaAgent';
 import { customerAgent } from './agents/customerAgent';
+import { technicAgent } from './agents/technicAgent'; // Import technicAgent
 import { wimMasterData } from './wimMasterData';
-import { dmsToDecimal } from './utils'; // Import dmsToDecimal
+import { dmsToDecimal } from './utils';
+import { generateComplianceSystemMessage, SystemMessageKey } from './prompts'; // Import compliance helper
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -45,6 +48,91 @@ export const orchestratorService = {
             responseText = result.text;
             actions.push(...result.actions);
         }
+        // --- INTENT: CONTRACTOR / TECHNICIAN ENTRY (New) ---
+        else if (lowerPrompt.includes('technician') || lowerPrompt.includes('mechanic') || lowerPrompt.includes('usta') || lowerPrompt.includes('worker') || lowerPrompt.includes('servis elemanı') || (lowerPrompt.includes('giriş') && lowerPrompt.includes('izin'))) {
+            traces.push(createLog('ada.marina', 'ROUTING', 'Intent: CONTRACTOR_ENTRY. Routing to Security/Legal Gate.', 'ORCHESTRATOR'));
+            
+            if (user.role === 'GUEST') {
+                responseText = `**ACCESS DENIED**\n\nOnly Captains or Management can authorize contractor entry.`;
+            } else {
+                // Mock extraction
+                const name = "Mehmet Usta"; // In a real LLM we'd extract this
+                const company = lowerPrompt.includes('unknown') ? 'Unknown Co' : 'Safe Marine Ltd';
+                const workType = lowerPrompt.includes('kaynak') || lowerPrompt.includes('welding') ? 'Hot Work (Welding)' : 'General Repair';
+
+                const authResult = await marinaAgent.authorizeContractor(name, company, workType, (t) => traces.push(t));
+                
+                if (authResult.authorized) {
+                    responseText = `**GATE PASS ISSUED**\n\n${authResult.message}\n\n*Reminder: All contractors must wear visible IDs.*`;
+                } else {
+                    responseText = `**ENTRY REJECTED**\n\n${authResult.message}\n\n*Please direct them to the Front Office for insurance verification.*`;
+                }
+            }
+        }
+        // --- INTENT: TECHNICAL SERVICE (ada.technic) ---
+        else if (lowerPrompt.includes('repair') || lowerPrompt.includes('maintenance') || lowerPrompt.includes('service') || lowerPrompt.includes('haul out') || lowerPrompt.includes('lift') || lowerPrompt.includes('mechanic') || lowerPrompt.includes('parts') || lowerPrompt.includes('teknik') || lowerPrompt.includes('job')) {
+            traces.push(createLog('ada.marina', 'ROUTING', 'Intent: TECHNICAL_SERVICE. Routing to ada.technic.', 'ORCHESTRATOR'));
+            
+            const vesselName = findVesselInPrompt(lowerPrompt) || 's/y phisedelia';
+
+            // 1. Schedule / Book
+            if (lowerPrompt.includes('book') || lowerPrompt.includes('schedule') || lowerPrompt.includes('arrange') || lowerPrompt.includes('plan')) {
+                if (user.role === 'GUEST') {
+                    traces.push(createLog('ada.technic', 'ERROR', 'Access Denied: Guests cannot schedule technical services.', 'EXPERT'));
+                    responseText = `**ACCESS DENIED**\n\nScheduling technical services requires CAPTAIN or GENERAL_MANAGER clearance.`;
+                } else {
+                    const jobType = lowerPrompt.includes('haul') || lowerPrompt.includes('lift') ? 'HAUL_OUT' : 
+                                    lowerPrompt.includes('engine') ? 'ENGINE_SERVICE' : 'GENERAL_REPAIR';
+                    const date = new Date().toISOString().split('T')[0]; // Simulating 'today' or next available
+                    
+                    const result = await technicAgent.scheduleService(vesselName, jobType, date, (t) => traces.push(t));
+                    responseText = result.success 
+                        ? `**TECHNICAL SERVICE SCHEDULED**\n\n**Job ID:** ${result.job?.id}\n**Vessel:** ${result.job?.vesselName}\n**Service:** ${result.job?.jobType}\n**Date:** ${result.job?.scheduledDate}\n\n*Please ensure vessel is ready for handover.*`
+                        : `**SCHEDULING FAILED**\n\n${result.message}`;
+                }
+            } 
+            // 2. Complete Job (FastRTC Trigger)
+            else if (lowerPrompt.includes('complete') || lowerPrompt.includes('finish') || lowerPrompt.includes('done')) {
+                if (user.role === 'GUEST') {
+                    responseText = `**ACCESS DENIED**\n\nOnly authorized technical staff or GM can complete jobs.`;
+                } else {
+                    // Assuming 'complete job' prompt implies completing active job for vessel
+                    const technicActions = await technicAgent.completeJob(vesselName, undefined, user, (t) => traces.push(t));
+                    actions.push(...technicActions);
+                    
+                    const completionAction = technicActions.find(a => a.name === 'ada.technic.jobCompleted');
+                    
+                    if (completionAction) {
+                        // --- FastRTC MESH ROUTING LOGIC ---
+                        traces.push(createLog('ada.marina', 'ROUTING', `[FAST-RTC MESH] Handoff: ada.technic -> ada.finance (Invoice Gen)`, 'ORCHESTRATOR'));
+                        
+                        // Automatically trigger Finance
+                        const financeActions = await financeAgent.process(
+                            { 
+                                intent: 'create_invoice', 
+                                vesselName: completionAction.params.vesselName, 
+                                amount: completionAction.params.cost, 
+                                serviceType: 'TECHNICAL_SERVICE' 
+                            },
+                            user, 
+                            (t) => traces.push(t)
+                        );
+                        actions.push(...financeActions);
+                        
+                        const link = financeActions.find(a => a.name === 'ada.finance.paymentLinkGenerated')?.params?.link?.url;
+                        
+                        responseText = `**JOB COMPLETED & BILLED**\n\n**Service:** ${completionAction.params.summary}\n**Cost:** €${completionAction.params.cost}\n\n**[AUTO-GENERATED INVOICE](${link})**\n\n*Sent to vessel owner.*`;
+                    } else {
+                        responseText = `**ERROR:** No active job found to complete for ${vesselName}.`;
+                    }
+                }
+            }
+            // 3. Check Status
+            else {
+                const report = await technicAgent.checkStatus(vesselName, (t) => traces.push(t));
+                responseText = report;
+            }
+        }
         // --- INTENT: REGISTER NEW VESSEL ---
         else if (lowerPrompt.includes('register vessel') || lowerPrompt.includes('new vessel') || lowerPrompt.includes('add vessel')) {
             traces.push(createLog('ada.marina', 'ROUTING', 'Intent: REGISTER_VESSEL. Routing to Marina Agent.', 'ORCHESTRATOR'));
@@ -76,6 +164,7 @@ export const orchestratorService = {
 
                     if (result.success) {
                         responseText = `**VESSEL REGISTRATION SUCCESSFUL**\n\nVessel: **${result.vessel?.name}** (IMO: ${result.vessel?.imo})\nType: ${result.vessel?.type} | Flag: ${result.vessel?.flag}\nLOA: ${result.vessel?.loa || 'N/A'}m\n\n*Welcome to West Istanbul Marina, Captain.*`;
+                        responseText += `\n\n${generateComplianceSystemMessage('PII_MASKING_DISCLAIMER')}`; // Add Compliance Note
                         // Dynamically update VESSEL_KEYWORDS for current session
                         VESSEL_KEYWORDS.push(vesselName.toLowerCase());
                         traces.push(createLog('ada.marina', 'OUTPUT', `Vessel ${vesselName} added to internal registry.`, 'EXPERT'));
@@ -325,6 +414,7 @@ export const orchestratorService = {
             } else {
                 const link = financeActions.find(a => a.name === 'ada.finance.paymentLinkGenerated')?.params?.link?.url;
                 responseText = `**INVOICE GENERATED**\n\nProvider: **Parasut**\nLink: [Secure Pay](${link || '#'})\n\n*Awaiting confirmation.*`;
+                responseText += `\n\n${generateComplianceSystemMessage('CREDIT_CARD_DISCLAIMER')}`; // Add Compliance Note
             }
 
         }
@@ -332,7 +422,6 @@ export const orchestratorService = {
         else if (lowerPrompt.includes('payment confirmed') || lowerPrompt.includes('process payment') || lowerPrompt.includes('payment made')) {
             const vesselName = findVesselInPrompt(lowerPrompt) || 's/y phisedelia'; // Default or extracted
             const paymentRefMatch = prompt.match(/ref:\s*(\w+-\d+)/i);
-            // FIX: Corrected a typo where 'paymentRef' was used in its own initializer instead of 'paymentRefMatch'.
             const paymentRef = paymentRefMatch ? paymentRefMatch[1] : `MANUAL_CONFIRM_${Date.now()}`;
             const amountMatch = prompt.match(/amount:\s*(\d+(\.\d+)?)/i);
             const amount = amountMatch ? parseFloat(amountMatch[1]) : (await financeAgent.checkDebt(vesselName)).amount; // Default to outstanding
@@ -349,6 +438,7 @@ export const orchestratorService = {
                 const confirmedAction = financeActions.find(a => a.name === 'ada.finance.paymentConfirmed');
                 if (confirmedAction) {
                     responseText = `**PAYMENT CONFIRMED**\n\nVessel **${vesselName}**'s outstanding debt of **€${confirmedAction.params.amount}** has been settled. Account is now CLEAR. Loyalty score updated.`;
+                    responseText += `\n\n${generateComplianceSystemMessage('FINANCIAL_DATA_USAGE_DISCLAIMER')}`;
                 } else {
                     responseText = `**PAYMENT PROCESSING FAILED**\n\nCould not confirm payment for ${vesselName}. Please check logs.`;
                 }
@@ -365,6 +455,7 @@ export const orchestratorService = {
                 const settlementResult = await financeAgent.fetchDailySettlement((t) => traces.push(t));
                 actions.push(...settlementResult.actions);
                 responseText = settlementResult.text;
+                responseText += `\n\n${generateComplianceSystemMessage('FINANCIAL_DATA_USAGE_DISCLAIMER')}`;
             }
         }
         // --- INTENT: PAYMENT ASSISTANCE ---
@@ -438,6 +529,10 @@ export const orchestratorService = {
             } else {
                 const advice = legalActions.find(a => a.name === 'ada.legal.consultation')?.params?.advice;
                 responseText = `**Legal Opinion (WIM Regulations):**\n\n${advice}`;
+                
+                if (lowerPrompt.includes('kvkk') || lowerPrompt.includes('data') || lowerPrompt.includes('privacy')) {
+                    responseText += `\n\n${generateComplianceSystemMessage('PII_MASKING_DISCLAIMER')}`;
+                }
             }
 
         } else {

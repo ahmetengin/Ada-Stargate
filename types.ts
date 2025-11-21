@@ -1,3 +1,4 @@
+
 // types.ts
 
 export enum MessageRole {
@@ -94,6 +95,7 @@ export interface TrafficEntry {
   imo?: string;
   flag?: string;
   nextPort?: string;
+  distanceMiles?: number; // Added for proximity search results
 }
 
 // NEW: Comprehensive vessel profile based on Kpler MCP capabilities
@@ -121,6 +123,13 @@ export interface VesselIntelligenceProfile {
     paymentHistoryStatus?: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE';
     loyaltyScore?: number;
     loyaltyTier?: 'STANDARD' | 'SILVER' | 'GOLD' | 'PROBLEM';
+    // NEW: Smart Energy Management Data
+    utilities?: {
+        electricityKwh: number;
+        waterM3: number;
+        lastReading: string;
+        status: 'ACTIVE' | 'DISCONNECTED';
+    };
 }
 
 
@@ -131,6 +140,18 @@ export interface WeatherForecast {
   windSpeed: number; // Knots
   windDir: string; // NW, N, S
   alertLevel?: 'NONE' | 'ADVISORY' | 'WARNING' | 'CRITICAL';
+}
+
+// --- MAINTENANCE TYPES ---
+export interface MaintenanceJob {
+    id: string;
+    vesselName: string;
+    jobType: 'HAUL_OUT' | 'ENGINE_SERVICE' | 'HULL_WASH' | 'ELECTRICAL' | 'PAINT' | 'GENERAL_REPAIR';
+    status: 'SCHEDULED' | 'IN_PROGRESS' | 'WAITING_PARTS' | 'COMPLETED';
+    scheduledDate: string;
+    contractor: string; // e.g., "WIM Tech", "Bilgin Yachts", "External"
+    partsStatus?: 'N/A' | 'ORDERED' | 'ARRIVED' | 'INSTALLED';
+    notes?: string;
 }
 
 // --- AUTHENTICATION & ROLES ---
@@ -186,7 +207,7 @@ export interface AgentContext {
 
 // --- NEW: Agent Orchestration Types ---
 // FIX: Add missing node types ('ada.vhf', 'ada.security', 'ada.weather') identified from components/Sidebar.tsx
-export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather';
+export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather' | 'ada.technic' | 'ada.atc' | 'ada.intelligence';
 
 export type AgentPersona = 'ORCHESTRATOR' | 'EXPERT' | 'WORKER';
 

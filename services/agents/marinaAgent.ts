@@ -1,9 +1,20 @@
+
 // services/agents/marinaAgent.ts
 import { TaskHandlerFn } from '../decomposition/types';
-import { AgentAction, AgentTraceLog, KplerAisTarget, TrafficEntry, VesselIntelligenceProfile } from '../../types';
+import { AgentAction, AgentTraceLog, KplerAisTarget, TrafficEntry, VesselIntelligenceProfile, NodeName } from '../../types';
 import { wimMasterData } from '../wimMasterData';
 import { financeAgent } from './financeAgent'; // Import financeAgent
 import { haversineDistance } from '../utils';
+
+// Helper to create a log
+const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
+    id: `trace_${Date.now()}_${Math.random()}`,
+    timestamp: new Date().toLocaleTimeString(),
+    node,
+    step,
+    content,
+    persona
+});
 
 // --- MOCK FLEET DATABASE (System of Record) - Enriched with Kpler MCP-style data ---
 let FLEET_DB: VesselIntelligenceProfile[] = [
@@ -13,45 +24,52 @@ let FLEET_DB: VesselIntelligenceProfile[] = [
         dwt: 150, loa: 18.4, beam: 5.2, status: 'DOCKED', location: 'Pontoon C-12', 
         coordinates: { lat: 40.9634, lng: 28.6289 }, 
         voyage: { lastPort: 'Piraeus', nextPort: 'Sochi', eta: '2025-11-25' },
-        paymentHistoryStatus: 'RECENTLY_LATE'
+        paymentHistoryStatus: 'RECENTLY_LATE',
+        utilities: { electricityKwh: 450.2, waterM3: 12.5, lastReading: 'Today 08:00', status: 'ACTIVE' }
     },
     { 
         name: 'M/Y Blue Horizon', imo: '123456789', type: 'Motor Yacht', flag: 'KY', 
         ownerName: 'Jane Smith', ownerId: '98765432109', ownerEmail: 'jane.smith@example.com', ownerPhone: '+447911123456',
         dwt: 300, loa: 24.0, beam: 6.1, status: 'DOCKED', location: 'Pontoon A-05', 
         coordinates: { lat: 40.9640, lng: 28.6295 }, 
-        voyage: { lastPort: 'Monaco', nextPort: 'WIM', eta: 'N/A' } 
+        voyage: { lastPort: 'Monaco', nextPort: 'WIM', eta: 'N/A' },
+        utilities: { electricityKwh: 1200.5, waterM3: 45.0, lastReading: 'Today 08:00', status: 'ACTIVE' }
     },
     { 
         name: 'S/Y Mistral', imo: '555666777', type: 'Sailing Yacht', flag: 'TR', 
         dwt: 120, loa: 14.2, beam: 4.1, status: 'AT_ANCHOR', location: 'Sector Zulu', 
         coordinates: { lat: 40.9500, lng: 28.6300 }, 
-        voyage: { lastPort: 'Bodrum', nextPort: 'WIM', eta: 'N/A' } 
+        voyage: { lastPort: 'Bodrum', nextPort: 'WIM', eta: 'N/A' },
+        utilities: { electricityKwh: 0, waterM3: 0, lastReading: 'Disconnected', status: 'DISCONNECTED' }
     },
     { 
         name: 'M/Y Poseidon', imo: '888999000', type: 'Superyacht', flag: 'BS', 
         ownerName: 'Michael Johnson', ownerId: 'A123B456C',
         dwt: 499, loa: 32.5, beam: 7.8, status: 'DOCKED', location: 'VIP Quay', 
         coordinates: { lat: 40.9650, lng: 28.6270 }, 
-        voyage: { lastPort: 'Antalya', nextPort: 'Dubrovnik', eta: '2025-11-28' } 
+        voyage: { lastPort: 'Antalya', nextPort: 'Dubrovnik', eta: '2025-11-28' },
+        utilities: { electricityKwh: 3500.0, waterM3: 120.0, lastReading: 'Today 08:05', status: 'ACTIVE' }
     },
     { 
         name: 'Catamaran Lir', imo: '111222333', type: 'Catamaran', flag: 'FR', 
         dwt: 90, loa: 12.0, beam: 6.5, status: 'DOCKED', location: 'Pontoon B-01', 
         coordinates: { lat: 40.9638, lng: 28.6290 }, 
-        voyage: { lastPort: 'Thessaloniki', nextPort: 'WIM', eta: 'N/A' } 
+        voyage: { lastPort: 'Thessaloniki', nextPort: 'WIM', eta: 'N/A' },
+        utilities: { electricityKwh: 120.4, waterM3: 5.2, lastReading: 'Today 08:00', status: 'ACTIVE' }
     },
     { 
         name: 'S/Y Aegeas', imo: '444555666', type: 'Sailing Yacht', flag: 'GR', 
         dwt: 140, loa: 16.0, beam: 4.8, status: 'OUTBOUND', location: 'Outbound', 
         coordinates: { lat: 40.9550, lng: 28.6250 }, 
-        voyage: { lastPort: 'WIM', nextPort: 'Lavrion', eta: '2025-11-24' } 
+        voyage: { lastPort: 'WIM', nextPort: 'Lavrion', eta: '2025-11-24' },
+        utilities: { electricityKwh: 22.0, waterM3: 1.0, lastReading: 'Today 08:00', status: 'ACTIVE' }
     },
     { 
         name: 'M/Y Grand Turk', imo: '777888999', type: 'Superyacht', flag: 'PA', 
         dwt: 650, loa: 45.0, beam: 9.0, status: 'DOCKED', location: 'VIP Quay', 
         coordinates: { lat: 40.9652, lng: 28.6272 }, 
-        voyage: { lastPort: 'St. Tropez', nextPort: 'WIM', eta: 'N/A' } 
+        voyage: { lastPort: 'St. Tropez', nextPort: 'WIM', eta: 'N/A' },
+        utilities: { electricityKwh: 5200.0, waterM3: 200.0, lastReading: 'Today 08:10', status: 'ACTIVE' }
     }
 ];
 
@@ -150,7 +168,8 @@ export const marinaAgent = {
             outstandingDebt: 0,
             loyaltyScore: 500, // Starting score
             loyaltyTier: 'STANDARD',
-            paymentHistoryStatus: 'REGULAR'
+            paymentHistoryStatus: 'REGULAR',
+            utilities: { electricityKwh: 0, waterM3: 0, lastReading: 'New Conn', status: 'ACTIVE' }
         };
 
         FLEET_DB.push(newVessel);
@@ -173,14 +192,7 @@ export const marinaAgent = {
             const targetName = params.vesselName.toLowerCase();
             const vessel = FLEET_DB.find(v => v.name.toLowerCase().includes(targetName));
             
-            addTrace({
-                id: `trace_fleet_lookup_${Date.now()}`,
-                timestamp: new Date().toISOString(),
-                node: 'ada.marina',
-                step: 'TOOL_EXECUTION',
-                content: `Querying Fleet Database for: "${targetName}"`,
-                persona: 'WORKER'
-            });
+            addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `Querying Fleet Database for: "${targetName}"`, 'WORKER'));
 
             if (vessel) {
                  const mapLink = `https://www.google.com/maps/search/?api=1&query=${vessel.coordinates?.lat},${vessel.coordinates?.lng}`;
@@ -197,14 +209,7 @@ export const marinaAgent = {
         }
         if (queryType === 'FILTER') {
             const minLength = params.minLength || 0;
-            addTrace({
-                id: `trace_fleet_filter_${Date.now()}`,
-                timestamp: new Date().toISOString(),
-                node: 'ada.marina',
-                step: 'CODE_OUTPUT',
-                content: `Executing Filter: LOA > ${minLength}m`,
-                persona: 'WORKER'
-            });
+            addTrace(createLog('ada.marina', 'CODE_OUTPUT', `Executing Filter: LOA > ${minLength}m`, 'WORKER'));
             const results = FLEET_DB.filter(v => v.loa && v.loa > minLength);
             if (results.length === 0) return { text: "No vessels found matching criteria.", actions: [] };
             
@@ -257,14 +262,7 @@ export const marinaAgent = {
 
     // NEW Skill: Find Vessels Near a Coordinate
     findVesselsNear: async (centerLat: number, centerLng: number, radiusMiles: number, addTrace: (t: AgentTraceLog) => void): Promise<(TrafficEntry & { distanceMiles: number })[]> => {
-        addTrace({
-            id: `trace_vessel_proximity_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            node: 'ada.marina',
-            step: 'TOOL_EXECUTION',
-            content: `Searching for vessels within ${radiusMiles} miles of Lat: ${centerLat}, Lng: ${centerLng}...`,
-            persona: 'WORKER'
-        });
+        addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `Searching for vessels within ${radiusMiles} miles of Lat: ${centerLat}, Lng: ${centerLng}...`, 'WORKER'));
 
         const allAisTargets = await marinaAgent.fetchLiveAisData();
         const vesselsInProximity: (TrafficEntry & { distanceMiles: number })[] = [];
@@ -277,14 +275,7 @@ export const marinaAgent = {
                 }
             }
         }
-        addTrace({
-            id: `trace_vessel_proximity_results_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            node: 'ada.marina',
-            step: 'CODE_OUTPUT',
-            content: `Found ${vesselsInProximity.length} vessels in proximity.`,
-            persona: 'WORKER'
-        });
+        addTrace(createLog('ada.marina', 'CODE_OUTPUT', `Found ${vesselsInProximity.length} vessels in proximity.`, 'WORKER'));
         return vesselsInProximity;
     },
 
@@ -293,14 +284,7 @@ export const marinaAgent = {
     // Output: Berth Assignment + Maneuver Notes
     executeSkill_BerthAllocation: async (specs: { loa: number, beam: number, draft: number }, addTrace: (t: AgentTraceLog) => void): Promise<{ berth: string, notes: string }> => {
         
-        addTrace({
-            id: `trace_berth_algo_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            node: 'ada.marina',
-            step: 'THINKING',
-            content: `Executing Berth Allocation Algorithm v2.1 for specs: ${specs.loa}m x ${specs.beam}m (Draft: ${specs.draft}m)`,
-            persona: 'EXPERT'
-        });
+        addTrace(createLog('ada.marina', 'THINKING', `Executing Berth Allocation Algorithm v2.1 for specs: ${specs.loa}m x ${specs.beam}m (Draft: ${specs.draft}m)`, 'EXPERT'));
 
         const berths = wimMasterData.assets.berth_map;
         
@@ -318,15 +302,31 @@ export const marinaAgent = {
         if (specs.loa <= 40 && berths.T.status === 'AVAILABLE') return { berth: "T-Head (T-02)", notes: "Exposed to SW swell. Check weather." };
 
         // Default/Fallback
-        addTrace({
-            id: `trace_berth_fail_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            node: 'ada.marina',
-            step: 'PLANNING',
-            content: `Standard berths saturated. Checking overflow capacity...`,
-            persona: 'WORKER'
-        });
+        addTrace(createLog('ada.marina', 'PLANNING', `Standard berths saturated. Checking overflow capacity...`, 'WORKER'));
 
         return { berth: "Transit Quay (Tr-05)", notes: "Temporary allocation. Move required within 24h." };
+    },
+
+    // NEW SKILL: Contractor Authorization (Contractor Gate)
+    authorizeContractor: async (name: string, company: string, workType: string, addTrace: (t: AgentTraceLog) => void): Promise<{ authorized: boolean, message: string }> => {
+        addTrace(createLog('ada.legal', 'THINKING', `Verifying credentials for ${name} (${company}). Checking SGK and Liability Insurance...`, 'EXPERT'));
+        
+        // Simulation: 
+        // If company contains "authorized", approve.
+        // If workType is dangerous ("hot work") without "safe" in company name, reject.
+        
+        if (workType.toLowerCase().includes('hot') || workType.toLowerCase().includes('weld')) {
+             if (!company.toLowerCase().includes('safe') && !company.toLowerCase().includes('wim')) {
+                 addTrace(createLog('ada.legal', 'ERROR', `Insurance Policy Mismatch. Hot Work Permit requires Type-C Liability Coverage.`, 'WORKER'));
+                 return { authorized: false, message: `ACCESS DENIED. ${company} lacks valid Hot Work Liability Insurance (Article E.5.9).` };
+             }
+        }
+
+        if (company.toLowerCase().includes('unknown')) {
+             return { authorized: false, message: `ACCESS DENIED. ${company} is not in the Approved Contractor Registry.` };
+        }
+
+        addTrace(createLog('ada.security', 'OUTPUT', `Credential Check: PASS. Issuing daily entry pass.`, 'WORKER'));
+        return { authorized: true, message: `ENTRY AUTHORIZED. Daily pass issued for ${name}. Work Permit #WP-${Date.now().toString().slice(-4)} active.` };
     }
 };

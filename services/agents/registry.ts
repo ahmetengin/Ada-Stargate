@@ -5,6 +5,7 @@ import { customerSegmentHandlers } from './customerSegmentAgent';
 import { genericHandlers } from './genericAgent';
 import { marinaHandlers } from './marinaAgent';
 import { weatherHandlers } from './weatherAgent';
+import { technicHandlers } from './technicAgent'; // Import technicHandlers
 
 const handlers: Record<string, TaskHandlerFn> = {
   ...travelHandlers,
@@ -12,6 +13,7 @@ const handlers: Record<string, TaskHandlerFn> = {
   ...genericHandlers,
   ...marinaHandlers,
   ...weatherHandlers,
+  ...technicHandlers, // Register technic handlers
 };
 
 export function getTaskHandler(name: string): TaskHandlerFn {

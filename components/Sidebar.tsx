@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Anchor, Radio, Power, Shield } from 'lucide-react';
 import { UserProfile, UserRole, ThemeMode } from '../types';
@@ -10,6 +11,7 @@ interface SidebarProps {
   onMonitoringToggle: () => void;
   userProfile: UserProfile;
   onRoleChange: (role: UserRole) => void;
+  onNodeClick: (nodeId: string) => void; // NEW PROP
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -20,6 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMonitoringToggle,
   userProfile,
   onRoleChange,
+  onNodeClick // Destructure
 }) => {
   // Resizable Sidebar State
   const [sidebarWidth, setSidebarWidth] = useState(240); 
@@ -54,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'ada.vhf', label: 'VHF' },
     { id: 'ada.sea', label: 'SEA (COLREGs)' },
     { id: 'ada.marina', label: 'MARINA (Orch)' },
+    { id: 'ada.technic', label: 'TECHNICAL (Service)' }, // Renamed Node
     { id: 'ada.finance', label: 'FINANCE (Parasut)' },
     { id: 'ada.customer', label: 'CUSTOMER (CRM)' },
     { id: 'ada.passkit', label: 'PASSKIT (Wallet)' },
@@ -104,7 +108,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="py-2">
           <div className="space-y-1">
             {coreNodes.map((node) => (
-              <div key={node.id} className="flex items-center justify-start gap-3 group cursor-default px-3 py-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900/30 transition-colors">
+              <button 
+                key={node.id} 
+                onClick={() => onNodeClick(node.id)} // CLICK HANDLER
+                className="w-full flex items-center justify-start gap-3 group cursor-pointer px-3 py-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900/30 transition-colors text-left"
+              >
                 <div className={`w-1 h-1 rounded-full flex-shrink-0 transition-all duration-300 ${getStatusColor(nodeStates[node.id] || 'connected')}`} />
                 <span className={`text-[10px] font-medium tracking-tight transition-colors duration-300 ${
                   nodeStates[node.id] === 'working' ? 'text-yellow-600 dark:text-yellow-200' :
@@ -112,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }`}>
                   {node.label}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>

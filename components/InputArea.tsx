@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
 import { ArrowUp, Loader2, X, AudioLines, Paperclip, Mic, Search, Brain, Sparkles } from 'lucide-react';
 import { ModelType } from '../types';
@@ -13,6 +14,7 @@ interface InputAreaProps {
   onToggleSearch: () => void;
   useThinking: boolean;
   onToggleThinking: () => void;
+  prefillText?: string; // NEW PROP
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({ 
@@ -25,7 +27,8 @@ export const InputArea: React.FC<InputAreaProps> = ({
   useSearch,
   onToggleSearch,
   useThinking,
-  onToggleThinking
+  onToggleThinking,
+  prefillText // Destructure
 }) => {
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -33,6 +36,13 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  // Effect to handle prefill from sidebar actions
+  useEffect(() => {
+      if (prefillText) {
+          setText(prefillText);
+      }
+  }, [prefillText]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {

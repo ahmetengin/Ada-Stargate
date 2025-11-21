@@ -1,7 +1,9 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
-import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink, Map as MapIcon, Anchor } from 'lucide-react';
-import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast, VesselIntelligenceProfile } from '../types';
+import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink, Map as MapIcon, Anchor, Wrench, Zap, Droplets } from 'lucide-react';
+import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast, VesselIntelligenceProfile, MaintenanceJob } from '../types';
 import { marinaAgent } from '../services/agents/marinaAgent';
+import { technicAgent } from '../services/agents/technicAgent'; // Updated import
 import { wimMasterData } from '../services/wimMasterData';
 
 
@@ -17,6 +19,7 @@ interface CanvasProps {
   vesselsInPort: number;
   onCheckIn: (id: string) => void;
   onOpenTrace: () => void;
+  onNodeClick: (nodeId: string) => void; // NEW PROP
 }
 
 export const Canvas: React.FC<CanvasProps> = ({ 
@@ -30,9 +33,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   userProfile, 
   vesselsInPort,
   onCheckIn,
-  onOpenTrace
+  onOpenTrace,
+  onNodeClick // Destructure
 }) => {
-  const [activeTab, setActiveTab] = useState<'fleet' | 'feed' | 'cloud' | 'ais' | 'map'>('fleet');
+  const [activeTab, setActiveTab] = useState<'fleet' | 'feed' | 'cloud' | 'ais' | 'map' | 'tech'>('fleet');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [showWarningOnly, setShowWarningOnly] = useState(false);
@@ -47,6 +51,11 @@ export const Canvas: React.FC<CanvasProps> = ({
   // NEW: State for all fleet vessels and search query for fleet tab
   const [fleetSearchQuery, setFleetSearchQuery] = useState('');
   const [allFleetVessels, setAllFleetVessels] = useState<VesselIntelligenceProfile[]>([]);
+  // NEW: State for expanded vessel profile in fleet tab
+  const [expandedVesselImo, setExpandedVesselImo] = useState<string | null>(null);
+  
+  // NEW: State for Maintenance Jobs
+  const [activeJobs, setActiveJobs] = useState<MaintenanceJob[]>([]);
 
 
   const startResizing = useCallback(() => setIsResizing(true), []);
@@ -75,6 +84,9 @@ export const Canvas: React.FC<CanvasProps> = ({
       };
       if (activeTab === 'fleet' || activeTab === 'map') {
         fetchFleet();
+      }
+      if (activeTab === 'tech') {
+          setActiveJobs(technicAgent.getActiveJobs()); // Updated to technicAgent
       }
   }, [activeTab]); // Fetch when switching to fleet or map tab
 
@@ -108,6 +120,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (type === 'alert' || type === 'atc_log') return 'text-amber-600 dark:text-amber-400 font-medium';
     if (type === 'warning') return 'text-yellow-600 dark:text-yellow-400';
     if (type === 'intelligence_briefing') return 'text-sky-600 dark:text-sky-400';
+    if (type === 'customer_engagement' || type === 'customer_proposal') return 'text-purple-600 dark:text-purple-400';
+    if (type === 'ENVIRONMENTAL_ALERT') return 'text-teal-600 dark:text-teal-400 font-bold'; // NEW STYLE
     return 'text-zinc-600 dark:text-zinc-400';
   };
 
@@ -120,6 +134,9 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (s.includes('weather')) return 'text-sky-600 dark:text-sky-400';
     if (s.includes('atc')) return 'text-amber-500 dark:text-amber-400';
     if (s.includes('intelligence')) return 'text-sky-500 dark:text-sky-400';
+    if (s.includes('maintenance') || s.includes('technic')) return 'text-blue-500 dark:text-blue-400';
+    if (s.includes('sensor') || s.includes('sea')) return 'text-teal-500 dark:text-teal-400';
+    if (s.includes('customer')) return 'text-purple-500 dark:text-purple-400';
     return 'text-zinc-500';
   };
   
@@ -129,7 +146,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     const query = searchQuery.toLowerCase();
     const type = log.type || 'info';
 
-    if (showUrgentOnly && type !== 'critical' && type !== 'alert' && type !== 'atc_log') return false;
+    if (showUrgentOnly && type !== 'critical' && type !== 'alert' && type !== 'atc_log' && type !== 'ENVIRONMENTAL_ALERT') return false;
     if (showWarningOnly && type !== 'warning') return false;
     
     return message.includes(query) || source.includes(query);
@@ -152,6 +169,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     return { text: 'text-emerald-600 dark:text-green-400' };
   };
 
+  const getJobStatusColor = (status: string) => {
+      if (status === 'COMPLETED') return 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10';
+      if (status === 'IN_PROGRESS') return 'text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-50 dark:bg-blue-500/10';
+      if (status === 'WAITING_PARTS') return 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-50 dark:bg-amber-500/10';
+      return 'text-zinc-600 dark:text-zinc-400 border-zinc-500/20 bg-zinc-50 dark:bg-zinc-500/10';
+  };
+
   const TabButton = ({ tabName, icon: Icon, currentTab }: any) => (
     <button
       onClick={() => setActiveTab(tabName)}
@@ -162,6 +186,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       <Icon size={14} />
     </button>
   );
+
+  // --- Masking Utilities for UI ---
+  const maskFullName = (name?: string) => {
+      if(!name || name.length < 3) return 'N/A';
+      const parts = name.trim().split(' ');
+      return parts.map(p => p.length > 2 ? `${p[0]}${'*'.repeat(p.length-2)}${p[p.length-1]}` : p).join(' ');
+  };
+  const maskId = (id?: string) => id ? `${id.substring(0,2)}******${id.substring(id.length-2)}` : 'N/A';
+  const maskContact = (contact?: string) => contact ? `${contact.substring(0,3)}****${contact.substring(contact.length-2)}` : 'N/A';
+
 
   const renderMessage = (msg: any, type?: string) => {
       if (type === 'intelligence_briefing' && typeof msg === 'object' && msg !== null && msg.imo) {
@@ -177,10 +211,20 @@ export const Canvas: React.FC<CanvasProps> = ({
                     <span>Type: {profile.type} ({profile.loa}m)</span>
                 </div>
                 <div className="text-zinc-500 dark:text-zinc-500 mt-1">
-                    Voyage: {profile.voyage.lastPort} → **{profile.voyage.nextPort}** (ETA: {profile.voyage.eta})
+                    Voyage: {profile.voyage?.lastPort} → **{profile.voyage?.nextPort}** (ETA: {profile.voyage?.eta})
                 </div>
             </div>
         );
+      }
+      if ((type === 'customer_engagement' || type === 'customer_proposal') && typeof msg === 'string') {
+          return (
+              <div className="mt-1 text-[10px] leading-relaxed bg-purple-50 dark:bg-purple-900/10 p-2 rounded border border-purple-200 dark:border-purple-900/20 flex gap-2 items-start">
+                  <div className="p-1 bg-purple-100 dark:bg-purple-500/20 rounded-full">
+                      <BrainCircuit size={10} className="text-purple-600 dark:text-purple-400"/>
+                  </div>
+                  <div className="italic text-purple-800 dark:text-purple-300">{msg}</div>
+              </div>
+          )
       }
       if (typeof msg === 'object') {
           return JSON.stringify(msg);
@@ -202,9 +246,12 @@ export const Canvas: React.FC<CanvasProps> = ({
   const marinaLat = wimMasterData.identity.location.coordinates.lat;
   const marinaLng = wimMasterData.identity.location.coordinates.lng;
 
-  // FIX: Define centerX and centerY for map positioning
   const centerX = 50; // 50% from left
   const centerY = 50; // 50% from top
+
+  const toggleVesselPanel = (imo: string) => {
+      setExpandedVesselImo(prev => prev === imo ? null : imo);
+  };
 
   return (
     <div 
@@ -222,7 +269,6 @@ export const Canvas: React.FC<CanvasProps> = ({
            <span className="font-bold tracking-tight text-xs uppercase font-mono text-zinc-500 dark:text-zinc-500">Operations Deck</span>
         </div>
         <div className="flex items-center gap-1">
-          {/* FIX: Changed 'title' to 'aria-label' to resolve TypeScript error with Lucide component props */}
           <a href="https://www.marinetraffic.com/en/ais/home/centerx:28.665/centery:40.955/zoom:15" target="_blank" rel="noopener noreferrer" className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" aria-label="Open Live Marine Traffic">
               <ExternalLink size={14} />
           </a>
@@ -236,9 +282,10 @@ export const Canvas: React.FC<CanvasProps> = ({
           <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800 mx-1"></div>
           <TabButton tabName="feed" icon={List} currentTab={activeTab} />
           <TabButton tabName="fleet" icon={Ship} currentTab={activeTab} />
+          <TabButton tabName="tech" icon={Wrench} currentTab={activeTab} />
           <TabButton tabName="cloud" icon={Cloud} currentTab={activeTab} />
           <TabButton tabName="ais" icon={Radar} currentTab={activeTab} />
-          <TabButton tabName="map" icon={MapIcon} currentTab={activeTab} /> {/* NEW: Map Tab */}
+          <TabButton tabName="map" icon={MapIcon} currentTab={activeTab} />
         </div>
       </div>
 
@@ -261,7 +308,12 @@ export const Canvas: React.FC<CanvasProps> = ({
                 {filteredLogs.map(log => (
                     <div key={log.id} className="flex gap-3 py-0.5 group border-b border-zinc-100 dark:border-zinc-900/50 last:border-0">
                         <div className="opacity-60 w-12 text-zinc-400 dark:text-zinc-500 flex-shrink-0">{log.timestamp}</div>
-                        <div className={`font-bold w-24 truncate flex-shrink-0 transition-colors ${getSourceColor(log.source)}`}>{log.source}</div>
+                        <div 
+                            onClick={() => onNodeClick(log.source)} // CLICK HANDLER
+                            className={`font-bold w-24 truncate flex-shrink-0 transition-colors cursor-pointer hover:underline ${getSourceColor(log.source)}`}
+                        >
+                            {log.source}
+                        </div>
                         <div className={`flex-1 break-words leading-relaxed whitespace-pre-wrap ${getRowStyle(log)}`}>
                             {renderMessage(log.message, log.type)}
                         </div>
@@ -269,6 +321,57 @@ export const Canvas: React.FC<CanvasProps> = ({
                 ))}
             </div>
            </>
+        )}
+        {activeTab === 'tech' && (
+            <div className="flex-1 overflow-y-auto px-3 py-2 custom-scrollbar space-y-4 text-xs font-mono">
+                <div>
+                    <h3 className="font-bold text-zinc-500 dark:text-zinc-600 text-[9px] uppercase mb-3 tracking-widest flex items-center gap-2">
+                        <Wrench size={10} /> Active Maintenance Jobs
+                    </h3>
+                    {activeJobs.length > 0 ? (
+                        <div className="space-y-2">
+                            {activeJobs.map(job => (
+                                <div key={job.id} className="bg-zinc-50 dark:bg-zinc-900/20 border border-zinc-200 dark:border-transparent rounded-lg p-3 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <div className="font-bold text-zinc-800 dark:text-zinc-200">{job.vesselName}</div>
+                                            <div className="text-[9px] text-zinc-500 dark:text-zinc-500">Job ID: {job.id}</div>
+                                        </div>
+                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${getJobStatusColor(job.status)}`}>
+                                            {job.status.replace('_', ' ')}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-[10px] mb-2">
+                                        <div>
+                                            <div className="text-zinc-400 dark:text-zinc-600">Service Type</div>
+                                            <div className="font-medium">{job.jobType.replace('_', ' ')}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-zinc-400 dark:text-zinc-600">Schedule</div>
+                                            <div className="font-medium">{job.scheduledDate}</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-[10px] border-t border-zinc-200 dark:border-zinc-800 pt-2 mt-2">
+                                        <span className="text-zinc-400 dark:text-zinc-600">Contractor: </span>
+                                        <span className="font-medium">{job.contractor}</span>
+                                        {job.partsStatus && job.partsStatus !== 'N/A' && (
+                                            <div className="mt-1">
+                                                <span className="text-zinc-400 dark:text-zinc-600">Parts Status: </span>
+                                                <span className={`font-bold ${job.partsStatus === 'ARRIVED' ? 'text-emerald-500' : 'text-amber-500'}`}>{job.partsStatus}</span>
+                                            </div>
+                                        )}
+                                        <div className="mt-1 text-zinc-500 italic">"{job.notes}"</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-zinc-400 dark:text-zinc-700 text-center py-4 text-[10px]">
+                            No active technical service tickets.
+                        </div>
+                    )}
+                </div>
+            </div>
         )}
         {activeTab === 'fleet' && (
            <div className="flex-1 overflow-y-auto px-3 py-2 custom-scrollbar space-y-6 text-xs font-mono">
@@ -343,19 +446,97 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <div className="space-y-1">
                     {filteredFleetVessels.length > 0 ? (
                         filteredFleetVessels.map(v => (
-                            <div key={v.imo} className="flex items-center justify-between text-[10px] py-1.5 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 rounded transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800">
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-zinc-800 dark:text-zinc-300 text-[10px]">{v.name}</span>
-                                    <span className="text-[9px] text-zinc-500 dark:text-zinc-600">IMO: {v.imo} | Flag: {v.flag}</span>
+                            <div key={v.imo} className="flex flex-col rounded border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-all overflow-hidden">
+                                <div 
+                                    className="flex items-center justify-between text-[10px] py-2 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 cursor-pointer"
+                                    onClick={() => toggleVesselPanel(v.imo)}
+                                >
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-zinc-800 dark:text-zinc-300 text-[10px]">{v.name}</span>
+                                        <span className="text-[9px] text-zinc-500 dark:text-zinc-600">IMO: {v.imo} | Flag: {v.flag}</span>
+                                        {/* Payment History Status Indicator */}
+                                        {v.paymentHistoryStatus && v.paymentHistoryStatus !== 'REGULAR' && (
+                                            <span className={`text-[9px] font-bold mt-0.5 ${v.paymentHistoryStatus === 'CHRONICALLY_LATE' ? 'text-red-600' : 'text-amber-600'}`}>
+                                                {v.paymentHistoryStatus.replace('_', ' ')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {v.outstandingDebt && v.outstandingDebt > 0 && (
+                                            <div className="text-red-500 dark:text-red-400 flex items-center gap-1 text-[9px] font-bold">
+                                                <AlertCircle size={10} /> €{v.outstandingDebt}
+                                            </div>
+                                        )}
+                                        <span className="text-[9px] text-zinc-500 dark:text-zinc-600">{v.status}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {v.outstandingDebt && v.outstandingDebt > 0 && (
-                                        <div className="text-red-500 dark:text-red-400 flex items-center gap-1 text-[9px] font-bold">
-                                            <AlertCircle size={10} /> €{v.outstandingDebt}
+                                
+                                {/* Expandable Detail Panel */}
+                                {expandedVesselImo === v.imo && (
+                                    <div className="bg-zinc-50 dark:bg-[#121214] p-3 border-t border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-top-2 duration-200">
+                                        <div className="grid grid-cols-2 gap-4 text-[10px]">
+                                            <div className="space-y-1">
+                                                <div className="text-zinc-400 dark:text-zinc-500 uppercase tracking-wider text-[9px]">Specs</div>
+                                                <div>{v.type}</div>
+                                                <div>LOA: {v.loa}m | Beam: {v.beam}m</div>
+                                                <div>DWT: {v.dwt}t</div>
+                                                <div className="mt-2 text-indigo-500 hover:text-indigo-400 cursor-pointer flex items-center gap-1">
+                                                    <a href={`https://www.google.com/maps/search/?api=1&query=${v.coordinates?.lat},${v.coordinates?.lng}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                                                        <MapIcon size={10} /> Live Location
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-zinc-400 dark:text-zinc-500 uppercase tracking-wider text-[9px]">Owner (Masked)</div>
+                                                <div>{maskFullName(v.ownerName)}</div>
+                                                <div>ID: {maskId(v.ownerId)}</div>
+                                                <div>{maskContact(v.ownerEmail)}</div>
+                                                <div>{maskContact(v.ownerPhone)}</div>
+                                            </div>
                                         </div>
-                                    )}
-                                    <span className="text-[9px] text-zinc-500 dark:text-zinc-600">{v.status}</span>
-                                </div>
+                                        
+                                        <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800/50">
+                                            <div className="flex justify-between items-center">
+                                                <div className="text-[9px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Loyalty Tier</div>
+                                                <div className={`px-2 py-0.5 rounded text-[9px] font-bold border ${
+                                                    v.loyaltyTier === 'GOLD' ? 'text-amber-500 border-amber-500/30 bg-amber-500/10' :
+                                                    v.loyaltyTier === 'SILVER' ? 'text-slate-400 border-slate-500/30 bg-slate-500/10' :
+                                                    v.loyaltyTier === 'PROBLEM' ? 'text-red-500 border-red-500/30 bg-red-500/10' :
+                                                    'text-sky-500 border-sky-500/30 bg-sky-500/10'
+                                                }`}>
+                                                    {v.loyaltyTier} ({v.loyaltyScore})
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* SMART UTILITY METER */}
+                                        {v.utilities && (
+                                            <div className="mt-3 pt-3 border-t border-zinc-200 dark:border-zinc-800/50">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <div className="text-[9px] uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Smart Meter</div>
+                                                    <div className={`text-[9px] ${v.utilities.status === 'ACTIVE' ? 'text-emerald-500' : 'text-zinc-500'}`}>
+                                                        {v.utilities.status}
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="bg-yellow-500/5 border border-yellow-500/20 p-2 rounded flex items-center justify-between">
+                                                        <Zap size={12} className="text-yellow-500" />
+                                                        <span className="font-mono font-bold text-yellow-600 dark:text-yellow-400">{v.utilities.electricityKwh} kWh</span>
+                                                    </div>
+                                                    <div className="bg-blue-500/5 border border-blue-500/20 p-2 rounded flex items-center justify-between">
+                                                        <Droplets size={12} className="text-blue-500" />
+                                                        <span className="font-mono font-bold text-blue-600 dark:text-blue-400">{v.utilities.waterM3} m³</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-[8px] text-zinc-400 text-right mt-1">Last Read: {v.utilities.lastReading}</div>
+                                            </div>
+                                        )}
+
+                                        <div className="mt-3 text-[9px] text-zinc-400 italic">
+                                            Full contract history available in ada.legal node (Restricted Access).
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -507,9 +688,69 @@ export const Canvas: React.FC<CanvasProps> = ({
                 </div>
                 <div className="relative w-[300px] h-[300px] bg-sky-200/20 dark:bg-sky-900/10 rounded-full flex items-center justify-center shadow-lg border border-sky-300/50 dark:border-sky-900/50">
                     {/* Marina Center Marker */}
-                    <div className="absolute z-20" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                        <Anchor size={20} className="text-indigo-600 dark:text-indigo-400 animate-pulse" title="West Istanbul Marina" />
+                    <div className="absolute z-20" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} title="West Istanbul Marina">
+                        <Anchor size={20} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
                     </div>
+
+                    {/* Dedicated Locations (Authority & Fuel) */}
+                    {wimMasterData.identity.location.dedicated_locations && Object.values(wimMasterData.identity.location.dedicated_locations).map((loc, idx) => {
+                        if (!loc.coordinates) return null;
+                        const latDiff = (loc.coordinates.lat - marinaLat) * 10000;
+                        const lngDiff = (loc.coordinates.lng - marinaLng) * 10000;
+                        const scaleFactor = 1500;
+                        const relativeX = centerX + (lngDiff * scaleFactor);
+                        const relativeY = centerY - (latDiff * scaleFactor);
+
+                        if (relativeX < 0 || relativeX > 100 || relativeY < 0 || relativeY > 100) return null;
+
+                        return (
+                            <div
+                                key={`dedicated-${idx}`}
+                                className="absolute z-10 group cursor-pointer flex flex-col items-center"
+                                style={{
+                                    top: `${relativeY}%`,
+                                    left: `${relativeX}%`,
+                                    transform: 'translate(-50%, -50%)'
+                                }}
+                                title={loc.label}
+                            >
+                                {loc.label.includes("Fuel") ? (
+                                    <div className="bg-yellow-500 p-1 rounded-full shadow-sm"><Zap size={8} className="text-white" /></div>
+                                ) : (
+                                    <div className="bg-red-500 p-1 rounded-full shadow-sm"><Anchor size={8} className="text-white" /></div>
+                                )}
+                                <span className="text-[7px] bg-white/80 dark:bg-black/80 px-1 rounded mt-0.5 whitespace-nowrap hidden group-hover:block">{loc.label}</span>
+                            </div>
+                        )
+                    })}
+
+                    {/* Pontoons Visuals */}
+                    {wimMasterData.identity.location.pontoons && wimMasterData.identity.location.pontoons.map((pontoon, idx) => {
+                        const scaleFactor = 1500;
+                        // Simplified rendering logic for pontoons based on relative position
+                        // This is a visual approximation for the prototype
+                        const pX = centerX + (pontoon.relative_position.lng_offset * 100 * scaleFactor / 5); 
+                        const pY = centerY - (pontoon.relative_position.lat_offset * 100 * scaleFactor / 5);
+                        const width = pontoon.relative_position.width_scale * 30; // Arbitrary scale for visual
+                        const height = pontoon.relative_position.length_scale * 30;
+
+                        return (
+                            <div
+                                key={`pontoon-${idx}`}
+                                className="absolute border border-zinc-400/50 bg-zinc-200/30 dark:bg-zinc-800/30 flex items-center justify-center text-[8px] text-zinc-500 select-none"
+                                style={{
+                                    top: `${pY}%`,
+                                    left: `${pX}%`,
+                                    width: `${width}px`,
+                                    height: `${height}px`,
+                                    transform: 'translate(-50%, -50%)'
+                                }}
+                            >
+                                {pontoon.label}
+                            </div>
+                        )
+                    })}
+
 
                     {/* Vessel Markers */}
                     {allFleetVessels.map(vessel => {

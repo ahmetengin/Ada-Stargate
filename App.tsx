@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode, VesselIntelligenceProfile } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -87,6 +88,9 @@ export default function App() {
   
   // State for the new proactive agent
   const [profiledVessels, setProfiledVessels] = useState<Set<string>>(new Set());
+
+  // State for prefilling text from sidebar clicks
+  const [prefillText, setPrefillText] = useState<string>('');
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -227,10 +231,10 @@ export default function App() {
   }, [trafficQueue, isMonitoring]);
 
 
-  // Simulation Logic (Random Chatter)
+  // Simulation Logic (Random Chatter & Environmental Sensors)
   useEffect(() => {
     const generateLog = () => {
-       const sourceNode = ['ada.vhf', 'ada.security', 'ada.finance', 'ada.marina', 'ada.weather'][Math.floor(Math.random() * 5)];
+       const sourceNode = ['ada.vhf', 'ada.security', 'ada.finance', 'ada.marina', 'ada.weather', 'ada.sea (Sensor)'][Math.floor(Math.random() * 6)];
        const vessel = VESSEL_KEYWORDS[Math.floor(Math.random() * VESSEL_KEYWORDS.length)]; // Use VESSEL_KEYWORDS
        let message = '';
        let type = 'info';
@@ -258,6 +262,15 @@ export default function App() {
         case 'ada.weather':
             message = 'Barometer dropping rapidly.';
             break;
+        case 'ada.sea (Sensor)':
+            const pollution = Math.random();
+            if (pollution > 0.8) { // Increased chance for demo
+                message = `CRITICAL ALERT: Hydrocarbon sensor @ Pontoon B detected high levels! Possible bilge discharge. Dispatching drone.`;
+                type = 'ENVIRONMENTAL_ALERT'; // Use specific type
+            } else {
+                message = `Water Quality Normal. O2: 7.8mg/L, pH: 8.1, Turbidity: Low.`;
+            }
+            break;
        }
        
        const newLog = {
@@ -268,8 +281,8 @@ export default function App() {
          type: type,
        };
        setLogs(prev => [newLog, ...prev.slice(0, 199)]);
-       setNodeStates(prev => ({...prev, [sourceNode]: 'working' }));
-       setTimeout(() => setNodeStates(prev => ({...prev, [sourceNode]: 'connected' })), 500);
+       setNodeStates(prev => ({...prev, [sourceNode.includes('Sensor') ? 'ada.sea' : sourceNode]: 'working' }));
+       setTimeout(() => setNodeStates(prev => ({...prev, [sourceNode.includes('Sensor') ? 'ada.sea' : sourceNode]: 'connected' })), 500);
     };
     
     const simInterval = setInterval(() => {
@@ -320,6 +333,23 @@ export default function App() {
           };
           setLogs(prev => [newLog, ...prev]);
       }
+      
+      if (action.name === 'ada.finance.proposePaymentPlan') {
+          const newLog = {
+            id: Date.now() + Math.random(),
+            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            source: 'ada.customer',
+            message: `PROPOSAL: Payment Plan for ${action.params.vesselName} (${action.params.loyaltyTier}). GM Approval Required.`,
+            type: 'customer_proposal',
+          };
+          setLogs(prev => [newLog, ...prev]);
+      }
+  };
+
+  // Handle Sidebar/Canvas node clicks to prefill input
+  const handleNodeClick = (nodeId: string) => {
+      const cleanNode = nodeId.replace(' (Sensor)', ''); // Clean up source names
+      setPrefillText(`@${cleanNode} `);
   };
 
   const handleSend = async (text: string, attachments: File[]) => {
@@ -339,6 +369,9 @@ export default function App() {
     setIsLoading(true);
     setAgentTraces([]); 
     
+    // Clear prefill text after sending
+    setPrefillText('');
+
     if (activeChannel === '72') {
         const orchestrationResult = await orchestratorService.processRequest(text, userProfile);
         setAgentTraces(orchestrationResult.traces);
@@ -454,7 +487,8 @@ export default function App() {
             isMonitoring, 
             onMonitoringToggle: () => setIsMonitoring(!isMonitoring), 
             userProfile, 
-            onRoleChange: handleRoleChange
+            onRoleChange: handleRoleChange,
+            onNodeClick: handleNodeClick // Pass handler
         }} />
         
         {/* Main Chat Zone */}
@@ -507,6 +541,7 @@ export default function App() {
                 onToggleSearch={() => setUseSearch(!useSearch)}
                 useThinking={useThinking}
                 onToggleThinking={() => setUseThinking(!useThinking)}
+                prefillText={prefillText} // Pass state
              />
           </div>
         </div>
@@ -523,7 +558,8 @@ export default function App() {
               userProfile, 
               vesselsInPort, 
               onCheckIn: handleCheckIn,
-              onOpenTrace: () => setIsTraceModalOpen(true)
+              onOpenTrace: () => setIsTraceModalOpen(true),
+              onNodeClick: handleNodeClick // Pass handler
           }} />
         )}
       </div>
