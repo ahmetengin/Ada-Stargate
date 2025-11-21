@@ -1,10 +1,6 @@
-# 🐍 Enterprise Backend Source Code
+## backend/server.py
 
-Bu dosya, AI Studio ortam kısıtlamaları nedeniyle oluşturulamayan `backend/server.py` dosyasının tam kaynak kodunu içerir.
-
-Lütfen aşağıdaki kod bloğunu kopyalayın ve kendi bilgisayarınızda `backend/server.py` adıyla kaydedin.
-
-## `backend/server.py`
+The core FastAPI server implementation. It features a crash-proof design that automatically switches to "Simulation Mode" if the API Key is missing, ensuring the frontend never breaks.
 
 ```python
 import os
