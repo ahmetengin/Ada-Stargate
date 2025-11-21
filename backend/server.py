@@ -1,25 +1,36 @@
-## backend/server.py
+# 🐍 Enterprise Backend Source Code (Safe Mode)
 
-The core FastAPI server implementation. It features a crash-proof design that automatically switches to "Simulation Mode" if the API Key is missing, ensuring the frontend never breaks.
+Bu dosya, **tamamen ücretsiz ve güvenli** bir simülasyon modunda çalışan Python sunucusunu içerir.
+Gerçek API anahtarlarına (Paraşüt, Iyzico, Kpler) **ihtiyacınız yoktur.**
+
+Lütfen aşağıdaki kod bloğunu kopyalayın ve `backend/server.py` olarak kaydedin.
+
+## `backend/server.py`
 
 ```python
 import os
 import re
 import logging
+import random
+import time
 from typing import List, Optional, Dict, Any
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# --- CONFIGURATION & SETUP ---
-load_dotenv() # Load .env if present
+# --- CONFIGURATION ---
+load_dotenv()
+
+# CRITICAL: This ensures we are in SAFE MODE.
+# Set to False only if you possess real API keys and want to burn money.
+SIMULATION_MODE = True 
 
 # Configure Logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("AdaBackend")
 
-app = FastAPI(title="Ada Stargate Backend", version="4.0.0")
+app = FastAPI(title="Ada Stargate Backend (Simulated)", version="4.1.0")
 
 # CORS: Allow React Frontend
 app.add_middleware(
@@ -30,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- GEMINI AI CLIENT SETUP (FAIL-SAFE) ---
+# --- GEMINI AI CLIENT (Optional Intelligence) ---
 AI_AVAILABLE = False
 ai_client = None
 
@@ -39,18 +50,18 @@ try:
     from google.genai import types
     
     api_key = os.getenv("API_KEY")
-    if api_key:
+    if api_key and not SIMULATION_MODE: # Only use AI if key exists AND we are not forcing sim
         ai_client = genai.Client(api_key=api_key)
         AI_AVAILABLE = True
-        logger.info("✅ Gemini AI Client Initialized Successfully.")
+        logger.info("✅ Gemini AI Client Initialized.")
     else:
-        logger.warning("⚠️ API_KEY not found in environment. Switching to SIMULATION MODE.")
+        logger.warning("⚠️ AI Disabled. Running in Heuristic/Simulation Mode.")
 except ImportError:
-    logger.warning("⚠️ google-genai library not installed. Switching to SIMULATION MODE.")
+    logger.warning("⚠️ google-genai library not installed. AI features disabled.")
 except Exception as e:
-    logger.error(f"⚠️ Error initializing AI Client: {e}. Switching to SIMULATION MODE.")
+    logger.warning(f"⚠️ AI Init failed: {e}")
 
-# --- DATA MODELS (Pydantic - Zero Error) ---
+# --- DATA MODELS ---
 
 class ChatRequest(BaseModel):
     prompt: str
@@ -65,84 +76,97 @@ class AgentAction(BaseModel):
 class ChatResponse(BaseModel):
     text: str
     actions: List[AgentAction] = []
-    mode: str # 'AI' or 'SIMULATION'
+    mode: str
 
-# --- LEVEL 3: WORKERS (Pure, Deterministic Logic) ---
-# These function CANNOT hallucinate because they are code.
+# --- MOCK WORKERS (The "Fake It" Layer) ---
 
-class Workers:
+class MockWorkers:
     @staticmethod
-    def calculate_invoice(amount: float, vat_rate: float = 0.18) -> Dict[str, float]:
-        """Calculates total with VAT."""
-        vat = amount * vat_rate
-        total = amount + vat
-        return {"subtotal": amount, "vat": vat, "total": total}
+    def generate_invoice_id():
+        return f"INV-{random.randint(1000, 9999)}-SIM"
 
     @staticmethod
-    def check_schedule_conflict(date: str) -> bool:
-        """Simulates a DB check for schedule conflicts."""
-        # Mock logic: the 15th is always busy
-        if "15" in date:
-            return True
-        return False
+    def calculate_vat(amount: float):
+        return amount * 0.18
 
-# --- LEVEL 2: EXPERTS (Domain Logic) ---
+# --- EXPERTS (Domain Logic) ---
 
 class FinanceExpert:
     def process(self, prompt: str) -> ChatResponse:
-        # Simple extraction logic for Simulation Mode
-        amount_match = re.search(r'(\d+)', prompt)
-        amount = float(amount_match.group(1)) if amount_match else 1000.0
+        logger.info(f"[Finance] Processing: {prompt}")
         
-        calc = Workers.calculate_invoice(amount)
+        # Extract number or default
+        amount_match = re.search(r'(\d+)', prompt)
+        amount = float(amount_match.group(1)) if amount_match else 1500.0
+        
+        inv_id = MockWorkers.generate_invoice_id()
+        vat = MockWorkers.calculate_vat(amount)
+        total = amount + vat
         
         action = AgentAction(
             node="ada.finance",
             action="create_invoice",
-            params={"amount": calc["total"], "currency": "EUR"}
+            params={
+                "id": inv_id, 
+                "amount": total, 
+                "currency": "EUR", 
+                "status": "DRAFT_SIMULATED"
+            }
         )
         
         return ChatResponse(
-            text=f"**FINANCE EXPERT:** Invoice calculated. Subtotal: €{calc['subtotal']}, VAT: €{calc['vat']}. Total: **€{calc['total']}**.",
+            text=f"**FINANCE (SIMULATION):** Invoice **{inv_id}** generated.\n\n"
+                 f"- Subtotal: €{amount}\n"
+                 f"- VAT (18%): €{vat}\n"
+                 f"- **Total: €{total}**\n\n"
+                 f"*Note: This is a simulation. No real invoice was created at Parasut.*",
             actions=[action],
-            mode="SIMULATION" if not AI_AVAILABLE else "AI_ASSISTED"
+            mode="SIMULATION"
         )
 
 class TechnicExpert:
     def process(self, prompt: str) -> ChatResponse:
+        logger.info(f"[Technic] Processing: {prompt}")
+        
         date_match = re.search(r'(\d{4}-\d{2}-\d{2})', prompt)
-        date = date_match.group(1) if date_match else "2025-11-25"
+        date = date_match.group(1) if date_match else "tomorrow"
         
-        conflict = Workers.check_schedule_conflict(date)
-        
-        if conflict:
+        # Simulate checking a database
+        if "13" in date: # Unlucky day simulation
             return ChatResponse(
-                text=f"**TECHNIC EXPERT:** Negative. The schedule for **{date}** is fully booked. Please select another date.",
+                text=f"**TECHNIC (SIMULATION):** Conflict detected. Travel Lift is under maintenance on {date}.",
                 actions=[],
                 mode="SIMULATION"
             )
+            
+        ticket_id = f"TICKET-{random.randint(100, 999)}"
         
         action = AgentAction(
             node="ada.technic",
             action="schedule_service",
-            params={"date": date, "type": "HAUL_OUT"}
+            params={"date": date, "ticket_id": ticket_id, "type": "HAUL_OUT"}
         )
         
         return ChatResponse(
-            text=f"**TECHNIC EXPERT:** Service scheduled successfully for **{date}**. Team notified.",
+            text=f"**TECHNIC (SIMULATION):** Haul-out scheduled for **{date}**.\n"
+                 f"Ticket ID: `{ticket_id}` assigned to *Tender Bravo* team.",
             actions=[action],
             mode="SIMULATION"
         )
 
 class LegalExpert:
     def process(self, prompt: str) -> ChatResponse:
+        logger.info(f"[Legal] Processing: {prompt}")
         return ChatResponse(
-            text="**LEGAL EXPERT:** Searching WIM Regulations... \n\n*Article H.3:* Departure is prohibited until debts are settled.",
+            text="**LEGAL (SIMULATION):** Querying Vector Database...\n\n"
+                 "**Result (WIM Regs Article H.3):**\n"
+                 "> 'Vessels cannot depart without settling outstanding debts.'\n\n"
+                 "*Context: Simulated RAG retrieval.*",
             actions=[],
             mode="SIMULATION"
         )
 
-# --- LEVEL 1: ROUTER (The Brain) ---
+# --- ROUTER (The Brain) ---
 
 class Router:
     def __init__(self):
@@ -151,63 +175,44 @@ class Router:
         self.legal = LegalExpert()
 
     def route(self, req: ChatRequest) -> ChatResponse:
-        prompt_lower = req.prompt.lower()
+        prompt = req.prompt.lower()
         
-        # 1. AI ROUTING (If Available)
-        if AI_AVAILABLE and ai_client:
-            try:
-                # Simple routing prompt for Gemini
-                sys_prompt = "You are the Router. Classify intent into: FINANCE, TECHNIC, LEGAL, or GENERAL. Reply with just the category."
-                response = ai_client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=req.prompt,
-                    config=types.GenerateContentConfig(system_instruction=sys_prompt)
-                )
-                intent = response.text.strip().upper()
-                
-                if "FINANCE" in intent: return self.finance.process(req.prompt)
-                if "TECHNIC" in intent: return self.technic.process(req.prompt)
-                if "LEGAL" in intent: return self.legal.process(req.prompt)
-                
-                # Fallback to general AI response
-                return ChatResponse(text=f"**ADA CORE (AI):** {response.text}", mode="AI")
-            except Exception as e:
-                logger.error(f"AI Routing failed: {e}. Falling back to Heuristics.")
-        
-        # 2. HEURISTIC ROUTING (Simulation Mode)
-        logger.info(f"Routing via Heuristics: {prompt_lower}")
-        
-        if any(x in prompt_lower for x in ['invoice', 'pay', 'debt', 'money', 'bill']):
+        # Simple Keyword Routing (No AI needed)
+        if any(x in prompt for x in ['invoice', 'pay', 'debt', 'money', 'bill']):
             return self.finance.process(req.prompt)
         
-        if any(x in prompt_lower for x in ['repair', 'service', 'technic', 'fix', 'schedule', 'lift']):
+        if any(x in prompt for x in ['repair', 'service', 'technic', 'fix', 'schedule', 'lift']):
             return self.technic.process(req.prompt)
             
-        if any(x in prompt_lower for x in ['law', 'rule', 'contract', 'penalty', 'legal']):
+        if any(x in prompt for x in ['law', 'rule', 'contract', 'penalty', 'legal']):
             return self.legal.process(req.prompt)
 
         return ChatResponse(
-            text="**ADA CORE (SIMULATION):** Command received. System is operational. Please specify a domain (Finance, Tech, Legal).",
+            text=f"**ADA CORE (SIMULATION):** I received: '{req.prompt}'.\n"
+                 "Please specify a domain: Finance, Technical, or Legal.",
             mode="SIMULATION"
         )
 
 router = Router()
 
-# --- API ENDPOINTS ---
+# --- API ---
 
 @app.get("/")
 def health_check():
-    return {"status": "online", "ai_enabled": AI_AVAILABLE, "version": "4.0.0"}
+    return {
+        "status": "online", 
+        "simulation_mode": SIMULATION_MODE,
+        "message": "Don't panic! No real API keys needed."
+    }
 
 @app.post("/api/v1/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    """
-    Main entry point for the Frontend Orchestrator.
-    """
-    logger.info(f"Received chat request: {request.prompt}")
-    response = router.route(request)
-    return response
+    # Simulate network latency for realism
+    time.sleep(0.5)
+    return router.route(request)
 
 if __name__ == "__main__":
     import uvicorn
+    logger.info("🚀 STARTING ADA BACKEND IN SIMULATION MODE...")
+    logger.info("🌊 No real money, no real ships. Safe to sail.")
     uvicorn.run(app, host="0.0.0.0", port=8000)
