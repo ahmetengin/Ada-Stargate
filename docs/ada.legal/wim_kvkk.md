@@ -83,4 +83,13 @@ To exercise these rights, you can apply in writing to [Email Address of West Ist
 
 This policy may be updated according to changing legal regulations and company practices. Updates will be announced on our website or through other appropriate communication channels.
 
+## 8. Data Masking & Anonymization Protocols
+
+To enhance data security and comply with KVKK/GDPR, sensitive Personally Identifiable Information (PII) is masked in system outputs, logs, and general user interfaces. This applies to:
+*   **Identity Information:** Names (`AH*** ***IN`), ID/Passport Numbers (`123*********01`).
+*   **Contact Information:** Email addresses (`a*****n@e***n.com`), Phone numbers (`+90 53*******12`).
+*   **Financial Information:** Credit card numbers are never stored on our servers. When referenced (e.g., from a payment gateway), they are displayed in a masked format (`**** **** **** 1212`).
+
+Only authorized personnel with appropriate clearance levels (e.g., General Manager) can access unmasked data through secure, audited channels when operationally necessary.
+
 **Last Updated:** 20 November 2025

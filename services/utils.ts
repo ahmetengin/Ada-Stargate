@@ -1,0 +1,48 @@
+// services/utils.ts
+
+// Masks a full name, e.g., "Ahmet Engin" -> "AH*** ***IN"
+export function maskFullName(fullName: string): string {
+    if (!fullName || fullName.trim().length < 3) return "N/A";
+    const parts = fullName.trim().toUpperCase().split(' ');
+    const maskedParts = parts.map(part => {
+        if (part.length <= 2) return part;
+        return `${part[0]}${'*'.repeat(part.length - 2)}${part[part.length - 1]}`;
+    });
+    return maskedParts.join(' ');
+}
+
+// Masks an ID number, e.g., "12345678901" -> "123*********01"
+export function maskIdNumber(idNumber: string): string {
+    if (!idNumber || idNumber.length < 4) return "ID MASKED";
+    return `${idNumber.substring(0, 3)}${'*'.repeat(idNumber.length - 5)}${idNumber.substring(idNumber.length - 2)}`;
+}
+
+// Conceptually masks a credit card number for display purposes
+export function maskCreditCard(cardNumber: string): string {
+    if (!cardNumber || cardNumber.length < 16) return "************";
+    return `${cardNumber.substring(0, 4)} **** **** ${cardNumber.substring(cardNumber.length - 4)}`;
+}
+
+// Masks an email address, e.g., "ahmet.engin@example.com" -> "a*****n@e*****.com"
+export function maskEmail(email: string): string {
+    if (!email || !email.includes('@')) return "EMAIL MASKED";
+    const [localPart, domainPart] = email.split('@');
+    
+    const maskPart = (part: string) => {
+        if (part.length <= 2) return part;
+        return `${part[0]}${'*'.repeat(part.length - 2)}${part[part.length - 1]}`;
+    };
+
+    return `${maskPart(localPart)}@${maskPart(domainPart)}`;
+}
+
+// Masks a phone number, e.g., "+905321234567" -> "+90 53*******67"
+export function maskPhone(phone: string): string {
+    if (!phone) return "PHONE MASKED";
+    const digitsOnly = phone.replace(/\D/g, '');
+    if (digitsOnly.length < 7) return phone;
+    // Assuming a standard Turkish mobile format after country code
+    const countryCode = phone.startsWith('+') ? phone.substring(0, 3) : '';
+    const numberPart = digitsOnly.substring(digitsOnly.length - 10);
+    return `${countryCode} ${numberPart.substring(0,2)}*******${numberPart.substring(numberPart.length - 2)}`;
+}

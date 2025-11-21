@@ -84,15 +84,102 @@ export const customerAgent = {
     };
   },
 
+  // Skill: Calculate Loyalty Score
+  calculateLoyaltyScore: async (imo: string, actionType: 'REGISTER_VESSEL' | 'PAYMENT_CLEAR' | 'DEPARTURE_ON_TIME' | 'BREACH_DETECTED' | 'PAYMENT_LATE', currentProfile: VesselIntelligenceProfile, addTrace: (t: AgentTraceLog) => void): Promise<{ newScore: number, newTier: VesselIntelligenceProfile['loyaltyTier'], actions: AgentAction[] }> => {
+    let score = currentProfile.loyaltyScore || 500;
+    const actions: AgentAction[] = [];
+
+    addTrace(createLog('ada.customer', 'THINKING', `Calculating loyalty score for ${currentProfile.name} (Current: ${score}). Action: ${actionType}`, 'EXPERT'));
+
+    switch(actionType) {
+        case 'PAYMENT_CLEAR':
+            score += 100;
+            break;
+        case 'DEPARTURE_ON_TIME':
+            score += 50;
+            break;
+        case 'BREACH_DETECTED':
+            score -= 150;
+            break;
+        case 'PAYMENT_LATE':
+            if (currentProfile.paymentHistoryStatus === 'CHRONICALLY_LATE') {
+                 score -= 100;
+            } else {
+                 score -= 50; // Less penalty for first-time late payment
+            }
+            break;
+    }
+    
+    score = Math.max(0, score); // Score cannot be negative
+
+    let newTier: VesselIntelligenceProfile['loyaltyTier'] = 'STANDARD';
+    if (score >= 600) newTier = 'GOLD';
+    else if (score >= 200) newTier = 'SILVER';
+    else if (score < 100) newTier = 'PROBLEM';
+
+    addTrace(createLog('ada.customer', 'OUTPUT', `New Loyalty Score for ${currentProfile.name}: ${score} (Tier: ${newTier})`, 'EXPERT'));
+    
+    // Create an action for the orchestrator to update the central DB
+    actions.push({
+        id: `cust_update_profile_${Date.now()}`,
+        kind: 'internal',
+        name: 'ada.marina.updateVesselProfile',
+        params: {
+            imo,
+            updates: {
+                loyaltyScore: score,
+                loyaltyTier: newTier
+            }
+        }
+    });
+
+    return { newScore: score, newTier, actions };
+  },
+
+  // Skill: Proactive Customer Engagement
+  proactiveEngagement: async (vesselProfile: VesselIntelligenceProfile, addTrace: (t: AgentTraceLog) => void): Promise<{ logMessage: string, actions: AgentAction[] }> => {
+    let message = "";
+    const actions: AgentAction[] = [];
+
+    addTrace(createLog('ada.customer', 'THINKING', `Generating proactive engagement for ${vesselProfile.name} (Tier: ${vesselProfile.loyaltyTier}, Debt: €${vesselProfile.outstandingDebt || 0})`, 'EXPERT'));
+    
+    // Simulate choosing communication channel
+    const channel = vesselProfile.ownerEmail ? `email to ${vesselProfile.ownerEmail}` : (vesselProfile.ownerPhone ? `SMS to ${vesselProfile.ownerPhone}` : 'VHF call');
+    addTrace(createLog('ada.customer', 'PLANNING', `Preparing to send proactive engagement via ${channel}.`, 'WORKER'));
+
+    if (vesselProfile.outstandingDebt && vesselProfile.outstandingDebt > 0) {
+        if (vesselProfile.paymentHistoryStatus === 'RECENTLY_LATE') {
+             message = `Friendly reminder for ${vesselProfile.name}: Outstanding balance of €${vesselProfile.outstandingDebt}. As a valued client, we can discuss flexible payment options.`;
+             actions.push({ id: `cust_prop_plan_${Date.now()}`, kind: 'internal', name: 'ada.finance.proposePaymentPlan', params: { vesselName: vesselProfile.name } });
+        } else {
+             message = `**URGENT ACTION REQUIRED for ${vesselProfile.name}:** Account is overdue by €${vesselProfile.outstandingDebt}. Please settle immediately to avoid service interruptions.`;
+        }
+    } else {
+        switch (vesselProfile.loyaltyTier) {
+            case 'GOLD':
+                message = `Courtesy call to ${vesselProfile.name}: Thank you for being a Gold Tier client! An exclusive invitation to our Yacht Club event has been sent to your primary contact.`;
+                break;
+            case 'SILVER':
+                message = `Engagement with ${vesselProfile.name}: As a Silver Tier client, you have priority access to our new technical services. Let us know if you need anything.`;
+                break;
+            default:
+                message = `Routine check-in with ${vesselProfile.name}: We hope you are enjoying your stay. Our team is ready to assist.`;
+        }
+    }
+    
+    addTrace(createLog('ada.customer', 'OUTPUT', `Generated engagement: "${message}"`, 'EXPERT'));
+
+    return { logMessage: message, actions };
+  },
+
   // Skill: Propose Payment Plan (New)
   proposePaymentPlan: async (vesselProfile: VesselIntelligenceProfile, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
       addTrace(createLog('ada.customer', 'THINKING', `Analyzing payment plan request for ${vesselProfile.name}...`, 'EXPERT'));
 
       let recommendationToGM = "Standard payment plan (3 installments).";
       let customerMessage = `We understand you are facing difficulties. We can offer a payment plan for your outstanding balance.`;
-
-      // Simulate logic based on payment history and loyalty (once added to profile)
-      if (vesselProfile.paymentHistoryStatus === 'OVERDUE') {
+      
+      if (vesselProfile.paymentHistoryStatus === 'CHRONICALLY_LATE') {
           recommendationToGM = "Strict payment plan (immediate deposit, 2 installments).";
           customerMessage = `Due to your overdue status, we require an immediate deposit to initiate a payment plan.`;
       } else if (vesselProfile.paymentHistoryStatus === 'RECENTLY_LATE') {
@@ -100,10 +187,9 @@ export const customerAgent = {
           customerMessage = `Considering your recent payment history, we can offer a more flexible payment plan to assist you.`;
       }
       
-      // Add loyalty tier considerations (once loyaltyTier is added to VesselIntelligenceProfile)
-      if (vesselProfile.loyaltyTier === 'VIP') {
+      if (vesselProfile.loyaltyTier === 'GOLD') {
           recommendationToGM = "Highly flexible payment plan (6 installments, extended grace period).";
-          customerMessage = `As a valued VIP customer, we are pleased to offer a highly flexible payment plan.`;
+          customerMessage = `As a valued GOLD tier client, we are pleased to offer a highly flexible payment plan.`;
       }
 
       const actions: AgentAction[] = [];
@@ -113,7 +199,7 @@ export const customerAgent = {
           name: 'ada.finance.proposePaymentPlan', // This action would trigger finance to formalize the plan
           params: {
               vesselName: vesselProfile.name,
-              loyaltyTier: vesselProfile.loyaltyTier || 'Standard',
+              loyaltyTier: vesselProfile.loyaltyTier || 'STANDARD',
               paymentHistoryStatus: vesselProfile.paymentHistoryStatus || 'REGULAR',
               recommendation: recommendationToGM,
               customerMessage: customerMessage

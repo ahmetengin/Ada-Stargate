@@ -1,5 +1,4 @@
 
-
 # ⚓️ ADA - MARITIME INTELLIGENCE
 
 <div align="center">
@@ -31,7 +30,7 @@ Ada is not just a chatbot. It is a **living, breathing, distributed multi-agent 
 
 It simulates a massive network of **600+ autonomous vessels** docked at **West Istanbul Marina (WIM)**. Each vessel is a silent, privacy-first node (`ada.sea.*`), communicating with the central Orchestrator (`ada.marina.wim`) only when necessary.
 
-It listens to the radio. It manages finances. It predicts the weather. It protects the captain.
+It listens to the radio. It manages finances. It predicts the weather. It enforces the law. It protects the captain.
 
 ## 🚀 Mission Control Capabilities
 
@@ -41,22 +40,32 @@ Ada doesn't just read text; she **listens**.
 *   **Speech-to-Action:** Transcribes radio chatter, detects "MAYDAY" or "PAN PAN" signals, and instantly alerts the operations desk.
 *   **Visualizer:** A specialized VHF HUD for the operator.
 
+### 🚢 Maritime Intelligence (MCP & Kpler)
+*   **Live AIS Radar:** Integrates with **Kpler's MCP** to visualize real-time traffic in the Canvas map.
+*   **Vessel Profiling:** Automatically fetches deep intelligence (IMO, Flag, Voyage) for any vessel entering the sector.
+*   **Proactive ATC:** Detects inbound contracted vessels and pre-assigns tenders before they even call in.
+
+### 💶 Financial Autonomy (Parasut & Iyzico)
+*   **Debt Protocol:** Checks outstanding balances via **Parasut** (Simulated) before authorizing departure.
+*   **Automated Invoicing:** Generates invoices and secure **Iyzico** payment links on the fly.
+*   **Bank Reconciliation:** Simulates daily settlement reports from **Garanti BBVA** API to clear debts and update loyalty scores.
+
+### ⚖️ Legal Authority (RAG & SEAL)
+*   **Regulation Expert:** Ingests WIM Contracts, COLREGs, and Turkish Maritime Law into a RAG Knowledge Graph.
+*   **Self-Adapting:** Uses **SEAL (Self-Adapting Language Models)** architecture to "learn" new rules and generate synthetic enforcement scenarios.
+*   **KVKK/GDPR Compliance:** Strictly enforces data privacy, masking PII (Names, IDs) in all logs and outputs.
+
 ### 🧠 The "Brain" (Gemini 3.0 Pro)
 *   **Reasoning Engine:** Utilizing Google's latest **Gemini 3.0 Pro** with deep thinking enabled.
 *   **Context Aware:** Knows the difference between a 40ft Catamaran and a 90ft Superyacht.
 *   **Hybrid Architecture:** Combines raw telemetry (battery, wind) with high-level reasoning.
-
-### 🛡️ "Whatever the Captain Says, Goes" (Privacy First)
-*   **Zero Trust Architecture:** Every `ada.sea` node is a black box. 
-*   **Local-First Data:** Battery levels, GPS history, and crew lists stay ON THE BOAT.
-*   **Captain's Authority:** Data is only transmitted to the marina when the Captain explicitly authorizes a transaction (e.g., Check-in).
 
 ## 📟 The Interface: "Operations Deck"
 
 The UI is built like a modern **Agentic IDE**.
 *   **Left Wing:** Sidebar controls & VHF Tuner.
 *   **Center Stage:** The Agent Chat (Orchestrator).
-*   **Right Wing (Canvas):** The **Live Event Bus**. A Matrix-style feed of every signal, heartbeat, and handshake occurring across the 600-node fleet.
+*   **Right Wing (Canvas):** The **Live Event Bus**. A Matrix-style feed of fleet operations, live AIS radar, and financial logs.
 
 ---
 
@@ -100,5 +109,5 @@ This project is built with passion for the sea, code, and the future of autonomo
 
 ---
 <div align="center">
-  <sub>Designed & Engineered by <b>Ahmet Engin</b></sub>
+  <sub>Designed & Engineered by <b>Ahmet Engin</b> with ❤️</sub>
 </div>

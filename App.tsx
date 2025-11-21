@@ -13,6 +13,7 @@ import { orchestratorService } from './services/orchestratorService';
 import { marinaAgent } from './services/agents/marinaAgent';
 import { VESSEL_KEYWORDS } from './services/constants'; // Import from constants
 import { wimMasterData } from './services/wimMasterData';
+import { Sun, Moon, Monitor } from 'lucide-react';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
@@ -102,6 +103,20 @@ export default function App() {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
+
+  const cycleTheme = () => {
+    if (theme === 'auto') setTheme('light');
+    else if (theme === 'light') setTheme('dark');
+    else setTheme('auto');
+  };
+
+  const getThemeIcon = () => {
+    switch(theme) {
+      case 'light': return <Sun size={14} />;
+      case 'dark': return <Moon size={14} />;
+      default: return <Monitor size={14} />;
+    }
+  };
 
 
   useEffect(() => {
@@ -439,9 +454,7 @@ export default function App() {
             isMonitoring, 
             onMonitoringToggle: () => setIsMonitoring(!isMonitoring), 
             userProfile, 
-            onRoleChange: handleRoleChange,
-            theme,
-            onThemeChange: setTheme
+            onRoleChange: handleRoleChange
         }} />
         
         {/* Main Chat Zone */}
@@ -452,13 +465,20 @@ export default function App() {
              <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity select-none">
                 <h1 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 dark:text-zinc-400 uppercase font-mono">Ada.Marina | <span className="text-indigo-600 dark:text-indigo-500">Ready</span></h1>
              </div>
-             <div className="flex items-center gap-2">
+             <div className="flex items-center gap-4">
                 {activeChannel !== 'SCAN' && (
                     <span className={`text-[10px] font-mono flex items-center gap-2 ${activeChannel === '72' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}`}>
                         <span className="text-red-500">{displayCoordinates}</span>
                         <span>VHF CH {activeChannel} {activeChannel === '72' ? '[AI ACTIVE]' : '[MESH NET]'}</span>
                     </span>
                 )}
+                <button 
+                  onClick={cycleTheme}
+                  className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+                  title={`Theme: ${theme.toUpperCase()}`}
+                >
+                   {getThemeIcon()}
+                </button>
              </div>
           </header>
 

@@ -35,7 +35,7 @@ const PARASUT_API_MOCK = {
     getBalance: (vesselName: string) => {
         const vesselData = PARASUT_API_MOCK.vesselLedger.get(vesselName.toLowerCase());
         if (vesselData) {
-            return { balance: vesselData.balance, currency: 'EUR', paymentHistoryStatus: vesselData.paymentHistoryStatus ?? 'REGULAR' };
+            return { balance: vesselData.balance, currency: 'EUR', paymentHistoryStatus: vesselData.paymentHistoryStatus };
         }
         return { balance: 0, currency: 'EUR', paymentHistoryStatus: 'REGULAR' }; 
     },
@@ -105,8 +105,9 @@ export const financeAgent = {
   processPayment: async (vesselName: string, paymentRef: string, amount: number, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
       addTrace(createLog('ada.finance', 'TOOL_EXECUTION', `Confirming payment for ${vesselName} (Ref: ${paymentRef}, Amount: €${amount})...`, 'WORKER'));
 
-      // Update mock ledger, ensuring 'REGULAR' is passed if no specific status
-      PARASUT_API_MOCK.updateBalance(vesselName, 0, 'REGULAR');
+      // FIX: Removed direct state mutation (updateBalance call). This function should only generate actions.
+      // The caller (e.g., fetchDailySettlement) is responsible for updating the balance state.
+      // This prevents a logical error where the balance was always reset to 0 regardless of payment amount.
 
       const actions: AgentAction[] = [];
       actions.push({
@@ -165,15 +166,19 @@ export const financeAgent = {
               
               if (vesselName) {
                   addTrace(createLog('ada.finance', 'PLANNING', `Reconciling payment for ${vesselName} (Ref: ${tx.transactionId})...`, 'EXPERT'));
-                  // Ensure paymentHistoryStatus is not undefined.
+                  // In a real system, we'd use IMO from transaction to find vessel name if not in description
                   const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
-                  // FIX: Ensure newPaymentHistoryStatus is a literal string, not undefined.
-                  PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance + tx.amount, currentBalanceData.paymentHistoryStatus ?? 'REGULAR'); 
+                  // FIX: Ensure newPaymentHistoryStatus is a literal string and not undefined by providing a default.
+                  // FIX: Changed 'OVERDUE' to 'CHRONICALLY_LATE' to match the type definition.
+                  const newPaymentStatus: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE' = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
+                  // FIX: A payment (credit) should reduce the outstanding balance (debt).
+                  PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance - tx.amount, newPaymentStatus); 
                   const processPaymentActions = await financeAgent.processPayment(vesselName, tx.transactionId, tx.amount, addTrace);
                   actions.push(...processPaymentActions);
                   totalSettledAmount += tx.amount;
               } else {
-                  addTrace(createLog('ada.finance', 'WARNING', `Could not identify vessel for transaction ${tx.transactionId}. Manual reconciliation required.`, 'EXPERT'));
+                  // FIX: Changed log step 'WARNING' to 'ERROR' to match the allowed types.
+                  addTrace(createLog('ada.finance', 'ERROR', `Could not identify vessel for transaction ${tx.transactionId}. Manual reconciliation required.`, 'EXPERT'));
               }
           }
           settlementReport += `\n**Total Settled: €${totalSettledAmount.toFixed(2)}**`;
@@ -218,8 +223,10 @@ export const financeAgent = {
         const invoice = PARASUT_API_MOCK.createInvoice(vesselName, items);
         // Update ledger with new invoice amount
         const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
-        // FIX: Ensure newPaymentHistoryStatus is a literal string, not undefined.
-        PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance + invoice.amount, currentBalanceData.paymentHistoryStatus ?? 'REGULAR');
+        // FIX: Ensure newPaymentHistoryStatus is a literal string and not undefined by providing a default.
+        // FIX: Changed 'OVERDUE' to 'CHRONICALLY_LATE' to match the type definition.
+        const newPaymentStatus: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE' = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
+        PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance + invoice.amount, newPaymentStatus);
 
         actions.push({
             id: `fin_inv_${Date.now()}`,

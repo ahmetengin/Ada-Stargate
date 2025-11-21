@@ -119,6 +119,20 @@ export const orchestratorService = {
                 traces.push(createLog('ada.marina', 'ERROR', `Departure request missing vessel name.`, 'EXPERT'));
                 return { text: responseText, actions: [], traces };
             }
+            
+            // RBAC Check: Guests cannot authorize departure.
+            if (user.role === 'GUEST') {
+                traces.push(createLog('ada.marina', 'ERROR', `Access Denied: User role 'GUEST' lacks clearance for Departure Operations.`, 'EXPERT'));
+                responseText = `**ACCESS DENIED** \n\nUser **${user.name}** (${user.role}) does not have the required clearance for Departure Operations. This operation requires 'CAPTAIN' or 'GENERAL_MANAGER' privileges.`;
+                return { text: responseText, actions: [], traces };
+            }
+
+            // CRITICAL: New security check for legal status before financial checks
+            if (user.legalStatus === 'RED') {
+                traces.push(createLog('ada.legal', 'ERROR', `Departure Denied: User/Vessel is in legal breach. Overrides are not permitted.`, 'EXPERT'));
+                responseText = `**DEPARTURE DENIED - LEGAL HOLD**\n\nDeparture for **${vesselName}** is blocked due to a legal breach on record. Please contact Marina Management to resolve the issue.`;
+                return { text: responseText, actions: [], traces };
+            }
 
 
             traces.push(createLog('ada.marina', 'THINKING', `Intent: IMMEDIATE_DEPARTURE for ${vesselName}. Initiating Fast-Path Protocol.`, 'ORCHESTRATOR'));
@@ -170,6 +184,13 @@ export const orchestratorService = {
         else if (lowerPrompt.includes('intel') || lowerPrompt.includes('briefing') || lowerPrompt.includes('details') || lowerPrompt.includes('give info')) {
             const vesselName = findVesselInPrompt(lowerPrompt);
             if(vesselName) {
+                // RBAC Check: Guests cannot get sensitive intelligence.
+                if (user.role === 'GUEST') {
+                    traces.push(createLog('ada.marina', 'ERROR', `Access Denied: User role 'GUEST' lacks clearance for Vessel Intelligence.`, 'EXPERT'));
+                    responseText = `**ACCESS DENIED** \n\nUser **${user.name}** (${user.role}) does not have the required clearance for Vessel Intelligence operations.`;
+                    return { text: responseText, actions: [], traces };
+                }
+
                 traces.push(createLog('ada.marina', 'ROUTING', `Intent: VESSEL_INTELLIGENCE. Querying MCP for "${vesselName}".`, 'ORCHESTRATOR'));
                 
                 const intel: VesselIntelligenceProfile | null = await marinaAgent.getVesselIntelligence(vesselName);
@@ -198,6 +219,14 @@ export const orchestratorService = {
         }
         // --- INTENT: FLEET INTELLIGENCE ---
         else if (lowerPrompt.includes('where is') || lowerPrompt.includes('nerede') || lowerPrompt.includes('burada mı') || lowerPrompt.includes('tekneleri') || lowerPrompt.includes('list') || lowerPrompt.includes('hangi') || lowerPrompt.includes('konum') || lowerPrompt.includes('location of')) {
+            
+            // RBAC Check: Guests cannot get fleet intelligence.
+            if (user.role === 'GUEST') {
+                traces.push(createLog('ada.marina', 'ERROR', `Access Denied: User role 'GUEST' lacks clearance for Fleet Intelligence.`, 'EXPERT'));
+                responseText = `**ACCESS DENIED** \n\nUser **${user.name}** (${user.role}) does not have the required clearance for Fleet Intelligence operations.`;
+                return { text: responseText, actions: [], traces };
+            }
+            
             traces.push(createLog('ada.marina', 'ROUTING', 'Intent: FLEET_INTELLIGENCE. Querying Registry Database.'));
             let queryResult;
             const lengthMatch = lowerPrompt.match(/(\d+)\s*(m|metre|meter)/);
@@ -260,7 +289,8 @@ export const orchestratorService = {
         else if (lowerPrompt.includes('payment confirmed') || lowerPrompt.includes('process payment') || lowerPrompt.includes('payment made')) {
             const vesselName = findVesselInPrompt(lowerPrompt) || 's/y phisedelia'; // Default or extracted
             const paymentRefMatch = prompt.match(/ref:\s*(\w+-\d+)/i);
-            const paymentRef = paymentRefMatch ? paymentRef[1] : `MANUAL_CONFIRM_${Date.now()}`;
+            // FIX: Corrected a typo where 'paymentRef' was used in its own initializer instead of 'paymentRefMatch'.
+            const paymentRef = paymentRefMatch ? paymentRefMatch[1] : `MANUAL_CONFIRM_${Date.now()}`;
             const amountMatch = prompt.match(/amount:\s*(\d+(\.\d+)?)/i);
             const amount = amountMatch ? parseFloat(amountMatch[1]) : (await financeAgent.checkDebt(vesselName)).amount; // Default to outstanding
 

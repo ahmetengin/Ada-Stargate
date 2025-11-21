@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole, VesselIntelligenceProfile } from '../types';
-import { Anchor, Copy, Check, Volume2, StopCircle, Cpu } from 'lucide-react';
+import { Anchor, Copy, Check, Volume2, StopCircle, Cpu, User, Mail, Phone } from 'lucide-react';
 import { TypingIndicator } from './TypingIndicator';
 import { marinaAgent } from '../services/agents/marinaAgent';
 import { VESSEL_KEYWORDS } from '../services/constants';
+import { maskFullName, maskIdNumber, maskEmail, maskPhone } from '../services/utils';
 
 interface MessageBubbleProps {
   message: Message;
@@ -60,6 +61,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+  
+  const getLoyaltyTierStyle = (tier?: VesselIntelligenceProfile['loyaltyTier']) => {
+      switch(tier) {
+          case 'GOLD': return 'text-amber-500 border-amber-500/50 bg-amber-500/10';
+          case 'SILVER': return 'text-slate-400 border-slate-500/50 bg-slate-500/10';
+          case 'PROBLEM': return 'text-red-500 border-red-500/50 bg-red-500/10';
+          default: return 'text-sky-500 border-sky-500/50 bg-sky-500/10';
+      }
+  };
+
 
   // --- SYSTEM MESSAGE (Notification Style) ---
   if (isSystem) {
@@ -154,20 +165,50 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             </div>
 
             {/* Vessel Intelligence Profile Display */}
-            {Object.values(vesselProfiles).map((profile, idx) => (
-                profile && (
-                    <div key={idx} className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-900 flex flex-col gap-2">
+            {/* FIX: Cast `profile` to VesselIntelligenceProfile to fix typing errors. */}
+            {Object.values(vesselProfiles).map((profile, idx) => {
+                const p = profile as VesselIntelligenceProfile;
+                return (
+                p && (
+                    <div key={idx} className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col gap-3">
                         <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Vessel Intelligence Profile</div>
-                        <div className="bg-sky-50 dark:bg-sky-900/10 p-3 rounded-lg border border-sky-200 dark:border-sky-900/20 text-[11px] leading-snug">
-                            <p className="mb-1"><strong>Name:</strong> {profile.name} (IMO: {profile.imo})</p>
-                            <p className="mb-1"><strong>Type:</strong> {profile.type} | <strong>Flag:</strong> {profile.flag}</p>
-                            <p className="mb-1"><strong>Dimensions:</strong> {profile.loa}m LOA x {profile.beam}m Beam | {profile.dwt} DWT</p>
-                            <p className="mb-1"><strong>Status:</strong> {profile.status} at {profile.location}</p>
-                            <p className="mb-0"><strong>Voyage:</strong> {profile.voyage.lastPort} &rarr; <strong>{profile.voyage.nextPort}</strong> (ETA: {profile.voyage.eta})</p>
+                        
+                        <div className="bg-sky-50 dark:bg-sky-900/10 p-3 rounded-lg border border-sky-200 dark:border-sky-900/20 text-[11px] leading-snug space-y-2">
+                           {/* Main Info */}
+                           <div>
+                                <p className="font-bold text-zinc-800 dark:text-zinc-200">{p.name} (IMO: {p.imo})</p>
+                                <p className="text-zinc-600 dark:text-zinc-400">Type: {p.type} | Flag: {p.flag} | {p.loa}m LOA</p>
+                           </div>
+                           {/* Status & Voyage */}
+                           <div>
+                                <p><strong>Status:</strong> {p.status} at {p.location}</p>
+                                <p><strong>Voyage:</strong> {p.voyage?.lastPort} &rarr; <strong>{p.voyage?.nextPort}</strong> (ETA: {p.voyage?.eta})</p>
+                           </div>
+                           {/* Owner & Contact Info (Masked) */}
+                           {(p.ownerName || p.ownerEmail) && (
+                            <div className="pt-2 border-t border-sky-200 dark:border-sky-800/50">
+                                <p className="flex items-center gap-2"><User size={12} /> Owner: {maskFullName(p.ownerName || 'N/A')} | ID: {maskIdNumber(p.ownerId || 'N/A')}</p>
+                                <p className="flex items-center gap-2"><Mail size={12} /> Email: {maskEmail(p.ownerEmail || 'N/A')}</p>
+                                <p className="flex items-center gap-2"><Phone size={12} /> Phone: {maskPhone(p.ownerPhone || 'N/A')}</p>
+                            </div>
+                           )}
+                           {/* Financial & Loyalty */}
+                           <div className="flex items-center justify-between pt-2 border-t border-sky-200 dark:border-sky-800/50">
+                                <div className="flex items-center gap-2">
+                                   <span className="font-bold">Loyalty:</span>
+                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getLoyaltyTierStyle(p.loyaltyTier)}`}>
+                                     {p.loyaltyTier} ({p.loyaltyScore})
+                                   </span>
+                                </div>
+                                {p.outstandingDebt && p.outstandingDebt > 0 && (
+                                  <div className="text-red-500 font-bold">Debt: €{p.outstandingDebt}</div>
+                                )}
+                           </div>
                         </div>
                     </div>
                 )
-            ))}
+            )})}
+
 
             {/* Grounding / Sources Footer */}
             {message.groundingSources && message.groundingSources.length > 0 && (

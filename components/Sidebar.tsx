@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Anchor, Radio, Power, Shield, Sun, Moon, Monitor } from 'lucide-react';
+import { Anchor, Radio, Power, Shield } from 'lucide-react';
 import { UserProfile, UserRole, ThemeMode } from '../types';
 
 interface SidebarProps {
@@ -10,8 +10,6 @@ interface SidebarProps {
   onMonitoringToggle: () => void;
   userProfile: UserProfile;
   onRoleChange: (role: UserRole) => void;
-  theme: ThemeMode;
-  onThemeChange: (theme: ThemeMode) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -22,8 +20,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMonitoringToggle,
   userProfile,
   onRoleChange,
-  theme,
-  onThemeChange
 }) => {
   // Resizable Sidebar State
   const [sidebarWidth, setSidebarWidth] = useState(240); 
@@ -76,20 +72,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const channels = ['16', '72', '69', '06', '12', '13', '14', 'SCAN'];
 
-  const cycleTheme = () => {
-    if (theme === 'auto') onThemeChange('light');
-    else if (theme === 'light') onThemeChange('dark');
-    else onThemeChange('auto');
-  };
-
-  const getThemeIcon = () => {
-    switch(theme) {
-      case 'light': return <Sun size={12} />;
-      case 'dark': return <Moon size={12} />;
-      default: return <Monitor size={12} />;
-    }
-  };
-
   return (
     <div 
       className="hidden md:flex flex-col h-full bg-white dark:bg-zinc-950 border-r border-zinc-200 dark:border-zinc-900 font-mono relative flex-shrink-0 select-none transition-colors duration-300"
@@ -107,15 +89,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Anchor size={14} />
             <span className="font-bold tracking-widest text-[10px] uppercase">Ada Explorer</span>
         </div>
-        
-        {/* Theme Toggle */}
-        <button 
-          onClick={cycleTheme}
-          className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
-          title={`Current Theme: ${theme.toUpperCase()}`}
-        >
-           {getThemeIcon()}
-        </button>
       </div>
 
       {/* Context Label */}

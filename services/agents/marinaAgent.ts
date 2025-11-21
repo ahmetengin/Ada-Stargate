@@ -2,16 +2,56 @@
 import { TaskHandlerFn } from '../decomposition/types';
 import { AgentAction, AgentTraceLog, KplerAisTarget, TrafficEntry, VesselIntelligenceProfile } from '../../types';
 import { wimMasterData } from '../wimMasterData';
+import { financeAgent } from './financeAgent'; // Import financeAgent
 
 // --- MOCK FLEET DATABASE (System of Record) - Enriched with Kpler MCP-style data ---
 let FLEET_DB: VesselIntelligenceProfile[] = [
-    { name: 'S/Y Phisedelia', imo: '987654321', type: 'Sailing Yacht', flag: 'MT', dwt: 150, loa: 18.4, beam: 5.2, status: 'DOCKED', location: 'Pontoon C-12', coordinates: { lat: 40.9634, lng: 28.6289 }, voyage: { lastPort: 'Piraeus', nextPort: 'Sochi', eta: '2025-11-25' } },
-    { name: 'M/Y Blue Horizon', imo: '123456789', type: 'Motor Yacht', flag: 'KY', dwt: 300, loa: 24.0, beam: 6.1, status: 'DOCKED', location: 'Pontoon A-05', coordinates: { lat: 40.9640, lng: 28.6295 }, voyage: { lastPort: 'Monaco', nextPort: 'WIM', eta: 'N/A' } },
-    { name: 'S/Y Mistral', imo: '555666777', type: 'Sailing Yacht', flag: 'TR', dwt: 120, loa: 14.2, beam: 4.1, status: 'AT_ANCHOR', location: 'Sector Zulu', coordinates: { lat: 40.9500, lng: 28.6300 }, voyage: { lastPort: 'Bodrum', nextPort: 'WIM', eta: 'N/A' } },
-    { name: 'M/Y Poseidon', imo: '888999000', type: 'Superyacht', flag: 'BS', dwt: 499, loa: 32.5, beam: 7.8, status: 'DOCKED', location: 'VIP Quay', coordinates: { lat: 40.9650, lng: 28.6270 }, voyage: { lastPort: 'Antalya', nextPort: 'Dubrovnik', eta: '2025-11-28' } },
-    { name: 'Catamaran Lir', imo: '111222333', type: 'Catamaran', flag: 'FR', dwt: 90, loa: 12.0, beam: 6.5, status: 'DOCKED', location: 'Pontoon B-01', coordinates: { lat: 40.9638, lng: 28.6290 }, voyage: { lastPort: 'Thessaloniki', nextPort: 'WIM', eta: 'N/A' } },
-    { name: 'S/Y Aegeas', imo: '444555666', type: 'Sailing Yacht', flag: 'GR', dwt: 140, loa: 16.0, beam: 4.8, status: 'OUTBOUND', location: 'Outbound', coordinates: { lat: 40.9550, lng: 28.6250 }, voyage: { lastPort: 'WIM', nextPort: 'Lavrion', eta: '2025-11-24' } },
-    { name: 'M/Y Grand Turk', imo: '777888999', type: 'Superyacht', flag: 'PA', dwt: 650, loa: 45.0, beam: 9.0, status: 'DOCKED', location: 'VIP Quay', coordinates: { lat: 40.9652, lng: 28.6272 }, voyage: { lastPort: 'St. Tropez', nextPort: 'WIM', eta: 'N/A' } }
+    { 
+        name: 'S/Y Phisedelia', imo: '987654321', type: 'Sailing Yacht', flag: 'MT', 
+        ownerName: 'Ahmet Engin', ownerId: '12345678901', ownerEmail: 'ahmet.engin@example.com', ownerPhone: '+905321234567',
+        dwt: 150, loa: 18.4, beam: 5.2, status: 'DOCKED', location: 'Pontoon C-12', 
+        coordinates: { lat: 40.9634, lng: 28.6289 }, 
+        voyage: { lastPort: 'Piraeus', nextPort: 'Sochi', eta: '2025-11-25' },
+        paymentHistoryStatus: 'RECENTLY_LATE'
+    },
+    { 
+        name: 'M/Y Blue Horizon', imo: '123456789', type: 'Motor Yacht', flag: 'KY', 
+        ownerName: 'Jane Smith', ownerId: '98765432109', ownerEmail: 'jane.smith@example.com', ownerPhone: '+447911123456',
+        dwt: 300, loa: 24.0, beam: 6.1, status: 'DOCKED', location: 'Pontoon A-05', 
+        coordinates: { lat: 40.9640, lng: 28.6295 }, 
+        voyage: { lastPort: 'Monaco', nextPort: 'WIM', eta: 'N/A' } 
+    },
+    { 
+        name: 'S/Y Mistral', imo: '555666777', type: 'Sailing Yacht', flag: 'TR', 
+        dwt: 120, loa: 14.2, beam: 4.1, status: 'AT_ANCHOR', location: 'Sector Zulu', 
+        coordinates: { lat: 40.9500, lng: 28.6300 }, 
+        voyage: { lastPort: 'Bodrum', nextPort: 'WIM', eta: 'N/A' } 
+    },
+    { 
+        name: 'M/Y Poseidon', imo: '888999000', type: 'Superyacht', flag: 'BS', 
+        ownerName: 'Michael Johnson', ownerId: 'A123B456C',
+        dwt: 499, loa: 32.5, beam: 7.8, status: 'DOCKED', location: 'VIP Quay', 
+        coordinates: { lat: 40.9650, lng: 28.6270 }, 
+        voyage: { lastPort: 'Antalya', nextPort: 'Dubrovnik', eta: '2025-11-28' } 
+    },
+    { 
+        name: 'Catamaran Lir', imo: '111222333', type: 'Catamaran', flag: 'FR', 
+        dwt: 90, loa: 12.0, beam: 6.5, status: 'DOCKED', location: 'Pontoon B-01', 
+        coordinates: { lat: 40.9638, lng: 28.6290 }, 
+        voyage: { lastPort: 'Thessaloniki', nextPort: 'WIM', eta: 'N/A' } 
+    },
+    { 
+        name: 'S/Y Aegeas', imo: '444555666', type: 'Sailing Yacht', flag: 'GR', 
+        dwt: 140, loa: 16.0, beam: 4.8, status: 'OUTBOUND', location: 'Outbound', 
+        coordinates: { lat: 40.9550, lng: 28.6250 }, 
+        voyage: { lastPort: 'WIM', nextPort: 'Lavrion', eta: '2025-11-24' } 
+    },
+    { 
+        name: 'M/Y Grand Turk', imo: '777888999', type: 'Superyacht', flag: 'PA', 
+        dwt: 650, loa: 45.0, beam: 9.0, status: 'DOCKED', location: 'VIP Quay', 
+        coordinates: { lat: 40.9652, lng: 28.6272 }, 
+        voyage: { lastPort: 'St. Tropez', nextPort: 'WIM', eta: 'N/A' } 
+    }
 ];
 
 const identifyVessel: TaskHandlerFn = async (ctx, obs) => {
@@ -67,7 +107,15 @@ export const marinaAgent = {
     getVesselIntelligence: async (vesselName: string): Promise<VesselIntelligenceProfile | null> => {
         const targetName = vesselName.toLowerCase();
         const vessel = FLEET_DB.find(v => v.name.toLowerCase().includes(targetName));
-        return vessel || null;
+        if (!vessel) return null;
+
+        // Enrich with live financial data
+        const debtStatus = await financeAgent.checkDebt(vessel.name);
+        return {
+            ...vessel,
+            outstandingDebt: debtStatus.amount,
+            paymentHistoryStatus: debtStatus.paymentHistoryStatus
+        };
     },
 
     // Skill: Expose entire fleet for UI display
@@ -91,18 +139,31 @@ export const marinaAgent = {
             imo,
             type,
             flag,
-            loa: loa || 0, // Default to 0 if not provided
-            beam: beam || 0, // Default to 0 if not provided
-            dwt: (loa && beam) ? Math.round(loa * beam * 0.4) : 0, // Simple DWT estimation
+            loa: loa || undefined,
+            beam: beam || undefined,
+            dwt: (loa && beam) ? Math.round(loa * beam * 0.4) : undefined,
             status: 'REGISTERED',
             location: 'Not yet assigned',
-            coordinates: wimMasterData.identity.location.coordinates, // Default to marina's location
+            coordinates: wimMasterData.identity.location.coordinates,
             voyage: { lastPort: 'N/A', nextPort: 'N/A', eta: 'N/A' },
-            outstandingDebt: 0
+            outstandingDebt: 0,
+            loyaltyScore: 500, // Starting score
+            loyaltyTier: 'STANDARD',
+            paymentHistoryStatus: 'REGULAR'
         };
 
         FLEET_DB.push(newVessel);
         return { success: true, message: `Vessel ${name} (IMO: ${imo}) successfully registered.`, vessel: newVessel };
+    },
+    
+    // Skill: Update Vessel Profile (for loyalty updates etc.)
+    updateVesselProfile: async (imo: string, updates: Partial<VesselIntelligenceProfile>): Promise<boolean> => {
+        const vesselIndex = FLEET_DB.findIndex(v => v.imo === imo);
+        if (vesselIndex === -1) {
+            return false;
+        }
+        FLEET_DB[vesselIndex] = { ...FLEET_DB[vesselIndex], ...updates };
+        return true;
     },
 
     // Skill: Fleet Query

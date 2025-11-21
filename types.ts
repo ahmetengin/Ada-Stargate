@@ -102,6 +102,10 @@ export interface VesselIntelligenceProfile {
     imo: string;
     type: string;
     flag: string;
+    ownerName?: string;
+    ownerId?: string;
+    ownerEmail?: string;
+    ownerPhone?: string;
     dwt?: number; // Deadweight Tonnage
     loa?: number; // Length Overall
     beam?: number;
@@ -114,9 +118,9 @@ export interface VesselIntelligenceProfile {
         eta: string;
     };
     outstandingDebt?: number; // Added to store financial status
-    paymentHistoryStatus?: 'REGULAR' | 'RECENTLY_LATE' | 'OVERDUE';
-    // FIX: Add missing property loyaltyTier
-    loyaltyTier?: string;
+    paymentHistoryStatus?: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE';
+    loyaltyScore?: number;
+    loyaltyTier?: 'STANDARD' | 'SILVER' | 'GOLD' | 'PROBLEM';
 }
 
 
@@ -190,7 +194,7 @@ export interface AgentTraceLog {
   id: string;
   timestamp: string;
   node: NodeName;
-  step: 'ROUTING' | 'THINKING' | 'TOOL_EXECUTION' | 'OUTPUT' | 'ERROR' | 'TOOL_CALL' | 'CODE_OUTPUT' | 'PLANNING' | 'FINAL_ANSWER';
+  step: 'ROUTING' | 'THINKING' | 'TOOL_EXECUTION' | 'OUTPUT' | 'ERROR' | 'TOOL_CALL' | 'CODE_OUTPUT' | 'PLANNING' | 'FINAL_ANSWER' | 'WARNING';
   content: string;
   metadata?: any;
   isError?: boolean;
