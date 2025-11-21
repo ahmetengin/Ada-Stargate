@@ -1,3 +1,12 @@
+# 🐍 Enterprise Backend Source Code
+
+Bu dosya, AI Studio ortam kısıtlamaları nedeniyle oluşturulamayan `backend/server.py` dosyasının tam kaynak kodunu içerir.
+
+Lütfen aşağıdaki kod bloğunu kopyalayın ve kendi bilgisayarınızda `backend/server.py` adıyla kaydedin.
+
+## `backend/server.py`
+
+```python
 import os
 import re
 import logging
