@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
-import { ArrowUp, Loader2, X, AudioLines, Paperclip, Mic, Search, Brain, Sparkles } from 'lucide-react';
+import { ArrowUp, Loader2, X, Paperclip, Search, Brain, Mic, Radio } from 'lucide-react'; // Added Mic, Radio
 import { ModelType } from '../types';
 
 interface InputAreaProps {
@@ -8,13 +8,13 @@ interface InputAreaProps {
   isLoading: boolean;
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
-  onInitiateVhfCall: () => void;
+  onInitiateVhfCall: () => void; 
   isMonitoring: boolean;
   useSearch: boolean;
   onToggleSearch: () => void;
   useThinking: boolean;
   onToggleThinking: () => void;
-  prefillText?: string; // NEW PROP
+  prefillText?: string;
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({ 
@@ -28,14 +28,12 @@ export const InputArea: React.FC<InputAreaProps> = ({
   onToggleSearch,
   useThinking,
   onToggleThinking,
-  prefillText // Destructure
+  prefillText 
 }) => {
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<any>(null);
 
   // Effect to handle prefill from sidebar actions
   useEffect(() => {
@@ -81,36 +79,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
   useEffect(() => {
     adjustHeight();
   }, [text]);
-
-  const toggleRecording = () => {
-    if (isRecording) {
-      recognitionRef.current?.stop();
-      setIsRecording(false);
-    } else {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Sorry, your browser doesn't support speech recognition.");
-        return;
-      }
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onresult = (event: any) => {
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            setText(prev => prev + event.results[i][0].transcript + ' ');
-          }
-        }
-      };
-      recognition.onerror = () => setIsRecording(false);
-      recognition.onend = () => setIsRecording(false);
-      recognition.start();
-      recognitionRef.current = recognition;
-      setIsRecording(true);
-    }
-  };
 
   // Updated to return text colors instead of backgrounds
   const getModelActiveColor = (modelName: string) => {
@@ -202,31 +170,20 @@ export const InputArea: React.FC<InputAreaProps> = ({
 
         {/* Right Controls Group */}
         <div className="flex items-center gap-1 mb-0.5 mr-0.5">
-             
-             {/* Mic Toggle */}
+             {/* RESTORED: Voice Controls */}
              <button 
-                onClick={toggleRecording} 
-                className={`p-2.5 rounded-full transition-all duration-300 ${
-                    isRecording 
-                    ? 'text-red-500 animate-pulse' 
-                    : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'
-                }`}
-            >
-                <Mic size={18} />
-            </button>
-
-            {/* VHF Link */}
-            <button 
-                onClick={onInitiateVhfCall}
-                className={`p-2.5 rounded-full transition-all duration-300 ${
-                    isMonitoring 
-                    ? 'text-red-500 hover:text-red-400' 
-                    : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'
-                }`}
-                title="VHF Channel Link"
-            >
-                <AudioLines size={18} />
-            </button>
+               onClick={onInitiateVhfCall}
+               className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-500 dark:hover:text-indigo-400 transition-all"
+               title="VHF Channel Link"
+             >
+                <Radio size={18} />
+             </button>
+             <button 
+               className="p-2 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+               title="Dictate (Mic)"
+             >
+               <Mic size={18} />
+             </button>
 
             {/* Send Button */}
             <button
@@ -257,14 +214,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
           </div>
         )}
 
-      </div>
-
-      {/* LEGAL / RECORDING DISCLAIMER */}
-      <div className="flex items-center justify-center gap-2 mt-3 opacity-60 select-none">
-          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-[pulse_2s_infinite]"></div>
-          <span className="text-[9px] text-zinc-400 dark:text-zinc-600 font-mono tracking-[0.2em] uppercase">
-              This conversation is being recorded / Recorded Line
-          </span>
       </div>
     </div>
   );

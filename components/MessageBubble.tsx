@@ -9,23 +9,21 @@ import { maskFullName, maskIdNumber, maskEmail, maskPhone } from '../services/ut
 
 interface MessageBubbleProps {
   message: Message;
+  onAction?: (action: string) => void;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction }) => {
   const isUser = message.role === MessageRole.User;
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [copied, setCopied] = useState(false);
   const isSystem = message.role === MessageRole.System;
 
-  // State for vessel intelligence profiles
   const [vesselProfiles, setVesselProfiles] = useState<Record<string, VesselIntelligenceProfile>>({});
   const [loadingVessel, setLoadingVessel] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only process model messages that have text and are not currently thinking
     if (message.role === MessageRole.Model && message.text && !message.isThinking) {
       const lowerText = message.text.toLowerCase();
-      // Find a vessel name from our keywords in the message text
       const matchedVesselKeyword = VESSEL_KEYWORDS.find(keyword => lowerText.includes(keyword));
 
       if (matchedVesselKeyword && !vesselProfiles[matchedVesselKeyword] && loadingVessel !== matchedVesselKeyword) {
@@ -72,7 +70,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   };
 
 
-  // --- SYSTEM MESSAGE (Notification Style) ---
   if (isSystem) {
       return (
           <div className="flex w-full mb-6 justify-center animate-in fade-in zoom-in duration-300">
@@ -84,12 +81,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       )
   }
 
-  // --- USER MESSAGE (Command Pill) ---
   if (isUser) {
     return (
       <div className="flex w-full mb-8 justify-end animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div className="max-w-2xl flex flex-col items-end group">
-            {/* Attachments */}
             {message.attachments && message.attachments.length > 0 && (
              <div className="flex flex-wrap gap-2 mb-2 justify-end">
                 {message.attachments.map((att, idx) => (
@@ -100,7 +95,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
              </div>
             )}
             
-            <div className="bg-white dark:bg-[#27272a] text-zinc-800 dark:text-zinc-100 px-5 py-2.5 rounded-[18px] rounded-tr-sm text-[13px] font-medium shadow-sm font-mono tracking-tight border border-zinc-200 dark:border-zinc-700/50">
+            <div className="bg-white dark:bg-[#27272a] text-zinc-800 dark:text-zinc-100 px-5 py-2.5 rounded-[18px] rounded-tr-sm text-[13px] font-medium shadow-sm font-sans tracking-tight border border-zinc-200 dark:border-zinc-700/50">
                 {message.text}
             </div>
         </div>
@@ -108,28 +103,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     );
   }
 
-  // --- MODEL MESSAGE (The "Magnificent" Tech Report Style - Flat) ---
+  // --- MODEL MESSAGE ---
+  // Changed from font-mono to font-sans for better readability
   return (
-    <div className="flex w-full mb-10 gap-5 group animate-in fade-in slide-in-from-bottom-2 duration-500 font-mono">
+    <div className="flex w-full mb-10 gap-5 group animate-in fade-in slide-in-from-bottom-2 duration-500 font-sans">
         
-        {/* Identity Column */}
         <div className="flex-shrink-0 flex flex-col items-center pt-1">
             <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-900/50 shadow-sm border border-zinc-200 dark:border-transparent">
                 <Anchor size={16} className="text-indigo-600 dark:text-indigo-500" />
             </div>
         </div>
 
-        {/* Content Card */}
         <div className="flex-1 max-w-3xl min-w-0">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-3">
+            {/* Header - Kept in MONO for style */}
+            <div className="flex justify-between items-center mb-3 font-mono">
                <div className="flex items-center gap-3">
                    <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 tracking-widest uppercase">ADA MARINA</span>
                    <div className="h-px w-8 bg-zinc-200 dark:bg-zinc-800"></div>
                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">v3.2</span>
                </div>
                
-               {/* Action Tray */}
                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
                     <button onClick={copyToClipboard} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors" title="Copy Protocol">
                         {copied ? <Check size={12} /> : <Copy size={12} />}
@@ -140,15 +133,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 </div>
             </div>
 
-            {/* Markdown Content Area */}
             <div className="prose prose-invert prose-sm max-w-none 
-                text-zinc-600 dark:text-zinc-400/90 text-[12px] leading-relaxed
+                text-zinc-600 dark:text-zinc-300 text-[13px] leading-7
                 prose-p:my-2 prose-p:font-normal
-                prose-strong:text-zinc-900 dark:prose-strong:text-zinc-200 prose-strong:font-bold
-                prose-headings:text-zinc-800 dark:prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-wide prose-headings:uppercase prose-headings:text-[13px] prose-headings:mt-6 prose-headings:mb-2
+                prose-strong:text-zinc-900 dark:prose-strong:text-zinc-100 prose-strong:font-semibold
+                prose-headings:text-zinc-800 dark:prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-[14px] prose-headings:mt-6 prose-headings:mb-3
                 prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-zinc-100 dark:prose-code:bg-[#121214] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-mono prose-code:text-[11px]
                 prose-pre:bg-zinc-50 dark:prose-pre:bg-[#121214] prose-pre:border prose-pre:border-zinc-200 dark:prose-pre:border-zinc-800 prose-pre:rounded-lg prose-pre:p-3
-                prose-ul:my-2 prose-ul:pl-0 prose-li:list-none prose-li:pl-0 prose-li:relative prose-li:before:content-['>'] prose-li:before:absolute prose-li:before:left-0 prose-li:before:text-zinc-400 dark:prose-li:before:text-zinc-600 prose-li:pl-4"
+                prose-ul:my-2 prose-ul:pl-0 prose-li:list-none prose-li:pl-0 prose-li:relative prose-li:before:content-['•'] prose-li:before:absolute prose-li:before:left-0 prose-li:before:text-zinc-300 dark:prose-li:before:text-zinc-600 prose-li:pl-4"
             >
                 {message.text ? (
                     <ReactMarkdown>{message.text}</ReactMarkdown>
@@ -164,27 +156,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 )}
             </div>
 
-            {/* Vessel Intelligence Profile Display */}
-            {/* FIX: Cast `profile` to VesselIntelligenceProfile to fix typing errors. */}
             {Object.values(vesselProfiles).map((profile, idx) => {
                 const p = profile as VesselIntelligenceProfile;
                 return (
                 p && (
-                    <div key={idx} className="mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col gap-3">
+                    <div key={idx} className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col gap-3 font-mono">
                         <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Vessel Intelligence Profile</div>
                         
                         <div className="bg-sky-50 dark:bg-sky-900/10 p-3 rounded-lg border border-sky-200 dark:border-sky-900/20 text-[11px] leading-snug space-y-2">
-                           {/* Main Info */}
                            <div>
                                 <p className="font-bold text-zinc-800 dark:text-zinc-200">{p.name} (IMO: {p.imo})</p>
                                 <p className="text-zinc-600 dark:text-zinc-400">Type: {p.type} | Flag: {p.flag} | {p.loa}m LOA</p>
                            </div>
-                           {/* Status & Voyage */}
                            <div>
                                 <p><strong>Status:</strong> {p.status} at {p.location}</p>
                                 <p><strong>Voyage:</strong> {p.voyage?.lastPort} &rarr; <strong>{p.voyage?.nextPort}</strong> (ETA: {p.voyage?.eta})</p>
                            </div>
-                           {/* Owner & Contact Info (Masked) */}
                            {(p.ownerName || p.ownerEmail) && (
                             <div className="pt-2 border-t border-sky-200 dark:border-sky-800/50">
                                 <p className="flex items-center gap-2"><User size={12} /> Owner: {maskFullName(p.ownerName || 'N/A')} | ID: {maskIdNumber(p.ownerId || 'N/A')}</p>
@@ -192,7 +179,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                                 <p className="flex items-center gap-2"><Phone size={12} /> Phone: {maskPhone(p.ownerPhone || 'N/A')}</p>
                             </div>
                            )}
-                           {/* Financial & Loyalty */}
                            <div className="flex items-center justify-between pt-2 border-t border-sky-200 dark:border-sky-800/50">
                                 <div className="flex items-center gap-2">
                                    <span className="font-bold">Loyalty:</span>
@@ -210,13 +196,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             )})}
 
 
-            {/* Grounding / Sources Footer */}
             {message.groundingSources && message.groundingSources.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-900 flex flex-wrap gap-2">
+                <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-900 flex flex-wrap gap-2 font-mono">
                     {message.groundingSources.map((source, idx) => (
                         <a key={idx} href={source.uri} target="_blank" rel="noreferrer" className="group flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-[#121214] dark:hover:bg-zinc-900 px-3 py-1.5 rounded-md text-[10px] text-zinc-600 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-300 transition-all">
                             <div className="w-1 h-1 rounded-full bg-indigo-500 group-hover:shadow-[0_0_5px_rgba(99,102,241,0.8)] transition-all"></div>
-                            <span className="truncate max-w-[200px] font-mono">{source.title}</span>
+                            <span className="truncate max-w-[200px]">{source.title}</span>
                         </a>
                     ))}
                 </div>

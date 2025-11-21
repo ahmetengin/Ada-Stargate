@@ -1,21 +1,22 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode, VesselIntelligenceProfile } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
 import { MessageBubble } from './components/MessageBubble';
 import { streamChatResponse } from './services/geminiService';
-import { VoiceModal } from './components/VoiceModal';
 import { TypingIndicator } from './components/TypingIndicator';
 import { StatusBar } from './components/StatusBar';
 import { AgentTraceModal } from './components/AgentTraceModal';
 import { orchestratorService } from './services/orchestratorService';
 import { marinaAgent } from './services/agents/marinaAgent';
+import { technicAgent } from './services/agents/technicAgent';
 import { VESSEL_KEYWORDS } from './services/constants'; 
 import { wimMasterData } from './services/wimMasterData';
 import { Sun, Moon, Monitor } from 'lucide-react';
-import { persistenceService, STORAGE_KEYS } from './services/persistence'; // Enterprise Persistence
+import { persistenceService, STORAGE_KEYS } from './services/persistence';
+import { checkBackendHealth } from './services/api';
+import { VoiceModal } from './components/VoiceModal';
 
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
@@ -38,11 +39,12 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState<ModelType>(ModelType.Pro);
   const [useSearch, setUseSearch] = useState(false);
   const [useThinking, setUseThinking] = useState(true);
+  const [backendStatus, setBackendStatus] = useState<'operational' | 'degraded'>('degraded');
   
   // Theme State
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') as ThemeMode || 'dark'; 
+      return persistenceService.load(STORAGE_KEYS.THEME, 'dark');
     }
     return 'dark';
   });
@@ -50,10 +52,14 @@ export default function App() {
   const [agentTraces, setAgentTraces] = useState<AgentTraceLog[]>([]);
   const [isTraceModalOpen, setIsTraceModalOpen] = useState(false);
 
+  // Canvas State
+  const [isCanvasOpen, setIsCanvasOpen] = useState(true);
+  const [activeCanvasTab, setActiveCanvasTab] = useState<'fleet' | 'feed' | 'cloud' | 'ais' | 'map' | 'tech'>('fleet');
+
+  // VHF State
   const [activeChannel, setActiveChannel] = useState('72');
   const [isMonitoring, setIsMonitoring] = useState(true);
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
-  const [isCanvasOpen, setIsCanvasOpen] = useState(true);
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   // Persistent User Profile
   const [userProfile, setUserProfile] = useState<UserProfile>(() => persistenceService.load(STORAGE_KEYS.USER_PROFILE, {
@@ -74,14 +80,14 @@ export default function App() {
       { id: 'tq3', vessel: 'Catamaran 42', status: 'TAXIING', priority: 5, sector: 'Inner Harbour', destination: 'A-12' }
   ]));
 
-  // Non-persistent state (Weather is external)
+  // Non-persistent state
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([
       { day: 'Today', temp: 24, condition: 'Sunny', windSpeed: 12, windDir: 'NW', alertLevel: 'NONE' },
       { day: 'Tomorrow', temp: 22, condition: 'Windy', windSpeed: 28, windDir: 'N', alertLevel: 'ADVISORY' },
       { day: 'Wed', temp: 19, condition: 'Rain', windSpeed: 15, windDir: 'NE', alertLevel: 'NONE' },
   ]);
   
-  const [vesselsInPort, setVesselsInPort] = useState(540); 
+  const [vesselsInPort, setVesselsInPort] = useState(0); 
   
   const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({
     'ada.vhf': 'connected', 'ada.sea': 'connected', 'ada.marina': 'connected',
@@ -101,6 +107,20 @@ export default function App() {
   useEffect(() => { persistenceService.save(STORAGE_KEYS.TRAFFIC, trafficQueue); }, [trafficQueue]);
   useEffect(() => { persistenceService.save(STORAGE_KEYS.USER_PROFILE, userProfile); }, [userProfile]);
 
+  useEffect(() => {
+      const fleet = marinaAgent.getAllFleetVessels();
+      setVesselsInPort(fleet.length);
+  }, []);
+
+  useEffect(() => {
+      const check = async () => {
+          const isHealthy = await checkBackendHealth();
+          setBackendStatus(isHealthy ? 'operational' : 'degraded');
+      };
+      check();
+      const interval = setInterval(check, 10000);
+      return () => clearInterval(interval);
+  }, []);
 
   // --- THEME LOGIC ---
   useEffect(() => {
@@ -113,7 +133,7 @@ export default function App() {
     } else {
       root.classList.add(theme);
     }
-    localStorage.setItem('theme', theme);
+    persistenceService.save(STORAGE_KEYS.THEME, theme);
   }, [theme]);
 
   const cycleTheme = () => {
@@ -130,446 +150,452 @@ export default function App() {
     }
   };
 
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // --- AUTONOMOUS VESSEL PROFILER AGENT ---
-  useEffect(() => {
-    const profilerInterval = setInterval(async () => {
-      if (!isMonitoring) return;
+  const addLog = (log: any) => {
+    setLogs(prev => [log, ...prev]);
+  };
 
-      const currentTargets = await marinaAgent.fetchLiveAisData();
-      if (currentTargets.length === 0) return;
-
-      const unprofiledTarget = currentTargets.find(t => t.vessel && !profiledVessels.has(t.vessel));
-      
-      if (unprofiledTarget?.vessel) {
-        const intelProfile = await marinaAgent.getVesselIntelligence(unprofiledTarget.vessel);
-
-        if (intelProfile) {
-          const newLog = {
-            id: `intel_${intelProfile.imo}_${Date.now()}`,
-            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            source: 'ada.intelligence',
-            message: intelProfile,
-            type: 'intelligence_briefing'
-          };
-          setLogs(prev => [newLog, ...prev]);
-          setProfiledVessels(prev => new Set(prev).add(unprofiledTarget.vessel!));
-          setNodeStates(prev => ({...prev, 'ada.marina': 'working' }));
-          setTimeout(() => setNodeStates(prev => ({...prev, 'ada.marina': 'connected' })), 500);
-        }
+  const handleAgentAction = async (action: AgentAction) => {
+      if (action.name === 'ada.passkit.generated') {
+          addLog({
+              id: `log_pk_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.passkit',
+              message: action.params,
+              type: 'passkit_issued'
+          });
+          setActiveCanvasTab('feed');
       }
-    }, 30000); 
-
-    return () => clearInterval(profilerInterval);
-  }, [isMonitoring, profiledVessels]);
-
-
-  // --- AUTONOMOUS PROACTIVE ATC LOGIC ---
-  useEffect(() => {
-    const atcInterval = setInterval(async () => {
-       if (!isMonitoring) return;
-       const liveTargets = await marinaAgent.fetchLiveAisData();
-       const inboundContracted = liveTargets.find(t => t.status === 'INBOUND' && marinaAgent.isContractedVessel(t.imo || ''));
-
-       if (inboundContracted) {
-          const logExists = logs.some(l => l.type === 'atc_log' && l.vessel === inboundContracted.vessel);
-          if (!logExists) {
-              const atcLog = {
-                id: `atc_${Date.now()}`,
-                timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                source: 'ada.atc',
-                vessel: inboundContracted.vessel,
-                message: `PROACTIVE ATC: Contracted vessel ${inboundContracted.vessel} detected INBOUND.
-- Instruct to hold at Sector Zulu.
-- Alert: Heavy traffic from Ambarlı Port reported.
-- Action: Pre-assign Tender Bravo for docking assist.`,
-                type: 'atc_log'
-              };
-              setLogs(prev => [atcLog, ...prev]);
-          }
-       }
-    }, 900000); 
-
-    return () => clearInterval(atcInterval);
-  }, [isMonitoring, logs]);
-
-  // --- AUTONOMOUS AI TRAFFIC CONTROLLER LOGIC ---
-  const handleCheckIn = (trafficId: string) => {
-      const entry = trafficQueue.find(t => t.id === trafficId);
-      if (!entry) return;
-
-      const newRegistryEntry: RegistryEntry = {
-        id: `reg-${Date.now()}`,
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
-        vessel: entry.vessel,
-        action: 'CHECK-IN',
-        location: entry.destination || 'Transit Quay',
-        status: 'AUTHORIZED'
-      };
-      setRegistry(prev => [newRegistryEntry, ...prev]);
-      setTrafficQueue(prev => prev.filter(t => t.id !== trafficId));
-      setVesselsInPort(prev => prev + 1); 
-  };
-
-  useEffect(() => {
-    if (!isMonitoring || trafficQueue.length === 0) return;
-
-    const autoAuthInterval = setInterval(() => {
-       const target = trafficQueue.find(t => t.status === 'INBOUND' || t.status === 'HOLDING');
-       
-       if (target && Math.random() > 0.5) { 
-          const logId = Date.now();
-          setLogs(prev => [{
-             id: logId,
-             timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-             source: 'ada.marina',
-             message: `AI AUTO: ${target.vessel} authorized for docking at ${target.destination || 'Pontoon C'}.`,
-             type: 'info'
-          }, ...prev]);
-
-          handleCheckIn(target.id);
-       }
-    }, 5000);
-
-    return () => clearInterval(autoAuthInterval);
-  }, [trafficQueue, isMonitoring]);
-
-
-  // Simulation Logic (Random Chatter & Environmental Sensors)
-  useEffect(() => {
-    const generateLog = () => {
-       const sourceNode = ['ada.vhf', 'ada.security', 'ada.finance', 'ada.marina', 'ada.weather', 'ada.sea (Sensor)'][Math.floor(Math.random() * 6)];
-       const vessel = VESSEL_KEYWORDS[Math.floor(Math.random() * VESSEL_KEYWORDS.length)];
-       let message = '';
-       let type = 'info';
-       let channel = '';
-
-       switch (sourceNode) {
-         case 'ada.vhf':
-           if (activeChannel === 'SCAN') {
-                channel = ['16', '72', '12', '13', '14'][Math.floor(Math.random() * 5)];
-           } else {
-                channel = activeChannel;
-           }
-           const actions = ["requesting pilot", "calling security", "at Pontoon C", "routine check", "technical assist required"];
-           message = `[CH ${channel}] ${vessel} ${actions[Math.floor(Math.random() * actions.length)]}.`;
-           break;
-         case 'ada.security':
-           message = `Gate A: Vehicle entry authorized. Plate 34-AD-123.`;
-           break;
-         case 'ada.finance':
-           message = `Parasut: Invoice synced for ${vessel}. Iyzico: Payment Pending.`;
-           break;
-         case 'ada.marina':
-            message = 'Berth C-14 power restored';
-            break;
-        case 'ada.weather':
-            message = 'Barometer dropping rapidly.';
-            break;
-        case 'ada.sea (Sensor)':
-            const pollution = Math.random();
-            if (pollution > 0.8) { 
-                message = `CRITICAL ALERT: Hydrocarbon sensor @ Pontoon B detected high levels! Possible bilge discharge. Dispatching drone.`;
-                type = 'ENVIRONMENTAL_ALERT'; 
-            } else {
-                message = `Water Quality Normal. O2: 7.8mg/L, pH: 8.1, Turbidity: Low.`;
-            }
-            break;
-       }
-       
-       const newLog = {
-         id: Date.now() + Math.random(),
-         timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-         source: sourceNode,
-         message: message,
-         type: type,
-       };
-       setLogs(prev => [newLog, ...prev.slice(0, 199)]);
-       setNodeStates(prev => ({...prev, [sourceNode.includes('Sensor') ? 'ada.sea' : sourceNode]: 'working' }));
-       setTimeout(() => setNodeStates(prev => ({...prev, [sourceNode.includes('Sensor') ? 'ada.sea' : sourceNode]: 'connected' })), 500);
-    };
-    
-    const simInterval = setInterval(() => {
-      if (!isMonitoring) return;
-      generateLog();
-    }, 3000);
-
-    return () => clearInterval(simInterval);
-  }, [isMonitoring, activeChannel]);
-
-  const handleRoleChange = (newRole: UserRole) => {
-      setUserProfile(prev => ({
-          ...prev,
-          role: newRole,
-          clearanceLevel: newRole === 'GENERAL_MANAGER' ? 5 : newRole === 'CAPTAIN' ? 2 : 0
-      }));
-      const sysMsg: Message = {
-          id: `sys-${Date.now()}`,
-          role: MessageRole.System,
-          text: `**System Auth Updated**: User authenticated as **${newRole}**. Access Control Lists reloaded.`,
-          timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, sysMsg]);
-  };
-
-  const handleAgentAction = (action: AgentAction) => {
       if (action.name === 'ada.marina.tenderDispatched') {
-          const tenderName = action.params.tender; 
-          const vessel = action.params.vessel;
-          setTenders(prev => prev.map(t => {
-            if (t.name === tenderName) {
-                return { 
-                    ...t, 
-                    status: 'Busy' as const, 
-                    assignment: vessel,
-                    serviceCount: (t.serviceCount || 0) + 1 
-                };
-            }
-            return t;
-          }));
+          const { tender, vessel, mission, departurePlan } = action.params;
+          setTenders(prev => prev.map(t => t.name === tender ? { ...t, status: 'Busy', assignment: vessel, serviceCount: (t.serviceCount || 0) + 1 } : t));
           
-          const newLog = {
-            id: Date.now() + Math.random(),
-            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            source: 'ada.marina',
-            message: `Tender Ops: ${tenderName} dispatched to ${action.params.vessel}.`,
-            type: 'info',
-          };
-          setLogs(prev => [newLog, ...prev]);
+          let msg = `Assigned to ${vessel} for ${mission}.`;
+          if (departurePlan) {
+              msg += `\nPlan: Berth ${departurePlan.berth}, Pilot: ${departurePlan.pilot}, Linesmen: ${departurePlan.lineHandlers}, Ch: ${departurePlan.coordinationChannel}`;
+          }
+
+          addLog({
+              id: `log_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.marina (Ops)',
+              message: msg,
+              type: 'alert'
+          });
+          setActiveCanvasTab('fleet');
+
+          setTimeout(() => {
+              setTenders(prev => prev.map(t => t.name === tender ? { ...t, status: 'Idle', assignment: undefined } : t));
+              addLog({
+                  id: `log_${Date.now()}_comp`,
+                  timestamp: new Date().toLocaleTimeString(),
+                  source: 'ada.marina (Ops)',
+                  message: `${tender} completed mission. Returning to station.`,
+                  type: 'info'
+              });
+          }, 10000);
       }
-      
+      if (action.name === 'ada.finance.invoiceCreated') {
+          addLog({
+              id: `log_inv_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.finance',
+              message: `Invoice ${action.params.invoice.id} generated for ${action.params.invoice.amount} EUR.`,
+              type: 'warning'
+          });
+          setActiveCanvasTab('feed');
+      }
+      if (action.name === 'ada.finance.paymentLinkGenerated') {
+          addLog({
+              id: `log_pay_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.finance',
+              message: `Payment Link Active: ${action.params.link.url}`,
+              type: 'info'
+          });
+          setActiveCanvasTab('feed');
+      }
+      if (action.name === 'ada.customer.engage') {
+           addLog({
+              id: `log_eng_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.customer',
+              message: action.params.message,
+              type: 'customer_engagement'
+          });
+      }
       if (action.name === 'ada.finance.proposePaymentPlan') {
-          const newLog = {
-            id: Date.now() + Math.random(),
-            timestamp: new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            source: 'ada.customer',
-            message: `PROPOSAL: Payment Plan for ${action.params.vesselName} (${action.params.loyaltyTier}). GM Approval Required.`,
-            type: 'customer_proposal',
-          };
-          setLogs(prev => [newLog, ...prev]);
+           addLog({
+              id: `log_prop_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.customer',
+              message: `PROPOSAL TO GM: Payment Plan for ${action.params.vesselName} (${action.params.loyaltyTier})\nRecommendation: ${action.params.recommendation}`,
+              type: 'customer_proposal'
+          });
+          setActiveCanvasTab('feed');
+      }
+      if (action.name === 'ada.customer.deliverCredentials') {
+          addLog({
+              id: `log_cred_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.customer',
+              message: `Credentials delivery initiated for ${action.params.vesselName}. Triggering PassKit...`,
+              type: 'info'
+          });
+      }
+      if (action.name === 'ada.marina.updateVesselProfile' || action.name.includes('registerVessel')) {
+          const fleet = marinaAgent.getAllFleetVessels();
+          setVesselsInPort(fleet.length);
+          setActiveCanvasTab('fleet');
+      }
+      if (action.name === 'technic.service.scheduled' || action.name.includes('schedule_service')) {
+          setActiveCanvasTab('tech');
       }
   };
 
-  const handleNodeClick = (nodeId: string) => {
-      const cleanNode = nodeId.replace(' (Sensor)', ''); 
-      setPrefillText(`@${cleanNode} `);
-  };
+  useEffect(() => {
+      const interval = setInterval(() => {
+          marinaAgent.fetchLiveAisData().then(targets => {
+              targets.forEach(target => {
+                  const isContracted = marinaAgent.isContractedVessel(target.imo || '');
+                  if (isContracted && !profiledVessels.has(target.vessel)) {
+                      setProfiledVessels(prev => new Set(prev).add(target.vessel));
+                      marinaAgent.getVesselIntelligence(target.vessel).then(profile => {
+                          if (profile) {
+                              addLog({
+                                  id: `intel_${Date.now()}`,
+                                  timestamp: new Date().toLocaleTimeString(),
+                                  source: 'ada.intelligence',
+                                  message: "AUTO-PROFILE GENERATED",
+                                  type: 'intelligence_briefing'
+                              });
+                          }
+                      });
+                  }
+              });
+          });
+      }, 30000);
+      return () => clearInterval(interval);
+  }, [profiledVessels]);
+
+  useEffect(() => {
+      const interval = setInterval(() => {
+          const allVessels = marinaAgent.getAllFleetVessels();
+          allVessels.forEach(vessel => {
+              const engagementKey = `engaged_${vessel.name}`;
+              if (!profiledVessels.has(engagementKey)) {
+                  if (vessel.outstandingDebt && vessel.outstandingDebt > 0 && vessel.paymentHistoryStatus === 'RECENTLY_LATE') {
+                       orchestratorService.processRequest(`Evaluate payment plan for ${vessel.name}`, userProfile).then(res => {
+                           res.actions.forEach(handleAgentAction);
+                       });
+                       setProfiledVessels(prev => new Set(prev).add(engagementKey));
+                  } 
+                  else if (vessel.loyaltyTier === 'GOLD' || vessel.loyaltyTier === 'SILVER') {
+                       import('./services/agents/customerAgent').then(({customerAgent}) => {
+                           customerAgent.proactiveEngagement(vessel, () => {}).then(res => {
+                               if (res.logMessage) {
+                                   addLog({
+                                      id: `eng_${Date.now()}`,
+                                      timestamp: new Date().toLocaleTimeString(),
+                                      source: 'ada.customer',
+                                      message: res.logMessage,
+                                      type: 'customer_engagement'
+                                  });
+                               }
+                           });
+                       });
+                       setProfiledVessels(prev => new Set(prev).add(engagementKey));
+                  }
+              }
+          });
+      }, 60000 * 5);
+      return () => clearInterval(interval);
+  }, [profiledVessels, userProfile]);
+
+  useEffect(() => {
+      const interval = setInterval(() => {
+          if (Math.random() > 0.8) {
+              const sensors = ['Pontoon A', 'Pontoon C', 'Fuel Station', 'Entrance'];
+              const location = sensors[Math.floor(Math.random() * sensors.length)];
+              if (Math.random() > 0.7) {
+                  addLog({
+                      id: `env_${Date.now()}`,
+                      timestamp: new Date().toLocaleTimeString(),
+                      source: 'ada.sea (Sensor)',
+                      message: `Hydrocarbon levels elevated at ${location}. Monitoring...`,
+                      type: 'warning'
+                  });
+              } else if (Math.random() > 0.9) {
+                  addLog({
+                      id: `env_crit_${Date.now()}`,
+                      timestamp: new Date().toLocaleTimeString(),
+                      source: 'ada.sea (Sensor)',
+                      message: `CRITICAL: Oil spill detected at ${location}. Dispatching response team.`,
+                      type: 'ENVIRONMENTAL_ALERT'
+                  });
+                  setActiveCanvasTab('feed');
+              }
+          }
+      }, 45000);
+      return () => clearInterval(interval);
+  }, []);
+
 
   const handleSend = async (text: string, attachments: File[]) => {
     const userMessage: Message = {
-      id: Date.now().toString(), role: MessageRole.User, text, timestamp: Date.now(),
+      id: Date.now().toString(),
+      role: MessageRole.User,
+      text: text,
+      timestamp: Date.now(),
       attachments: await Promise.all(attachments.map(async file => ({
         mimeType: file.type,
-        data: (await new Promise<string>(res => {
-          const reader = new FileReader();
-          reader.onload = e => res(e.target?.result as string);
-          reader.readAsDataURL(file);
-        })).split(',')[1],
+        data: await fileToGoogleGenerativeAI(file),
         name: file.name
       })))
     };
+
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
-    setAgentTraces([]); 
-    setPrefillText('');
 
-    if (activeChannel === '72') {
-        const orchestrationResult = await orchestratorService.processRequest(text, userProfile);
-        setAgentTraces(orchestrationResult.traces);
-        orchestrationResult.actions.forEach(handleAgentAction);
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('map') || lowerText.includes('location') || lowerText.includes('where')) setActiveCanvasTab('map');
+    else if (lowerText.includes('radar') || lowerText.includes('ais') || lowerText.includes('scan')) setActiveCanvasTab('ais');
+    else if (lowerText.includes('tech') || lowerText.includes('repair') || lowerText.includes('schedule') || lowerText.includes('lift')) setActiveCanvasTab('tech');
+    else if (lowerText.includes('fleet') || lowerText.includes('vessel') || lowerText.includes('boat')) setActiveCanvasTab('fleet');
+    else if (lowerText.includes('weather') || lowerText.includes('forecast')) setActiveCanvasTab('cloud');
+    else if (lowerText.includes('invoice') || lowerText.includes('pay') || lowerText.includes('log')) setActiveCanvasTab('feed');
 
-        const isStandardInquiry = !orchestrationResult.text;
-
-        if (!isStandardInquiry) {
-            setTimeout(() => {
-                setMessages(prev => [...prev, { 
-                    id: `resp-${Date.now()}`, 
-                    role: MessageRole.Model, 
-                    text: orchestrationResult.text, 
-                    timestamp: Date.now() 
-                }]);
-                setIsLoading(false);
-            }, 600);
-        } else {
-            let currentResponse = "";
-            const responseId = (Date.now() + 1).toString();
-            setMessages(prev => [...prev, { id: responseId, role: MessageRole.Model, text: "", timestamp: Date.now(), isThinking: true }]);
-
-            await streamChatResponse(
-              messages.concat(userMessage),
-              selectedModel,
-              useSearch,
-              useThinking,
-              registry,
-              tenders,
-              userProfile,
-              vesselsInPort,
-              (chunk, grounding) => {
-                 currentResponse += chunk;
-                 setMessages(prev => prev.map(m =>
-                   m.id === responseId ? { ...m, text: currentResponse, isThinking: false, groundingSources: grounding } : m
-                 ));
-              }
-            );
-            setIsLoading(false);
-        }
-    } 
-    else {
-        let simulatedResponse = "";
-        const delay = 800;
-
-        switch(activeChannel) {
-            case '16':
-                simulatedResponse = `**[COAST GUARD / CH 16]**\n\nDistress signal received. Identifying Station... \n**Note:** For non-emergency marina operations, switch to Channel 72.`;
-                break;
-            case '14':
-                simulatedResponse = `**[TENDER OPS / CH 14]**\n\nTender Alpha copies. Proceeding to waypoint. \n*(This is a local mesh network message. No AI processing required.)*`;
-                break;
-            case '06':
-                simulatedResponse = `**[ASSIST / CH 06]**\n\nTechnical support team notified via pager system. Stand by.`;
-                break;
-            case '12':
-            case '13':
-                 simulatedResponse = `**[VTS TRAFFIC / CH ${activeChannel}]**\n\nSector Kadikoy VTS: Copy. Maintain course and speed.`;
-                 break;
-            default:
-                simulatedResponse = `**[RADIO SILENCE]**\n\nNo active stations on Channel ${activeChannel}.`;
+    try {
+        const result = await orchestratorService.processRequest(text, userProfile);
+        
+        for (const action of result.actions) {
+            await handleAgentAction(action);
         }
 
-        setTimeout(() => {
-            const radioMessage: Message = {
-                id: `rtc-${Date.now()}`,
-                role: MessageRole.System,
-                text: simulatedResponse,
+        setAgentTraces(result.traces);
+
+        if (result.text) {
+            const botMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: MessageRole.Model,
+                text: result.text,
                 timestamp: Date.now()
             };
-            setMessages(prev => [...prev, radioMessage]);
-            setIsLoading(false);
-        }, delay);
+            setMessages(prev => [...prev, botMessage]);
+        } 
+        else {
+            await streamChatResponse(
+                [...messages, userMessage],
+                selectedModel,
+                useSearch,
+                useThinking,
+                registry,
+                tenders,
+                userProfile,
+                vesselsInPort,
+                (text, grounding) => {
+                    setMessages(prev => {
+                        const last = prev[prev.length - 1];
+                        if (last.role === MessageRole.Model && last.isThinking) {
+                            return [...prev.slice(0, -1), { ...last, text, isThinking: false, groundingSources: grounding }];
+                        }
+                        return [...prev, { id: Date.now().toString(), role: MessageRole.Model, text, timestamp: Date.now(), groundingSources: grounding }];
+                    });
+                }
+            );
+        }
+
+    } catch (error) {
+      console.error(error);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: MessageRole.Model,
+        text: "**System Error:** Node communication failed. Please retry.",
+        timestamp: Date.now()
+      }]);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  const toggleAuth = async () => {
-      handleRoleChange(userProfile.role === 'GUEST' ? 'GENERAL_MANAGER' : 'GUEST');
+
+  const handleCheckIn = (id: string) => {
+      const entry = trafficQueue.find(t => t.id === id);
+      if (entry) {
+          setTrafficQueue(prev => prev.filter(t => t.id !== id));
+          setRegistry(prev => [{
+              id: `reg-${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              vessel: entry.vessel,
+              action: 'CHECK-IN',
+              location: entry.sector,
+              status: 'AUTHORIZED'
+          }, ...prev]);
+          
+          addLog({
+              id: `log_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.marina',
+              message: `${entry.vessel} authorized for entry to ${entry.destination || 'Transit Quay'}.`,
+              type: 'info'
+          });
+          setActiveCanvasTab('feed');
+      }
   };
 
-  const handleInitiateVhfCall = () => {
-    if (isMonitoring) {
-      setIsVoiceModalOpen(true);
-    }
+  const toggleUserRole = (role: UserRole) => {
+      setUserProfile(prev => ({ ...prev, role }));
+      setMessages(prev => [...prev, {
+          id: `sys-${Date.now()}`,
+          role: MessageRole.System,
+          text: `USER ROLE UPDATED: ${role}`,
+          timestamp: Date.now()
+      }]);
   };
 
-  // Get coordinates from wimMasterData
-  const { lat, lng } = wimMasterData.identity.location.coordinates;
-
-  const formatCoordinate = (coord: number, type: 'lat' | 'lng') => {
-    const direction = type === 'lat' ? (coord >= 0 ? 'N' : 'S') : (coord >= 0 ? 'E' : 'W');
-    const absCoord = Math.abs(coord);
-    const degrees = Math.floor(absCoord);
-    const minutesFloat = (absCoord - degrees) * 60;
-    const minutes = Math.floor(minutesFloat);
-    const seconds = Math.round((minutesFloat - minutes) * 60);
-    return `${direction} ${degrees}°${minutes}’${seconds}’’`;
+  const handleToggleAuth = () => {
+      const roles: UserRole[] = ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'];
+      const currentIdx = roles.indexOf(userProfile.role);
+      const nextRole = roles[(currentIdx + 1) % roles.length];
+      toggleUserRole(nextRole);
   };
 
-  const formattedLat = formatCoordinate(lat, 'lat');
-  const formattedLng = formatCoordinate(lng, 'lng');
-  const displayCoordinates = `${formattedLat} ${formattedLng}`;
+  const handleNodeClick = (nodeId: string) => {
+      setPrefillText(`@${nodeId} `);
+  };
+
+  async function fileToGoogleGenerativeAI(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        resolve(base64.split(',')[1]);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-zinc-50 dark:bg-[#09090b] text-zinc-900 dark:text-zinc-200 overflow-hidden font-sans selection:bg-indigo-500/30 transition-colors duration-300">
+    <div className={`flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans ${theme}`}>
+      <Sidebar 
+        nodeStates={nodeStates}
+        activeChannel={activeChannel}
+        onChannelChange={setActiveChannel}
+        isMonitoring={isMonitoring}
+        onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
+        userProfile={userProfile}
+        onRoleChange={toggleUserRole}
+        onNodeClick={handleNodeClick}
+      />
       
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        <Sidebar {...{ 
-            nodeStates, 
-            activeChannel, 
-            onChannelChange: setActiveChannel, 
-            isMonitoring, 
-            onMonitoringToggle: () => setIsMonitoring(!isMonitoring), 
-            userProfile, 
-            onRoleChange: handleRoleChange,
-            onNodeClick: handleNodeClick 
-        }} />
-        
-        {/* Main Chat Zone */}
-        <div className="flex flex-col flex-1 relative min-w-0 border-r border-transparent bg-zinc-50 dark:bg-[#09090b]">
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-white dark:bg-[#09090b] transition-colors duration-300 relative">
           
-          {/* Header */}
-          <header className="h-12 flex items-center justify-between px-6 flex-shrink-0 z-10 mt-1 border-b border-transparent">
-             <div className="flex items-center gap-3 opacity-80 hover:opacity-100 transition-opacity select-none">
-                <h1 className="text-[11px] font-bold tracking-[0.2em] text-zinc-500 dark:text-zinc-400 uppercase font-mono">Ada.Marina | <span className="text-indigo-600 dark:text-indigo-500">Ready</span></h1>
-             </div>
-             <div className="flex items-center gap-4">
-                {activeChannel !== 'SCAN' && (
-                    <span className={`text-[10px] font-mono flex items-center gap-2 ${activeChannel === '72' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-zinc-500'}`}>
-                        <span className="text-red-500">{displayCoordinates}</span>
-                        <span>VHF CH {activeChannel} {activeChannel === '72' ? '[AI ACTIVE]' : '[MESH NET]'}</span>
-                    </span>
-                )}
-                <button 
-                  onClick={cycleTheme}
-                  className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-900 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
-                  title={`Theme: ${theme.toUpperCase()}`}
-                >
-                   {getThemeIcon()}
-                </button>
-             </div>
-          </header>
+          <div className="flex-1 flex overflow-hidden relative">
+              
+              <main className="flex-1 flex flex-col min-w-0 relative z-0">
+                {/* Header */}
+                <div className="h-12 border-b border-zinc-200 dark:border-zinc-900 flex items-center justify-between px-4 flex-shrink-0">
+                   <div className="flex items-center gap-3">
+                      <div className="text-lg font-bold tracking-widest font-mono text-zinc-800 dark:text-zinc-200">ADA.MARINA</div>
+                      <div className="h-4 w-px bg-zinc-300 dark:bg-zinc-700"></div>
+                      <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-4 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                       <div className="flex items-center gap-2">
+                           <span className={`text-red-600 dark:text-red-500 font-bold`}>N 40°57’46’’ E 28°39’49’’</span>
+                           <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                           <span className="text-indigo-500">VHF CH {activeChannel} [AI ACTIVE]</span>
+                       </div>
+                       <button onClick={cycleTheme} className="hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors">
+                           {getThemeIcon()}
+                       </button>
+                   </div>
+                </div>
 
-          <div className="flex-1 overflow-y-auto px-4 md:px-20 custom-scrollbar relative z-10 pb-40">
-            <div className="max-w-3xl mx-auto pt-6">
-              {messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)}
-              {isLoading && messages[messages.length - 1]?.role === MessageRole.User && (
-                 <div className="ml-1 mt-4">
-                    <TypingIndicator />
-                 </div>
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar scroll-smooth relative">
+                   <div className="max-w-3xl mx-auto flex flex-col justify-end min-h-full pb-4">
+                      {messages.map((msg, idx) => (
+                        <MessageBubble 
+                            key={msg.id} 
+                            message={msg} 
+                            onAction={(cmd) => handleSend(cmd, [])}
+                        />
+                      ))}
+                      <div ref={messagesEndRef} />
+                   </div>
+                </div>
+
+                {/* Input Area */}
+                <div className="p-4 pt-0 z-20 bg-white dark:bg-[#09090b]">
+                   <InputArea 
+                      onSend={handleSend} 
+                      isLoading={isLoading}
+                      selectedModel={selectedModel}
+                      onModelChange={setSelectedModel}
+                      onInitiateVhfCall={() => setIsVoiceOpen(true)}
+                      isMonitoring={isMonitoring}
+                      useSearch={useSearch}
+                      onToggleSearch={() => setUseSearch(!useSearch)}
+                      useThinking={useThinking}
+                      onToggleThinking={() => setUseThinking(!useThinking)}
+                      prefillText={prefillText}
+                   />
+                   <div className="text-center mt-2">
+                      <span className="text-[9px] font-mono text-zinc-300 dark:text-zinc-700 tracking-widest uppercase flex items-center justify-center gap-2">
+                         <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+                         This conversation is being recorded / Recorded Line
+                      </span>
+                   </div>
+                </div>
+              </main>
+
+              {isCanvasOpen && (
+                <Canvas 
+                    activeTab={activeCanvasTab}
+                    onTabChange={setActiveCanvasTab}
+                    logs={logs} 
+                    registry={registry} 
+                    tenders={tenders} 
+                    trafficQueue={trafficQueue}
+                    weatherData={weatherData}
+                    activeChannel={activeChannel}
+                    isMonitoring={isMonitoring}
+                    userProfile={userProfile}
+                    vesselsInPort={vesselsInPort}
+                    onCheckIn={handleCheckIn}
+                    onOpenTrace={() => setIsTraceModalOpen(true)}
+                    onNodeClick={handleNodeClick}
+                />
               )}
-              <div ref={messagesEndRef} className="h-4" />
-            </div>
           </div>
-          
-          {/* Input Area */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 z-30 bg-gradient-to-t from-zinc-50 via-zinc-50 to-transparent dark:from-[#09090b] dark:via-[#09090b] dark:to-transparent pt-12">
-             <InputArea 
-                onSend={handleSend} 
-                isLoading={isLoading} 
-                selectedModel={selectedModel} 
-                onModelChange={setSelectedModel} 
-                onInitiateVhfCall={handleInitiateVhfCall} 
-                isMonitoring={isMonitoring}
-                useSearch={useSearch}
-                onToggleSearch={() => setUseSearch(!useSearch)}
-                useThinking={useThinking}
-                onToggleThinking={() => setUseThinking(!useThinking)}
-                prefillText={prefillText} 
-             />
-          </div>
-        </div>
 
-        {isCanvasOpen && (
-          <Canvas {...{ 
-              logs, 
-              registry, 
-              tenders, 
-              trafficQueue, 
-              weatherData, 
-              activeChannel, 
-              isMonitoring, 
-              userProfile, 
-              vesselsInPort, 
-              onCheckIn: handleCheckIn,
-              onOpenTrace: () => setIsTraceModalOpen(true),
-              onNodeClick: handleNodeClick 
-          }} />
-        )}
+          <StatusBar 
+              userProfile={userProfile} 
+              onToggleAuth={handleToggleAuth} 
+              nodeHealth={backendStatus === 'operational' ? 'connected' : 'working'} 
+              latency={12}
+              activeChannel={activeChannel}
+          />
       </div>
-      <StatusBar {...{ userProfile, onToggleAuth: toggleAuth, nodeHealth: "working", latency: 12, activeChannel }} />
-      <VoiceModal isOpen={isVoiceModalOpen} onClose={() => setIsVoiceModalOpen(false)} userProfile={userProfile} />
-      <AgentTraceModal isOpen={isTraceModalOpen} onClose={() => setIsTraceModalOpen(false)} traces={agentTraces} />
+
+      <AgentTraceModal 
+        isOpen={isTraceModalOpen} 
+        onClose={() => setIsTraceModalOpen(false)} 
+        traces={agentTraces} 
+      />
+
+      <VoiceModal 
+        isOpen={isVoiceOpen} 
+        onClose={() => setIsVoiceOpen(false)} 
+        userProfile={userProfile}
+      />
+
     </div>
   );
 }
