@@ -1,15 +1,17 @@
+
 import React, { useEffect, useState } from 'react';
 import { X, Mic, Radio, SignalHigh, Waves, Power } from 'lucide-react';
 import { LiveSession } from '../services/geminiService';
-import { LiveConnectionState } from '../types';
+import { LiveConnectionState, UserProfile } from '../types'; // Import UserProfile
 import { wimMasterData } from '../services/wimMasterData'; // Import wimMasterData
 
 interface VoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
+  userProfile: UserProfile; // Add UserProfile prop
 }
 
-export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
+export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userProfile }) => {
   const [status, setStatus] = useState<LiveConnectionState>(LiveConnectionState.Disconnected);
   const [audioLevel, setAudioLevel] = useState(0);
   const [session, setSession] = useState<LiveSession | null>(null);
@@ -46,7 +48,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose }) => {
       };
 
       setSession(newSession);
-      newSession.connect();
+      // Pass userProfile to connect for RBAC
+      newSession.connect(userProfile);
     }
 
     return () => {

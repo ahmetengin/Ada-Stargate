@@ -1,7 +1,9 @@
 
 
+
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { BASE_SYSTEM_INSTRUCTION } from "./prompts";
+import { UserProfile } from "../types"; // Import UserProfile
 
 /**
  * Live Session Handler for VHF Radio
@@ -21,7 +23,7 @@ export class LiveSession {
     this.client = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
-  async connect() {
+  async connect(userProfile: UserProfile) { // Accept UserProfile
     try {
       this.onStatusChange?.('connecting');
       
@@ -30,12 +32,25 @@ export class LiveSession {
          sampleRate: 16000, // Gemini Live prefers 16kHz input
       });
 
+      // Dynamic RBAC Prompt Injection
+      let rbacInstruction = "";
+      if (userProfile.role === 'GUEST') {
+          rbacInstruction = `\n\n***CRITICAL SECURITY PROTOCOL***
+CURRENT USER ROLE: GUEST.
+YOU MUST DENY ALL OPERATIONAL COMMANDS (Departure, Technical, Fleet Info).
+Reason: 'Unauthorized Access'.
+Only allow general inquiries (e.g., weather, radio check, general info).
+If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office."`;
+      } else {
+          rbacInstruction = `\n\nCURRENT USER ROLE: ${userProfile.role}. Authorized for operations.`;
+      }
+
       // 2. Connect to Gemini Live with Callbacks
       const sessionPromise = this.client.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
            responseModalities: [Modality.AUDIO],
-           systemInstruction: BASE_SYSTEM_INSTRUCTION + "\nMODE: VHF RADIO. Speak short, tactical, protocol-compliant responses. End transmissions with 'Over'.",
+           systemInstruction: BASE_SYSTEM_INSTRUCTION + "\nMODE: VHF RADIO. Speak short, tactical, protocol-compliant responses. End transmissions with 'Over'." + rbacInstruction,
            speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } 
            }

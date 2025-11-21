@@ -11,6 +11,7 @@ import { technicAgent } from './agents/technicAgent'; // Import technicAgent
 import { wimMasterData } from './wimMasterData';
 import { dmsToDecimal } from './utils';
 import { generateComplianceSystemMessage, SystemMessageKey } from './prompts'; // Import compliance helper
+import { VESSEL_KEYWORDS } from './constants'; // Import shared state
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -21,9 +22,6 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     content,
     persona
 });
-
-// Use let so it can be dynamically updated for new registrations
-let VESSEL_KEYWORDS = ['s/y phisedelia', 'm/y blue horizon', 's/y mistral', 'm/y poseidon', 'catamaran lir', 's/y aegeas', 'm/y grand turk', 'tender bravo'];
 
 export const orchestratorService = {
     async processRequest(prompt: string, user: UserProfile): Promise<OrchestratorResponse> {
