@@ -11,10 +11,13 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     persona
 });
 
+// Type alias for clarity and consistency
+type PaymentHistoryStatus = Exclude<VesselIntelligenceProfile['paymentHistoryStatus'], undefined>;
+
 // Mock API integrations for Paraşüt, Iyzico, and Garanti BBVA
 const PARASUT_API_MOCK = {
     // This mock now needs to store and update actual vessel data to reflect debt
-    vesselLedger: new Map<string, { balance: number, paymentHistoryStatus?: VesselIntelligenceProfile['paymentHistoryStatus'] }>([
+    vesselLedger: new Map<string, { balance: number, paymentHistoryStatus?: PaymentHistoryStatus }>([
         ['s/y phisedelia', { balance: 850, paymentHistoryStatus: 'RECENTLY_LATE' }],
         ['m/y blue horizon', { balance: 0, paymentHistoryStatus: 'REGULAR' }],
         // Add other vessels as needed
@@ -32,16 +35,16 @@ const PARASUT_API_MOCK = {
         };
     },
     
-    getBalance: (vesselName: string) => {
+    getBalance: (vesselName: string): { balance: number; currency: 'EUR'; paymentHistoryStatus?: PaymentHistoryStatus } => {
         const vesselData = PARASUT_API_MOCK.vesselLedger.get(vesselName.toLowerCase());
         if (vesselData) {
             return { balance: vesselData.balance, currency: 'EUR', paymentHistoryStatus: vesselData.paymentHistoryStatus };
         }
-        return { balance: 0, currency: 'EUR', paymentHistoryStatus: 'REGULAR' }; 
+        // Default when vessel not found, ensure 'REGULAR' is typed as PaymentHistoryStatus
+        return { balance: 0, currency: 'EUR', paymentHistoryStatus: 'REGULAR' as PaymentHistoryStatus }; 
     },
 
-    updateBalance: (vesselName: string, newBalance: number, newPaymentHistoryStatus: Exclude<VesselIntelligenceProfile['paymentHistoryStatus'], undefined>) => {
-        // The Exclude<..., undefined> type ensures newPaymentHistoryStatus is always one of the literal strings.
+    updateBalance: (vesselName: string, newBalance: number, newPaymentHistoryStatus: PaymentHistoryStatus) => {
         PARASUT_API_MOCK.vesselLedger.set(vesselName.toLowerCase(), { balance: newBalance, paymentHistoryStatus: newPaymentHistoryStatus });
     }
 };
@@ -92,12 +95,12 @@ const GARANTI_BBVA_API_MOCK = {
 
 export const financeAgent = {
   // Helper for Orchestrator Fast-Path
-  checkDebt: async (vesselName: string): Promise<{ status: 'CLEAR' | 'DEBT', amount: number, paymentHistoryStatus: VesselIntelligenceProfile['paymentHistoryStatus'] }> => {
+  checkDebt: async (vesselName: string): Promise<{ status: 'CLEAR' | 'DEBT', amount: number, paymentHistoryStatus: PaymentHistoryStatus }> => {
       const data = PARASUT_API_MOCK.getBalance(vesselName);
       return { 
           status: data.balance > 0 ? 'DEBT' : 'CLEAR', 
           amount: data.balance,
-          paymentHistoryStatus: data.paymentHistoryStatus
+          paymentHistoryStatus: data.paymentHistoryStatus ?? 'REGULAR' // Ensure it's never undefined
       };
   },
 
@@ -170,7 +173,7 @@ export const financeAgent = {
                   const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
                   // FIX: Ensure newPaymentHistoryStatus is a literal string and not undefined by providing a default.
                   // FIX: Changed 'OVERDUE' to 'CHRONICALLY_LATE' to match the type definition.
-                  const newPaymentStatus: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE' = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
+                  const newPaymentStatus: PaymentHistoryStatus = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
                   // FIX: A payment (credit) should reduce the outstanding balance (debt).
                   PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance - tx.amount, newPaymentStatus); 
                   const processPaymentActions = await financeAgent.processPayment(vesselName, tx.transactionId, tx.amount, addTrace);
@@ -225,7 +228,7 @@ export const financeAgent = {
         const currentBalanceData = PARASUT_API_MOCK.getBalance(vesselName);
         // FIX: Ensure newPaymentHistoryStatus is a literal string and not undefined by providing a default.
         // FIX: Changed 'OVERDUE' to 'CHRONICALLY_LATE' to match the type definition.
-        const newPaymentStatus: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE' = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
+        const newPaymentStatus: PaymentHistoryStatus = currentBalanceData.paymentHistoryStatus ?? 'REGULAR';
         PARASUT_API_MOCK.updateBalance(vesselName, currentBalanceData.balance + invoice.amount, newPaymentStatus);
 
         actions.push({

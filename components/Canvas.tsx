@@ -372,8 +372,8 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <div>
                   <h3 className="font-bold text-zinc-500 dark:text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Forecast</h3>
                   <div className="grid grid-cols-3 gap-2">
-                    {weatherData.map((day) => (
-                        <div key={day.day} className="bg-zinc-50 dark:bg-zinc-900/20 border border-zinc-200 dark:border-transparent rounded-lg p-3 flex flex-col items-center text-center">
+                    {weatherData.map((day, i) => (
+                        <div key={i} className="bg-zinc-50 dark:bg-zinc-900/20 border border-zinc-200 dark:border-transparent rounded-lg p-3 flex flex-col items-center text-center">
                             <div className="font-bold text-zinc-500 text-[9px] mb-2">{day.day}</div>
                             {getWeatherIcon(day.condition)}
                             <div className="text-xl font-bold text-zinc-700 dark:text-zinc-200 mt-2">{day.temp}°</div>
@@ -388,7 +388,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                   <h3 className="font-bold text-zinc-500 dark:text-zinc-600 text-[9px] uppercase mb-3 tracking-widest">Traffic Control (Queue)</h3>
                   <div className="space-y-1">
                       {trafficQueue.map(t => (
-                          <div key={t.id} className="flex items-center justify-between py-2 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 rounded group bg-zinc-50 dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-900/50">
+                          <div className="flex items-center justify-between py-2 px-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 rounded group bg-zinc-50 dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-900/50">
                               <div className="flex items-center gap-3">
                                 {t.status === 'INBOUND' && <ArrowDown size={10} className="text-emerald-500 dark:text-emerald-400"/>}
                                 {t.status === 'OUTBOUND' && <ArrowUp size={10} className="text-blue-500 dark:text-blue-400"/>}
@@ -508,15 +508,7 @@ export const Canvas: React.FC<CanvasProps> = ({
                 <div className="relative w-[300px] h-[300px] bg-sky-200/20 dark:bg-sky-900/10 rounded-full flex items-center justify-center shadow-lg border border-sky-300/50 dark:border-sky-900/50">
                     {/* Marina Center Marker */}
                     <div className="absolute z-20" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-                        <a
-                          href={`https://www.google.com/maps/search/?api=1&query=${marinaLat},${marinaLng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="West Istanbul Marina"
-                          aria-label="West Istanbul Marina"
-                        >
-                          <Anchor size={20} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
-                        </a>
+                        <Anchor size={20} className="text-indigo-600 dark:text-indigo-400 animate-pulse" title="West Istanbul Marina" />
                     </div>
 
                     {/* Vessel Markers */}

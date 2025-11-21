@@ -7,6 +7,7 @@ import { legalAgent } from './agents/legalAgent';
 import { marinaAgent } from './agents/marinaAgent';
 import { customerAgent } from './agents/customerAgent';
 import { wimMasterData } from './wimMasterData';
+import { dmsToDecimal } from './utils'; // Import dmsToDecimal
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -179,6 +180,48 @@ export const orchestratorService = {
             const { name, location, contact } = wimMasterData.identity;
             const mapLink = `https://www.google.com/maps/search/?api=1&query=${location.coordinates.lat},${location.coordinates.lng}`;
             responseText = `**${name} Location & Contact:**\n\nLatitude: ${location.coordinates.lat}\nLongitude: ${location.coordinates.lng}\n\n[📍 View on Google Maps](${mapLink})\n\nPhone: **${contact.phone}**\nVHF: Channel ${contact.vhf_channels.public[0]} (Callsign: ${contact.call_sign})`;
+        }
+        // --- INTENT: VESSEL PROXIMITY SEARCH ---
+        else if (lowerPrompt.includes('vessels near') || lowerPrompt.includes('tekneler') && lowerPrompt.includes('mil')) {
+            // Regex to extract radius (e.g., "20 miles", "10 mil")
+            const radiusMatch = lowerPrompt.match(/(\d+)\s*(miles|mil)/);
+            const radius = radiusMatch ? parseInt(radiusMatch[1]) : 10; // Default to 10 miles if not specified
+
+            // Regex to extract coordinates (DMS format)
+            const coordinateMatch = prompt.match(/([NS]\s*\d+°\d+’\d+’’)\s*([EW]\s*\d+°\d+’\d+’’)/i);
+            
+            let centerLat: number, centerLng: number;
+            let centerName: string = "West Istanbul Marina";
+
+            if (coordinateMatch) {
+                const dmsCoords = dmsToDecimal(coordinateMatch[0]);
+                if (dmsCoords) {
+                    centerLat = dmsCoords.lat;
+                    centerLng = dmsCoords.lng;
+                    centerName = "specified coordinates";
+                } else {
+                    traces.push(createLog('ada.marina', 'WARNING', `Could not parse coordinates from prompt. Using marina default.`, 'EXPERT'));
+                    centerLat = wimMasterData.identity.location.coordinates.lat;
+                    centerLng = wimMasterData.identity.location.coordinates.lng;
+                }
+            } else {
+                centerLat = wimMasterData.identity.location.coordinates.lat;
+                centerLng = wimMasterData.identity.location.coordinates.lng;
+            }
+
+            traces.push(createLog('ada.marina', 'ROUTING', `Intent: PROXIMITY_SEARCH. Searching for vessels near ${centerName} within ${radius} miles.`, 'ORCHESTRATOR'));
+
+            const nearbyVessels = await marinaAgent.findVesselsNear(centerLat, centerLng, radius, (t) => traces.push(t));
+
+            if (nearbyVessels.length > 0) {
+                responseText = `**VESSELS WITHIN ${radius} MILES OF ${centerName.toUpperCase()}:**\n\n`;
+                responseText += `| Vessel Name | Status | Distance (miles) |\n|---|---|---|\n`;
+                nearbyVessels.sort((a, b) => a.distanceMiles - b.distanceMiles).forEach(v => {
+                    responseText += `| **${v.vessel}** | ${v.status} | ${v.distanceMiles} |\n`;
+                });
+            } else {
+                responseText = `**NEGATIVE CONTACT.** No vessels detected within ${radius} miles of ${centerName}.`;
+            }
         }
         // --- INTENT: VESSEL INTELLIGENCE BRIEFING ---
         else if (lowerPrompt.includes('intel') || lowerPrompt.includes('briefing') || lowerPrompt.includes('details') || lowerPrompt.includes('give info')) {

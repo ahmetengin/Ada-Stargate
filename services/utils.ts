@@ -46,3 +46,42 @@ export function maskPhone(phone: string): string {
     const numberPart = digitsOnly.substring(digitsOnly.length - 10);
     return `${countryCode} ${numberPart.substring(0,2)}*******${numberPart.substring(numberPart.length - 2)}`;
 }
+
+// Converts degrees to radians
+function toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
+}
+
+// Calculates Haversine distance between two sets of coordinates in miles
+export function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3958.8; // Radius of Earth in miles
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in miles
+}
+
+// Converts DMS (Degrees, Minutes, Seconds) to Decimal Degrees
+export function dmsToDecimal(dmsString: string): { lat: number, lng: number } | null {
+    const latMatch = dmsString.match(/([NS])\s*(\d+)°(\d+)’(\d+)’’/i);
+    const lngMatch = dmsString.match(/([EW])\s*(\d+)°(\d+)’(\d+)’’/i);
+
+    if (!latMatch || !lngMatch) return null;
+
+    const parsePart = (match: RegExpMatchArray) => {
+        const sign = (match[1].toUpperCase() === 'S' || match[1].toUpperCase() === 'W') ? -1 : 1;
+        const degrees = parseInt(match[2]);
+        const minutes = parseInt(match[3]);
+        const seconds = parseInt(match[4]);
+        return sign * (degrees + minutes / 60 + seconds / 3600);
+    };
+
+    const lat = parsePart(latMatch);
+    const lng = parsePart(lngMatch);
+
+    return { lat, lng };
+}

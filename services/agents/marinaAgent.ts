@@ -3,6 +3,7 @@ import { TaskHandlerFn } from '../decomposition/types';
 import { AgentAction, AgentTraceLog, KplerAisTarget, TrafficEntry, VesselIntelligenceProfile } from '../../types';
 import { wimMasterData } from '../wimMasterData';
 import { financeAgent } from './financeAgent'; // Import financeAgent
+import { haversineDistance } from '../utils';
 
 // --- MOCK FLEET DATABASE (System of Record) - Enriched with Kpler MCP-style data ---
 let FLEET_DB: VesselIntelligenceProfile[] = [
@@ -252,6 +253,39 @@ export const marinaAgent = {
             console.error('[marinaAgent] Failed to fetch live AIS data:', error);
             return [];
         }
+    },
+
+    // NEW Skill: Find Vessels Near a Coordinate
+    findVesselsNear: async (centerLat: number, centerLng: number, radiusMiles: number, addTrace: (t: AgentTraceLog) => void): Promise<(TrafficEntry & { distanceMiles: number })[]> => {
+        addTrace({
+            id: `trace_vessel_proximity_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            node: 'ada.marina',
+            step: 'TOOL_EXECUTION',
+            content: `Searching for vessels within ${radiusMiles} miles of Lat: ${centerLat}, Lng: ${centerLng}...`,
+            persona: 'WORKER'
+        });
+
+        const allAisTargets = await marinaAgent.fetchLiveAisData();
+        const vesselsInProximity: (TrafficEntry & { distanceMiles: number })[] = [];
+
+        for (const target of allAisTargets) {
+            if (target.lat !== undefined && target.lng !== undefined) {
+                const distance = haversineDistance(centerLat, centerLng, target.lat, target.lng);
+                if (distance <= radiusMiles) {
+                    vesselsInProximity.push({ ...target, distanceMiles: parseFloat(distance.toFixed(2)) });
+                }
+            }
+        }
+        addTrace({
+            id: `trace_vessel_proximity_results_${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            node: 'ada.marina',
+            step: 'CODE_OUTPUT',
+            content: `Found ${vesselsInProximity.length} vessels in proximity.`,
+            persona: 'WORKER'
+        });
+        return vesselsInProximity;
     },
 
     // Skill: Berth Allocation (Rule-Based Logic)
