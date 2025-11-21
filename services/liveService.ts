@@ -16,14 +16,23 @@ export class LiveSession {
   public onStatusChange: ((status: string) => void) | null = null;
   public onAudioLevel: ((level: number) => void) | null = null;
   private nextStartTime = 0;
+  private apiKey: string | undefined;
 
   constructor() {
-    this.client = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY as string | undefined;
+    this.apiKey = (process.env.API_KEY || process.env.GEMINI_API_KEY || viteKey) as string | undefined;
   }
 
   async connect() {
     try {
       this.onStatusChange?.('connecting');
+
+      if (!this.apiKey) {
+        this.onStatusChange?.('error');
+        throw new Error('GEMINI_API_KEY missing');
+      }
+
+      this.client = new GoogleGenAI({ apiKey: this.apiKey });
       
       // 1. Initialize Audio Context
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({

@@ -6,7 +6,7 @@ import { handleGeminiError, formatHistory } from "./geminiUtils";
 // Re-export LiveSession
 export { LiveSession } from "./liveService";
 
-const createClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+const createClient = () => new GoogleGenAI({ apiKey: ((process.env.API_KEY || process.env.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY) as string) });
 
 export const streamChatResponse = async (
   messages: Message[],
