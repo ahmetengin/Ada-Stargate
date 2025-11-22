@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole, VesselIntelligenceProfile } from '../types';
-import { BrainCircuit, Copy, Check, Volume2, StopCircle, User, Mail, Phone } from 'lucide-react';
+import { Anchor, Copy, Check, Volume2, StopCircle, User, Mail, Phone, Lock, Zap, Droplets, ShieldCheck, Eye } from 'lucide-react';
 import { TypingIndicator } from './TypingIndicator';
 import { marinaExpert } from '../services/agents/marinaAgent';
 import { VESSEL_KEYWORDS } from '../services/constants';
@@ -73,10 +74,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
   if (isSystem) {
       return (
           <div className="flex w-full mb-6 justify-center animate-in fade-in zoom-in duration-300">
-              <div className="bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 px-4 py-2 rounded-full flex items-center gap-3">
-                  <BrainCircuit size={14} className="text-indigo-500 dark:text-indigo-400" />
-                  <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-300 uppercase tracking-wider">{message.text}</span>
-              </div>
+              <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-300 uppercase tracking-wider">{message.text}</span>
           </div>
       )
   }
@@ -95,8 +93,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
              </div>
             )}
             
-            <div className="bg-indigo-600 dark:bg-indigo-500 text-white dark:text-white px-5 py-3 rounded-2xl rounded-tr-lg shadow-md font-sans text-sm leading-relaxed">
-                {message.text}
+            <div className="bg-indigo-600 dark:bg-indigo-500 text-white dark:text-white px-5 py-3 rounded-2xl rounded-tr-lg shadow-md font-sans text-sm leading-relaxed flex items-start gap-3">
+                <Anchor size={16} className="text-white/70 flex-shrink-0 mt-0.5" />
+                <div>{message.text}</div>
             </div>
         </div>
       </div>
@@ -108,9 +107,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
     <div className="flex w-full mb-10 gap-4 group animate-in fade-in slide-in-from-bottom-2 duration-500 font-sans">
         
         <div className="flex-shrink-0 flex flex-col items-center pt-1">
-            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-panel-dark shadow-sm border border-border-light dark:border-border-dark">
-                <BrainCircuit size={16} className="text-indigo-600 dark:text-indigo-500" />
-            </div>
+            <Anchor size={16} className="text-indigo-600 dark:text-indigo-500" />
         </div>
 
         <div className="flex-1 max-w-3xl min-w-0">
@@ -152,35 +149,82 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
                 return (
                 p && (
                     <div key={idx} className="mt-6 pt-4 border-t border-border-light dark:border-border-dark flex flex-col gap-3 font-mono">
-                        <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Vessel Intelligence Profile</div>
                         
-                        <div className="bg-sky-50 dark:bg-sky-900/20 p-3 rounded-lg border border-sky-200 dark:border-sky-800/50 text-[11px] leading-snug space-y-2">
+                        {/* Header */}
+                        <div className="flex justify-between items-center bg-zinc-100 dark:bg-zinc-800/50 p-2 rounded-t-lg border-b border-zinc-200 dark:border-zinc-700">
+                            <div className="text-[10px] font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-widest flex items-center gap-2">
+                                <ShieldCheck size={12} className="text-indigo-500"/>
+                                VESSEL INTELLIGENCE
+                            </div>
+                            <div className="text-[9px] text-zinc-400 dark:text-zinc-500 flex items-center gap-1">
+                                <Lock size={10} />
+                                <span>KVKK/GDPR PROTOCOLS ACTIVE</span>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 rounded-b-lg border border-zinc-200 dark:border-zinc-800 text-[11px] leading-snug space-y-4">
+                           
+                           {/* SECTION 1: PUBLIC AIS DATA (Visible) */}
                            <div>
-                                <p className="font-bold text-zinc-800 dark:text-zinc-200">{p.name} (IMO: {p.imo})</p>
-                                <p className="text-zinc-600 dark:text-zinc-400">Type: {p.type} | Flag: {p.flag} | {p.loa}m LOA</p>
+                                <div className="text-[9px] text-sky-500 uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                                    <Eye size={10} /> PUBLIC AIS DATA (GLOBAL)
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 bg-white dark:bg-zinc-900 p-2 rounded border border-zinc-100 dark:border-zinc-700">
+                                    <div>
+                                        <p className="font-bold text-zinc-800 dark:text-zinc-200">{p.name}</p>
+                                        <p className="text-zinc-500">IMO: {p.imo}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-zinc-600 dark:text-zinc-400">{p.type} | {p.flag}</p>
+                                        <p className="text-zinc-500">LOA: {p.loa}m | Beam: {p.beam}m</p>
+                                    </div>
+                                    <div className="col-span-2 pt-1 border-t border-zinc-100 dark:border-zinc-800 flex justify-between">
+                                        <span>Voyage: {p.voyage?.lastPort} &rarr; {p.voyage?.nextPort}</span>
+                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">ETA: {p.voyage?.eta}</span>
+                                    </div>
+                                </div>
                            </div>
-                           <div>
-                                <p><strong>Status:</strong> {p.status} at {p.location}</p>
-                                <p><strong>Voyage:</strong> {p.voyage?.lastPort} &rarr; <strong>{p.voyage?.nextPort}</strong> (ETA: {p.voyage?.eta})</p>
+
+                           {/* SECTION 2: SHORE INFRASTRUCTURE (Marina Owned - Visible) */}
+                           <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <div className="text-[9px] text-indigo-500 uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                                        <Zap size={10} /> SHORE UTILITIES (WIM)
+                                    </div>
+                                    <div className="bg-indigo-50 dark:bg-indigo-900/10 p-2 rounded border border-indigo-100 dark:border-indigo-800/50">
+                                        <p className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300"><Zap size={10} className="text-yellow-500"/> {p.utilities?.electricityKwh} kWh</p>
+                                        <p className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300"><Droplets size={10} className="text-blue-500"/> {p.utilities?.waterM3} m3</p>
+                                    </div>
+                                </div>
+
+                                {/* SECTION 3: VESSEL TELEMETRY (Captain Owned - Private) */}
+                                <div>
+                                    <div className="text-[9px] text-red-500 uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                                        <Lock size={10} /> VESSEL TELEMETRY (ada.sea)
+                                    </div>
+                                    <div className="bg-zinc-200 dark:bg-black/40 border border-zinc-300 dark:border-zinc-700 p-2 rounded flex flex-col items-center justify-center h-full text-center">
+                                        <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-bold">
+                                            <Lock size={10} /> ENCRYPTED
+                                        </div>
+                                        <span className="text-[9px] text-zinc-400">Captain Authorization Req.</span>
+                                    </div>
+                                </div>
                            </div>
+                           
+                           {/* SECTION 4: PII (Masked) */}
                            {(p.ownerName || p.ownerEmail) && (
-                            <div className="pt-2 border-t border-sky-200 dark:border-sky-800/50">
-                                <p className="flex items-center gap-2"><User size={12} /> Owner: {maskFullName(p.ownerName || 'N/A')} | ID: {maskIdNumber(p.ownerId || 'N/A')}</p>
-                                <p className="flex items-center gap-2"><Mail size={12} /> Email: {maskEmail(p.ownerEmail || 'N/A')}</p>
-                                <p className="flex items-center gap-2"><Phone size={12} /> Phone: {maskPhone(p.ownerPhone || 'N/A')}</p>
+                            <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700 opacity-70">
+                                <div className="text-[9px] text-zinc-400 uppercase tracking-wider mb-1">Contract Holder (Masked)</div>
+                                <p className="flex items-center gap-2"><User size={10} /> {maskFullName(p.ownerName || 'N/A')} | ID: {maskIdNumber(p.ownerId || 'N/A')}</p>
+                                <div className="flex justify-between">
+                                    <p className="flex items-center gap-2"><Mail size={10} /> {maskEmail(p.ownerEmail || 'N/A')}</p>
+                                    {p.outstandingDebt && p.outstandingDebt > 0 && (
+                                      <span className="text-red-500 font-bold">DEBT: €{p.outstandingDebt}</span>
+                                    )}
+                                </div>
                             </div>
                            )}
-                           <div className="flex items-center justify-between pt-2 border-t border-sky-200 dark:border-sky-800/50">
-                                <div className="flex items-center gap-2">
-                                   <span className="font-bold">Loyalty:</span>
-                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getLoyaltyTierStyle(p.loyaltyTier)}`}>
-                                     {p.loyaltyTier} ({p.loyaltyScore})
-                                   </span>
-                                </div>
-                                {p.outstandingDebt && p.outstandingDebt > 0 && (
-                                  <div className="text-red-500 font-bold">Debt: €{p.outstandingDebt}</div>
-                                )}
-                           </div>
+
                         </div>
                     </div>
                 )

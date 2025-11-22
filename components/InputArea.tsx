@@ -1,7 +1,6 @@
 
-
 import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
-import { ArrowUp, Loader2, X, Paperclip, Search, Brain, Mic, Radio } from 'lucide-react'; 
+import { ArrowUp, Loader2, X, Paperclip, Search, Brain, Mic, Radio, ScanLine, Siren } from 'lucide-react'; 
 import { ModelType } from '../types';
 
 interface InputAreaProps {
@@ -10,6 +9,9 @@ interface InputAreaProps {
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
   onInitiateVhfCall: () => void; 
+  onInitiateScanner: () => void;
+  onToggleRedAlert: () => void; // New Prop
+  isRedAlert: boolean; // New Prop
   isMonitoring: boolean;
   useSearch: boolean;
   onToggleSearch: () => void;
@@ -25,6 +27,9 @@ export const InputArea: React.FC<InputAreaProps> = ({
   selectedModel, 
   onModelChange,
   onInitiateVhfCall,
+  onInitiateScanner,
+  onToggleRedAlert,
+  isRedAlert,
   isMonitoring,
   useSearch,
   onToggleSearch,
@@ -38,7 +43,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Effect to handle prefill from sidebar actions
   useEffect(() => {
       if (prefillText) {
           setText(prefillText);
@@ -86,7 +90,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
     adjustHeight();
   }, [text]);
 
-  // Updated to return text colors instead of backgrounds
   const getModelActiveColor = (modelName: string) => {
       switch (modelName) {
           case 'Flash': return 'text-blue-600 dark:text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]';
@@ -99,9 +102,8 @@ export const InputArea: React.FC<InputAreaProps> = ({
   return (
     <div className="w-full max-w-3xl mx-auto relative pb-4 font-sans">
       
-      {/* --- COMMAND DECK HEADER (Model & Tools) --- */}
+      {/* --- COMMAND DECK HEADER --- */}
       <div className="flex items-center justify-between px-1 mb-2 font-mono">
-        {/* Model Selectors (Text Only) */}
         <div className="flex items-center gap-4 pl-2">
           {(['Flash', 'Pro', 'Image'] as const).map(modelName => {
             const modelValue = ModelType[modelName];
@@ -122,7 +124,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
           })}
         </div>
 
-        {/* Right Side Tools */}
         <div className="flex items-center gap-2">
              <div 
                 onClick={onToggleThinking}
@@ -131,7 +132,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
                     ? 'text-cyan-600 dark:text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
                     : 'text-zinc-400 hover:text-zinc-700 dark:text-zinc-600 dark:hover:text-zinc-400'
                 }`}
-                title="Toggle Reasoning (Deep Thinking)"
+                title="Toggle Reasoning"
              >
                  <Brain size={16} />
              </div>
@@ -150,9 +151,8 @@ export const InputArea: React.FC<InputAreaProps> = ({
       </div>
 
       {/* --- MAIN INPUT CAPSULE --- */}
-      <div className="relative flex items-end bg-white dark:bg-[#121214] border border-zinc-200 dark:border-transparent rounded-[26px] p-1.5 pl-4 shadow-xl shadow-zinc-200/50 dark:shadow-black/50 transition-all duration-300">
+      <div className={`relative flex items-end bg-white dark:bg-[#121214] border rounded-[26px] p-1.5 pl-4 shadow-xl transition-all duration-300 ${isRedAlert ? 'border-red-500 shadow-red-900/50' : 'border-zinc-200 dark:border-transparent shadow-zinc-200/50 dark:shadow-black/50'}`}>
         
-        {/* Attachment Button */}
         <input type="file" multiple onChange={handleFileChange} ref={fileInputRef} className="hidden" />
         <button 
             onClick={() => fileInputRef.current?.click()} 
@@ -162,20 +162,37 @@ export const InputArea: React.FC<InputAreaProps> = ({
             <Paperclip size={18} />
         </button>
 
-        {/* Text Area */}
         <textarea
             ref={textareaRef}
             rows={1}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Instructions..."
-            className="flex-1 bg-transparent border-none focus:outline-none text-[13px] text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-700 py-3.5 px-3 resize-none min-h-[48px] max-h-[160px] leading-relaxed tracking-tight font-sans"
+            placeholder={isRedAlert ? "EMERGENCY BROADCAST..." : "Instructions..."}
+            className={`flex-1 bg-transparent border-none focus:outline-none text-[13px] py-3.5 px-3 resize-none min-h-[48px] max-h-[160px] leading-relaxed tracking-tight font-sans ${isRedAlert ? 'text-red-500 placeholder:text-red-700' : 'text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-700'}`}
             disabled={isLoading}
         />
 
         {/* Right Controls Group */}
         <div className="flex items-center gap-1 mr-0.5">
+             {/* EMERGENCY BUTTON */}
+             <button 
+               onClick={onToggleRedAlert}
+               className={`p-2.5 rounded-full transition-colors ${isRedAlert ? 'bg-red-600 text-white animate-pulse' : 'text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400'}`}
+               title="TOGGLE RED ALERT (GUARDIAN PROTOCOL)"
+             >
+               <Siren size={18} />
+             </button>
+
+             {/* Passport Scan Button */}
+             <button 
+               onClick={onInitiateScanner}
+               className="p-2.5 rounded-full text-zinc-400 hover:text-emerald-500 dark:text-zinc-500 dark:hover:text-emerald-400 transition-colors"
+               title="Scan ID/Passport"
+             >
+               <ScanLine size={18} />
+             </button>
+
              {/* Voice Controls */}
              <button 
                onClick={onInitiateVhfCall}
@@ -197,7 +214,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
 
              <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800/50 mx-2"></div>
 
-            {/* Send Button */}
             <button
                 onClick={handleSend}
                 disabled={(!text.trim() && files.length === 0) || isLoading}
@@ -205,7 +221,9 @@ export const InputArea: React.FC<InputAreaProps> = ({
                     w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200
                     ${(!text.trim() && files.length === 0) || isLoading 
                         ? 'bg-zinc-100 dark:bg-zinc-800/30 text-zinc-300 dark:text-zinc-700 cursor-not-allowed' 
-                        : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white'
+                        : isRedAlert 
+                            ? 'bg-red-600 hover:bg-red-500 text-white' 
+                            : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white'
                     }
                 `}
             >
@@ -213,7 +231,6 @@ export const InputArea: React.FC<InputAreaProps> = ({
             </button>
         </div>
 
-        {/* File Previews (Floating above input) */}
         {files.length > 0 && (
           <div className="absolute bottom-full left-4 mb-3 flex flex-wrap gap-2 animate-in fade-in slide-in-from-bottom-2">
             {files.map((file, i) => (

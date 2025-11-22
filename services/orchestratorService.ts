@@ -1,6 +1,7 @@
+
 // services/orchestratorService.ts
 
-import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, VesselIntelligenceProfile } from '../types';
+import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, VesselIntelligenceProfile, Tender } from '../types';
 import { seaExpert } from './agents/seaAgent';
 import { financeExpert } from './agents/financeAgent';
 import { legalExpert } from './agents/legalAgent';
@@ -58,7 +59,7 @@ class Router {
 
 // --- ORCHESTRATOR SERVICE (The Body) ---
 export const orchestratorService = {
-    async processRequest(prompt: string, user: UserProfile): Promise<OrchestratorResponse> {
+    async processRequest(prompt: string, user: UserProfile, tenders: Tender[]): Promise<OrchestratorResponse> {
         const traces: AgentTraceLog[] = [];
         const actions: AgentAction[] = [];
         let responseText = "";
@@ -177,10 +178,32 @@ export const orchestratorService = {
             case 'MARINA':
             default:
                 // Fallback / Marina Ops / Navigation / AIS
-                if (prompt.toLowerCase().includes('vessel') && prompt.toLowerCase().includes('near')) {
+                if (prompt.toLowerCase().includes('scan') || prompt.toLowerCase().includes('radar')) {
                      // Proximity Logic
-                     const nearby = await marinaExpert.findVesselsNear(wimMasterData.identity.location.coordinates.lat, wimMasterData.identity.location.coordinates.lng, 10, t => traces.push(t));
-                     responseText = `**RADAR SCAN:** Found ${nearby.length} vessels nearby.`;
+                     const nearby = await marinaExpert.findVesselsNear(wimMasterData.identity.location.coordinates.lat, wimMasterData.identity.location.coordinates.lng, 20, t => traces.push(t));
+                     responseText = `**RADAR SCAN (20nm Sector):**\nFound ${nearby.length} contacts.`;
+                     
+                     // WELCOME HOME PROTOCOL CHECK
+                     const inboundVessel = nearby.find(v => v.name.toLowerCase().includes('phisedelia') || v.name.toLowerCase().includes('blue horizon'));
+                     
+                     if (inboundVessel) {
+                         responseText += `\n\n**AUTO-IDENTIFICATION MATCH:** ${inboundVessel.name.toUpperCase()} (WIM FLEET)`;
+                         
+                         const hailMessage = await marinaExpert.generateProactiveHail(inboundVessel.name);
+                         responseText += `\n\n${hailMessage}`;
+                         
+                         // AUTOMATIC LOGGING FOR LOGBOOK
+                         actions.push({
+                             id: `log_hail_${Date.now()}`,
+                             kind: 'internal',
+                             name: 'ada.marina.log_operation',
+                             params: {
+                                 message: `[OP] PROACTIVE HAIL | VS:${inboundVessel.name.toUpperCase()} | LOC:${inboundVessel.distance}nm | STS:WELCOME`,
+                                 type: 'info'
+                             }
+                         });
+                         traces.push(createLog('ada.marina', 'TOOL_EXECUTION', 'Welcome Home Protocol Executed. Hail Logged.', 'ORCHESTRATOR'));
+                     }
                 } 
                 else if (prompt.toLowerCase().includes('intel') && vesselName) {
                      const intel = await marinaExpert.getVesselIntelligence(vesselName);
@@ -189,15 +212,53 @@ export const orchestratorService = {
                          traces.push(createLog('ada.marina', 'OUTPUT', 'Profile loaded.', 'WORKER'));
                      }
                 }
-                else if (prompt.toLowerCase().includes('depart')) {
-                     // Departure Logic (Condensed for brevity, same as original)
-                     const debt = await financeExpert.checkDebt(vesselName);
-                     if (debt.status === 'DEBT' && user.role !== 'GENERAL_MANAGER') {
-                         responseText = `**DEPARTURE DENIED**\n\nOutstanding Debt: €${debt.amount}.`;
-                         traces.push(createLog('ada.marina', 'ERROR', 'Departure blocked by Finance.', 'EXPERT'));
+                // --- DEPARTURE PROCEDURE (ATC PROTOCOL) ---
+                else if (prompt.toLowerCase().includes('depart') || prompt.toLowerCase().includes('leaving') || prompt.toLowerCase().includes('exit')) {
+                     if (user.role === 'GUEST') {
+                         responseText = "**ACCESS DENIED.** Departure requests restricted to Vessel Command.";
                      } else {
-                         responseText = `**DEPARTURE APPROVED**\n\nTender dispatched.`;
-                         actions.push((await marinaExpert.processDeparture(vesselName))[0]);
+                         // 1. Finance Check
+                         const debt = await financeExpert.checkDebt(vesselName);
+                         
+                         if (debt.status === 'DEBT' && user.role !== 'GENERAL_MANAGER') {
+                             // Block departure if debt exists
+                             responseText = `**DEPARTURE DENIED**\n\n**Financial Hold Active:** ${vesselName} has an outstanding balance of **€${debt.amount}**.\nPlease settle accounts at the Finance Office before requesting pilotage.`;
+                             traces.push(createLog('ada.marina', 'ERROR', 'Departure blocked by Finance.', 'EXPERT'));
+                         } else {
+                             // 2. Tender Allocation & Clearance (Pass tenders array)
+                             const departureResult = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
+                             
+                             if (departureResult.success) {
+                                 actions.push(...departureResult.actions);
+                                 const tenderName = departureResult.tender?.name || "Marina Tender";
+                                 const squawk = departureResult.squawk || "1200";
+                                 
+                                 // ATC Style Response (Strict Phraseology)
+                                 responseText = `**CLEARED FOR DEPARTURE**\n\n`;
+                                 responseText += `> **[ATC - GND]:** ${vesselName.toUpperCase()}, CLRD PUSH-BACK GATE C-12. ${tenderName.toUpperCase()} ASSIGNED. TAXI VIA FAIRWAY ALPHA.\n`;
+                                 responseText += `> **[ATC - TWR]:** ${vesselName.toUpperCase()}, CONTACT DEPARTURE CH 14. SQUAWK ${squawk}. WIND NW 12. GOOD DAY.`;
+                                 
+                             } else {
+                                 responseText = `**DEPARTURE DELAYED**\n\n${departureResult.message}`;
+                             }
+                         }
+                     }
+                }
+                // --- ARRIVAL PROCEDURE (ATC PROTOCOL) ---
+                else if (prompt.toLowerCase().includes('arrival') || prompt.toLowerCase().includes('enter') || prompt.toLowerCase().includes('inbound') || prompt.toLowerCase().includes('docking')) {
+                     // Arrival logic
+                     const arrivalResult = await marinaExpert.processArrival(vesselName, tenders, t => traces.push(t));
+                     
+                     if (arrivalResult.success) {
+                         actions.push(...arrivalResult.actions);
+                         const tenderName = arrivalResult.tender?.name || "Marina Tender";
+                         const squawk = arrivalResult.squawk || "1200";
+
+                         responseText = `**APPROACH CLEARED**\n\n`;
+                         responseText += `> **[ATC - TOWER]:** ${vesselName.toUpperCase()}, RADAR CONTACT. SQUAWK ${squawk}. PROCEED DIRECT BREAKWATER. MAINTAIN 3 KNOTS.\n`;
+                         responseText += `> **[ATC - GND]:** ${tenderName.toUpperCase()} SCRAMBLED FOR INTERCEPT. SWITCH TO **CHANNEL 14**. WELCOME HOME.`;
+                     } else {
+                         responseText = `**APPROACH DENIED**\n\n${arrivalResult.message}`;
                      }
                 }
                 else {

@@ -1,6 +1,7 @@
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { BASE_SYSTEM_INSTRUCTION } from "./prompts";
-import { UserProfile } from "../types"; // Import UserProfile
+import { UserProfile } from "../types";
+import { wimMasterData } from "./wimMasterData";
 
 /**
  * Live Session Handler for VHF Radio
@@ -24,13 +25,13 @@ export class LiveSession {
     this.client = new GoogleGenAI({ apiKey: process.env.API_KEY });
   }
 
-  async connect(userProfile: UserProfile) { // Accept UserProfile
+  async connect(userProfile: UserProfile) {
     try {
       this.onStatusChange?.('connecting');
       
       // 1. Initialize Audio Context
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-         sampleRate: 16000, // Gemini Live prefers 16kHz input
+         sampleRate: 16000,
       });
 
       // Dynamic RBAC Prompt Injection
@@ -46,23 +47,38 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
           rbacInstruction = `\n\nCURRENT USER ROLE: ${userProfile.role}. Authorized for operations.`;
       }
 
-      // STRICT VHF RADIO PROTOCOL
+      // STRICT VHF RADIO PROTOCOL (UPDATED: SWITCHBOARD MODE)
       const VHF_PROTOCOL = `
       
-      *** VOICE MODE: VHF CHANNEL 72 (MARINA CONTROL) ***
+      *** VOICE MODE: VHF CHANNEL 72 (MARINA CONTROL & SWITCHBOARD) ***
 
-      SYSTEM BEHAVIOR RULES (STRICT ENFORCEMENT):
-      1. **CORPORATE & PROFESSIONAL:** You are a Marina Control Operator. Be cold, efficient, and precise. No "chatty" AI personality.
-      2. **EXTREME BREVITY:** Maximum 1 or 2 sentences per response. This is radio communication; airtime is expensive.
-      3. **OFF-TOPIC REJECTION:** If the user asks about ANYTHING other than Marina Operations (Navigation, Weather, Technical, Fuel, Emergency, Billing), you must reject it.
-         - User: "How do I make a cake?" -> You: "Negative. Channel restricted to marina traffic. Over."
-         - User: "Tell me a joke." -> You: "Station, maintain radio discipline. Over."
-      4. **TERMINOLOGY:** Use standard marine phrases: "Affirmative", "Negative", "Standby", "Roger", "Copy".
-      5. **CLOSING:** ALWAYS end your transmission with the word "Over".
-      
+      SYSTEM IDENTITY:
+      You are the **West Istanbul Marina (WIM) Control Operator**.
+      You are speaking on VHF Radio Channel 72.
+
+      KNOWLEDGE BASE (PUBLIC INFO):
+      - **Name:** ${wimMasterData.identity.name} (${wimMasterData.identity.code})
+      - **Phone:** ${wimMasterData.identity.contact.phone}
+      - **Address:** ${wimMasterData.identity.location.neighborhood}, ${wimMasterData.identity.location.district}, ${wimMasterData.identity.location.city}.
+      - **Vision/Philosophy:** "${wimMasterData.identity.vision}. We combine passion for the sea with luxury, comfort, and environmental sensitivity (Blue Flag)."
+      - **Coordinates:** ${wimMasterData.identity.location.coordinates.lat} N, ${wimMasterData.identity.location.coordinates.lng} E.
+
+      BEHAVIOR RULES:
+      1. **WELCOME MESSAGE:** When the connection starts, you MUST immediately say: "West Istanbul Marina, Channel 72, Standing by. Over."
+      2. **PERMITTED TOPICS:** 
+         - **Public Info:** You ARE AUTHORIZED to provide the Address, Phone Number, Vision, and General Amenities (Restaurants, Fuel) listed in the Knowledge Base.
+         - **Operations:** Docking, Departure, Weather, Radio Checks.
+      3. **RESTRICTED TOPICS:** 
+         - If the user asks about IRRELEVANT topics (e.g., "Tell me a joke", "Who won the match?", "Cooking recipes"), you MUST REJECT IT.
+         - Phrase: "Negative. This channel is for Marina Traffic and Information only. Over."
+      4. **TONE:** Professional, polite, and efficient. Act like a human switchboard operator.
+      5. **PROTOCOL:** 
+         - Use standard marine phrases: "Roger", "Affirmative", "Negative", "Standby".
+         - ALWAYS end every transmission with the word "Over".
       `;
 
-      // 2. Connect to Gemini Live with Callbacks
+      // 2. Connect to Gemini Live
+      // Capture the promise to use in callbacks
       const sessionPromise = this.client.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
@@ -71,24 +87,18 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
            speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } 
            },
-           inputAudioTranscription: {}, // Enable transcription for user input
-           outputAudioTranscription: {}, // Enable transcription for model output
+           inputAudioTranscription: {},
+           outputAudioTranscription: {},
         },
         callbacks: {
-            onopen: async () => {
+            onopen: () => {
                 this.onStatusChange?.('connected');
-                // Start sending audio only after connection is open
-                await this.startRecording(sessionPromise);
             },
             onmessage: async (msg: LiveServerMessage) => {
                 await this.handleMessage(msg);
             },
             onerror: (e: any) => {
                 console.error("Live API Error:", e);
-                const errStr = JSON.stringify(e);
-                if (errStr.includes('unavailable') || errStr.includes('503')) {
-                   alert("Ada VHF Radio is temporarily unavailable (Model overloaded). Please try again in a moment.");
-                }
                 this.onStatusChange?.('error');
             },
             onclose: () => {
@@ -97,7 +107,16 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
         }
       });
 
+      // Assign session after resolution
       this.session = await sessionPromise;
+
+      // 3. Trigger Welcome Message (After connection is secured)
+      // We wrap this in a separate async function to not block and to handle errors independently
+      this.sendWelcomeTrigger();
+
+      // 4. Start Audio Streaming
+      // Pass the sessionPromise to ensure callbacks access the valid session
+      await this.startRecording(sessionPromise);
 
     } catch (e) {
       console.error("Connection failed:", e);
@@ -105,11 +124,31 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
     }
   }
 
+  private async sendWelcomeTrigger() {
+      try {
+          // Small delay to ensure socket is stable
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          if (this.session) {
+              await this.session.send({
+                  clientContent: {
+                      turns: [{
+                          role: 'user', 
+                          parts: [{ text: "System Event: Connection Established. State your station identification and welcome message immediately." }]
+                      }], 
+                      turnComplete: true
+                  }
+              });
+          }
+      } catch (err) {
+          console.warn("Error sending welcome trigger (non-fatal):", err);
+      }
+  }
+
   private async handleMessage(msg: LiveServerMessage) {
       // Handle Audio Output
       const audioData = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
       if (audioData) {
-        // Visualize audio level
         this.onAudioLevel?.(Math.random() * 0.5 + 0.3); 
         
         const buffer = await this.decodeAudioData(audioData);
@@ -119,7 +158,6 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
         source.connect(this.audioContext!.destination);
         
         const now = this.audioContext!.currentTime;
-        // Schedule audio to play seamlessly
         const start = Math.max(now, this.nextStartTime);
         source.start(start);
         this.nextStartTime = start + buffer.duration;
@@ -135,13 +173,12 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
           this.currentOutputTranscription += msg.serverContent.outputTranscription.text;
       }
 
-      // Handle Turn Complete (Reset visualization and log transcript)
+      // Handle Turn Complete
       if (msg.serverContent?.turnComplete) {
         this.onAudioLevel?.(0); 
         if (this.onTurnComplete) {
             this.onTurnComplete(this.currentInputTranscription.trim(), this.currentOutputTranscription.trim());
         }
-        // Reset for next turn
         this.currentInputTranscription = '';
         this.currentOutputTranscription = '';
       }
@@ -162,7 +199,6 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
         float32[i] = dataInt16[i] / 32768.0;
      }
 
-     // Create buffer at model output rate (usually 24kHz)
      const buffer = this.audioContext!.createBuffer(1, float32.length, 24000);
      buffer.getChannelData(0).set(float32);
      return buffer;
@@ -175,30 +211,31 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this.inputSource = this.audioContext.createMediaStreamSource(stream);
         
-        // Use ScriptProcessor for audio capturing (Worklets preferred for prod, but this works for single-file demo)
         this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
         
         this.processor.onaudioprocess = (e) => {
             const inputData = e.inputBuffer.getChannelData(0);
             
-            // Calculate volume for visualization
             let sum = 0;
             for(let i=0; i<inputData.length; i++) sum += inputData[i] * inputData[i];
             const rms = Math.sqrt(sum / inputData.length);
             this.onAudioLevel?.(rms * 5); 
 
-            // Convert Float32 to PCM 16-bit Base64
             const b64Data = this.float32ToBase64(inputData);
             
-            // Send to Model
+            // Use the sessionPromise to access the session securely inside the callback
             sessionPromise.then(session => {
-                session.sendRealtimeInput({ 
-                    media: {
-                        mimeType: 'audio/pcm;rate=16000', 
-                        data: b64Data 
-                    }
-                });
-            }).catch(e => console.error("Send error", e));
+                try {
+                    session.sendRealtimeInput({ 
+                        media: {
+                            mimeType: 'audio/pcm;rate=16000', 
+                            data: b64Data 
+                        }
+                    });
+                } catch (err) {
+                    // Suppress generic send errors to avoid log spam if connection closes
+                }
+            });
         };
 
         this.inputSource.connect(this.processor);
@@ -211,7 +248,6 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
   private float32ToBase64(data: Float32Array) {
       const int16 = new Int16Array(data.length);
       for (let i = 0; i < data.length; i++) {
-        // Clamp and scale
         int16[i] = Math.max(-32768, Math.min(32767, data[i] * 32768));
       }
       const bytes = new Uint8Array(int16.buffer);

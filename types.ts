@@ -1,4 +1,5 @@
 
+
 // types.ts
 
 export enum MessageRole {
@@ -123,6 +124,8 @@ export interface VesselIntelligenceProfile {
     paymentHistoryStatus?: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE';
     loyaltyScore?: number;
     loyaltyTier?: 'STANDARD' | 'SILVER' | 'GOLD' | 'PROBLEM';
+    // NEW: Ada Sea ONE Subscription Status
+    adaSeaOneStatus?: 'ACTIVE' | 'INACTIVE' | 'TRIAL';
     // NEW: Smart Energy Management Data
     utilities?: {
         electricityKwh: number;
@@ -252,4 +255,46 @@ export interface PassKit {
     accessLevel: string;
     validUntil: string;
     qrCode?: string;
+}
+
+export interface VesselSystemsStatus {
+    battery: {
+        serviceBank: number; // Volts
+        engineBank: number; // Volts
+        status: 'CHARGING' | 'DISCHARGING' | 'CRITICAL';
+    };
+    tanks: {
+        fuel: number; // Percentage
+        freshWater: number; // Percentage
+        blackWater: number; // Percentage
+    };
+    bilge: {
+        forward: 'DRY' | 'WET';
+        aft: 'DRY' | 'WET';
+        pumpStatus: 'AUTO' | 'RUNNING';
+    };
+    shorePower: {
+        connected: boolean;
+        voltage: number;
+        amperage: number;
+    };
+    // NEW: Comfort & Security Controls (Ada Sea ONE)
+    comfort?: {
+        climate: {
+            zone: string;
+            setPoint: number;
+            currentTemp: number;
+            mode: 'COOL' | 'HEAT' | 'AUTO' | 'OFF';
+            fanSpeed: 'LOW' | 'MED' | 'HIGH';
+        };
+        lighting: {
+            salon: boolean;
+            deck: boolean;
+            underwater: boolean;
+        };
+        security: {
+            mode: 'ARMED' | 'DISARMED' | 'STAY';
+            camerasActive: boolean;
+        };
+    };
 }

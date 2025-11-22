@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -16,10 +17,11 @@ import { Sun, Moon, Monitor, PanelLeft, PanelRight, AlertTriangle } from 'lucide
 import { persistenceService, STORAGE_KEYS } from './services/persistence';
 import { VoiceModal } from './components/VoiceModal';
 import { DailyReportModal } from './components/DailyReportModal';
+import { PassportScanner } from './components/PassportScanner';
 import { TENANT_CONFIG } from './services/config';
 import { formatCoordinate } from './services/utils';
 
-// --- SIMULATED USER DATABASE (BACKEND REPLACEMENT) ---
+// --- SIMULATED USER DATABASE ---
 const MOCK_USER_DATABASE: Record<UserRole, UserProfile> = {
   'GUEST': {
     id: 'usr_anonymous',
@@ -48,11 +50,13 @@ const MOCK_USER_DATABASE: Record<UserRole, UserProfile> = {
 const INITIAL_MESSAGE: Message = {
   id: 'init-1',
   role: MessageRole.System,
-  text: `Ada Stargate v3.2 Distributed Initialized
-
-[ OK ] Ada Marina: Core System Active. [ OK ] Ada Sea: COLREGs Protocol Online. [ OK ] Ada Finance: Parasut/Iyzico Integrated. [ OK ] Ada Legal: RAG Knowledge Graph Ready.
-
-System is operating in Distributed Mode via FastRTC Mesh. Authentication required for sensitive nodes.`,
+  text: `ADA STARGATE V3.2 DISTRIBUTED INITIALIZED
+[ OK ] ADA MARINA: CORE SYSTEM ACTIVE.
+[ OK ] ADA SEA: COLREGS PROTOCOL ONLINE.
+[ OK ] ADA FINANCE: PARASUT/IYZICO INTEGRATED.
+[ OK ] ADA LEGAL: RAG KNOWLEDGE GRAPH READY.
+SYSTEM IS OPERATING IN DISTRIBUTED MODE VIA FASTRTC MESH. AUTHENTICATION REQUIRED FOR SENSITIVE NODES.
+( KIRMIZI BOLD İLE ) N 40°57’46" E 28°39’49" VHF 72`,
   timestamp: Date.now()
 };
 
@@ -117,13 +121,17 @@ export default function App() {
   
   const isDesktop = useMediaQuery('(min-width: 1280px)');
   const [isSidebarOpen, setIsSidebarOpen] = useState(isDesktop); 
+  
   const [isCanvasOpen, setIsCanvasOpen] = useState(isDesktop);
   const [activeCanvasTab, setActiveCanvasTab] = useState<'feed' | 'fleet' | 'tech' | 'ais' | 'map' | 'weather'>('feed');
 
   const [activeChannel, setActiveChannel] = useState('72');
   const [isMonitoring, setIsMonitoring] = useState(true);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  
+  const [isRedAlert, setIsRedAlert] = useState(false); // NEW: Red Alert State
 
   const [userProfile, setUserProfile] = useState<UserProfile>(() => 
     persistenceService.load(STORAGE_KEYS.USER_PROFILE, MOCK_USER_DATABASE['GUEST'])
@@ -131,7 +139,8 @@ export default function App() {
 
   const [logs, setLogs] = useState<any[]>(() => persistenceService.load(STORAGE_KEYS.LOGS, []));
   const [registry, setRegistry] = useState<RegistryEntry[]>(() => persistenceService.load(STORAGE_KEYS.REGISTRY, []));
-  const [tenders, setTenders] = useState<Tender[]>(() => persistenceService.load(STORAGE_KEYS.TENDERS, []));
+  // Initialize Tenders from MasterData
+  const [tenders, setTenders] = useState<Tender[]>(() => persistenceService.load(STORAGE_KEYS.TENDERS, wimMasterData.assets.tenders as Tender[]));
   const [trafficQueue, setTrafficQueue] = useState<TrafficEntry[]>(() => persistenceService.load(STORAGE_KEYS.TRAFFIC, []));
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([]);
   const [vesselsInPort, setVesselsInPort] = useState(0); 
@@ -184,11 +193,74 @@ export default function App() {
   }, [messages]);
 
   const addLog = (log: any) => {
-    setLogs(prev => [log, ...prev].slice(0, 200)); // Keep logs capped
+    setLogs(prev => [log, ...prev].slice(0, 200));
   };
 
   const handleAgentAction = async (action: AgentAction) => {
-      // (Implementation remains the same)
+      if (action.name === 'ada.marina.tenderDispatched' || action.name === 'ada.marina.tenderReserved') {
+          setTenders(prev => prev.map(t => 
+              t.id === action.params.tenderId ? { 
+                  ...t, 
+                  status: 'Busy',
+                  assignment: action.params.vessel // Capture vessel name
+              } : t
+          ));
+      }
+      if (action.name === 'ada.marina.log_operation') {
+          addLog({
+              id: `op_log_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.marina',
+              type: action.params.type || 'info',
+              message: action.params.message
+          });
+      }
+      if (action.name === 'ada.marina.updateTrafficStatus') {
+          setTrafficQueue(prev => {
+              const { vessel, status, destination } = action.params;
+              const others = prev.filter(t => t.vessel !== vessel);
+              return [{
+                  id: `trf_${Date.now()}`,
+                  vessel: vessel,
+                  status: status,
+                  destination: destination,
+                  priority: 3,
+                  sector: 'WIM'
+              }, ...others];
+          });
+      }
+  };
+
+  const handleToggleRedAlert = () => {
+      const newState = !isRedAlert;
+      setIsRedAlert(newState);
+      
+      if (newState) {
+          // Automatically open Canvas if closed to show the Emergency Dashboard
+          setIsCanvasOpen(true);
+          addLog({
+              id: `alert_log_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.security',
+              type: 'critical',
+              message: '**GUARDIAN PROTOCOL ACTIVATED.** CODE RED.'
+          });
+          // Optionally send a system message to the chat
+          setMessages(prev => [...prev, { 
+              id: `sys_alert_${Date.now()}`, 
+              role: MessageRole.Model, 
+              text: "**⚠️ EMERGENCY BROADCAST INITIATED.** \n\nALL STATIONS STANDBY. SYSTEM SWITCHING TO GUARDIAN PROTOCOL.\n\n**STATUS: CODE RED**", 
+              timestamp: Date.now() 
+          }]);
+      } else {
+          addLog({
+              id: `alert_log_end_${Date.now()}`,
+              timestamp: new Date().toLocaleTimeString(),
+              source: 'ada.security',
+              type: 'info',
+              message: 'Guardian Protocol Deactivated. Returning to Standard Ops.'
+          });
+      }
   };
 
   const handleSendMessage = async (text: string, attachments: File[]) => {
@@ -208,157 +280,232 @@ export default function App() {
     setIsLoading(true);
 
     try {
-        const orchestratorResult = await orchestratorService.processRequest(text, userProfile);
+        const orchestratorResult = await orchestratorService.processRequest(text, userProfile, tenders);
         setAgentTraces(orchestratorResult.traces);
+        
+        orchestratorResult.actions.forEach(handleAgentAction);
+
         if (orchestratorResult.text) {
              setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: MessageRole.Model, text: orchestratorResult.text, timestamp: Date.now() }]);
              setIsLoading(false);
              return;
         }
-    } catch (e) {
-        console.error("Orchestrator Error:", e);
-    }
 
-    // Fallback to direct LLM call if orchestrator doesn't produce text
-    const updatedMessages = [...messages, newMessage];
-    let responseText = '';
-    let currentMessageId = (Date.now() + 1).toString();
-    
-    setMessages(prev => [...prev, {
-      id: currentMessageId, role: MessageRole.Model, text: '',
-      timestamp: Date.now(), isThinking: useThinking
-    }]);
-
-    try {
-      await streamChatResponse(
-        updatedMessages, selectedModel, useSearch, useThinking, registry, tenders, userProfile, vesselsInPort,
-        (chunk, grounding) => {
-          responseText += chunk;
-          setMessages(prev => prev.map(m => 
-            m.id === currentMessageId ? { ...m, text: responseText, isThinking: false, groundingSources: grounding } : m
-          ));
+        // Fallback to Gemini if orchestrator doesn't handle directly
+        if (text.trim() !== "") {
+            streamChatResponse(
+              [...messages, newMessage],
+              selectedModel,
+              useSearch,
+              useThinking,
+              registry,
+              tenders,
+              userProfile,
+              vesselsInPort,
+              (chunk, grounding) => {
+                setMessages(prev => {
+                  const last = prev[prev.length - 1];
+                  if (last.role === 'model' && last.isThinking) {
+                      return [...prev.slice(0, -1), { ...last, text: last.text + chunk, isThinking: false, groundingSources: grounding }];
+                  }
+                  if (last.role === 'model') {
+                    return [...prev.slice(0, -1), { ...last, text: last.text + chunk, groundingSources: grounding }];
+                  }
+                  return [...prev, { id: Date.now().toString(), role: MessageRole.Model, text: chunk, timestamp: Date.now(), groundingSources: grounding }];
+                });
+                setIsLoading(false);
+              }
+            );
+        } else {
+             setIsLoading(false);
         }
-      );
+
     } catch (error) {
-      console.error("LLM Error:", error);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: MessageRole.Model, text: "**System Alert:** Connection to Ada Core interrupted. Please retry.", timestamp: Date.now() }]);
-    } finally {
+      console.error(error);
       setIsLoading(false);
     }
   };
 
-  const handleTranscriptReceived = (userText: string, modelText: string) => {
-    if (!userText && !modelText) return;
-    const timestamp = Date.now();
-    const newMessages: Message[] = [];
-    if (userText) newMessages.push({ id: `vhf-user-${timestamp}`, role: MessageRole.User, text: `[VHF] ${userText}`, timestamp });
-    if (modelText) newMessages.push({ id: `vhf-model-${timestamp}`, role: MessageRole.Model, text: `[VHF] ${modelText}`, timestamp: timestamp + 1 });
-    setMessages(prev => [...prev, ...newMessages]);
+  const toggleAuth = () => {
+    const roles: UserRole[] = ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'];
+    const currentIndex = roles.indexOf(userProfile.role);
+    const nextRole = roles[(currentIndex + 1) % roles.length];
+    setUserProfile(MOCK_USER_DATABASE[nextRole]);
+    
+    addLog({
+      id: `auth_${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      source: 'ada.passkit',
+      type: 'alert',
+      message: `Identity Switched: ${MOCK_USER_DATABASE[nextRole].name} (${nextRole})`
+    });
+  };
+
+  const handleScanComplete = (data: any) => {
+      setPrefillText(`[PASSPORT SCAN] Name: ${data.name}, ID: ${data.id}, Country: ${data.country}. Requesting visitor pass.`);
   };
 
   const handleNodeClick = (nodeId: string) => {
-      setNodeStates(prev => ({ ...prev, [nodeId]: 'working' }));
-      setTimeout(() => setNodeStates(prev => ({ ...prev, [nodeId]: 'connected' })), 800);
-      const commands: Record<string, string> = { 'ada.finance': 'Generate an invoice for ' };
-      if (commands[nodeId]) { setPrefillText(commands[nodeId]); if (!isDesktop) setIsSidebarOpen(false); }
+      if (nodeId === 'ada.vhf') {
+          setIsVoiceOpen(true);
+      }
   };
 
-  const handleRoleChange = (role: UserRole) => {
-      const newUser = MOCK_USER_DATABASE[role];
-      setUserProfile(newUser);
-      addLog({ id: `sys_auth_${Date.now()}`, timestamp: new Date().toLocaleTimeString(), source: 'ada.passkit', message: `Identity Switched: ${newUser.name} (${role}). Permissions updated.`, type: 'info' });
-      if (!isDesktop) setIsSidebarOpen(false); 
-  };
-
-  const { lat, lng } = wimMasterData.identity.location.coordinates;
-  const displayCoordinates = `${formatCoordinate(lat, 'lat')} / ${formatCoordinate(lng, 'lng')}`;
-  const isGM = userProfile.role === 'GENERAL_MANAGER';
-  
   if (isBooting) return <BootScreen />;
 
   return (
-    <div className={`flex h-screen bg-brand-bg-light dark:bg-brand-bg-dark text-zinc-800 dark:text-zinc-200 font-sans overflow-hidden transition-colors duration-300`}>
-      <div className="absolute inset-0 bg-grid-zinc-300/[0.2] dark:bg-grid-zinc-700/[0.2] [mask-image:linear-gradient(to_bottom,white_5%,transparent_50%)] dark:[mask-image:linear-gradient(to_bottom,white_10%,transparent_90%)]"></div>
+    <div className={`flex flex-col h-screen bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-500 overflow-hidden ${theme}`}>
       
-      {isGM && <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} isPanel={isDesktop} {...{ nodeStates, activeChannel, onChannelChange: setActiveChannel, isMonitoring, onMonitoringToggle: () => setIsMonitoring(!isMonitoring), userProfile, onRoleChange: handleRoleChange, onNodeClick: handleNodeClick }} />}
-      
-      <div className="flex-1 flex flex-col relative min-w-0">
-        <header className="h-14 border-b border-border-light dark:border-border-dark flex items-center justify-between px-4 bg-panel-light/80 dark:bg-panel-dark/80 backdrop-blur-sm flex-shrink-0 z-20 font-mono">
-           <div className="flex items-center gap-4">
-              {isGM && (
-                  <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-1 -ml-2 text-zinc-500 dark:text-zinc-400" aria-label="Toggle Explorer">
-                      <PanelLeft size={20} />
-                  </button>
-              )}
-              <div>
-                  <div className="flex items-center gap-2">
-                      <span className="font-bold text-zinc-800 dark:text-zinc-200 text-sm tracking-widest">{TENANT_CONFIG.fullName}</span>
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Core Status: Operational" />
-                  </div>
-                   <div className="text-[10px] text-indigo-500 font-bold uppercase tracking-wider">
-                      CTRL: CH 72
-                   </div>
-              </div>
-          </div>
-
-          <div className="hidden lg:block text-center text-xs font-semibold text-zinc-400 dark:text-zinc-500 tracking-wider">
-              {displayCoordinates}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button onClick={cycleTheme} className="w-8 h-8 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-full text-zinc-500 dark:text-zinc-400 transition-colors">
-                {getThemeIcon()}
-            </button>
-            
-            {isGM && (
-                <button onClick={() => setIsCanvasOpen(!isCanvasOpen)} className="w-8 h-8 flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-full text-zinc-500 dark:text-zinc-400 transition-colors" title="Toggle Operations Desk">
-                    <PanelRight size={20} />
-                </button>
-            )}
-          </div>
-        </header>
+      {/* --- MAIN LAYOUT --- */}
+      <div className="flex flex-1 overflow-hidden relative">
         
-        {isGM && (
-            <div className="h-1 bg-accent-amber/80 flex items-center justify-center z-[19] relative group">
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full hidden group-hover:block bg-zinc-900 text-white text-xs px-2 py-1 rounded-md whitespace-nowrap">
-                   DEV MODE: GM ROLE ACTIVE. DO NOT HANDLE LIVE SENSITIVE DATA.
-                </div>
-            </div>
-        )}
+        {/* LEFT: Sidebar (Navigation) */}
+        <Sidebar 
+          nodeStates={nodeStates}
+          activeChannel={activeChannel}
+          onChannelChange={setActiveChannel}
+          isMonitoring={isMonitoring}
+          onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
+          userProfile={userProfile}
+          onRoleChange={(role) => setUserProfile(MOCK_USER_DATABASE[role])}
+          onNodeClick={handleNodeClick}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+          isPanel={isDesktop}
+        />
 
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth custom-scrollbar">
-            <div className="max-w-3xl mx-auto">
+        {/* CENTER: Chat & Orchestrator */}
+        <main className="flex-1 flex flex-col relative min-w-0">
+          {/* Mobile Header */}
+          <div className="lg:hidden flex items-center justify-between p-4 border-b border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark z-10">
+             <button onClick={() => setIsSidebarOpen(true)} className="text-zinc-500"><PanelLeft size={20} /></button>
+             <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">ADA.MARINA</span>
+             <button onClick={() => setIsCanvasOpen(true)} className="text-zinc-500"><PanelRight size={20} /></button>
+          </div>
+
+          {/* Chat Scroll Area */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
+            <div className="max-w-3xl mx-auto space-y-6 pb-4">
               {messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} onAction={(action) => setPrefillText(action)} />
+                <MessageBubble 
+                    key={msg.id} 
+                    message={msg} 
+                />
               ))}
-              {isLoading && !messages[messages.length - 1]?.isThinking && (
-                 <div className="flex w-full mb-8 gap-4 animate-in fade-in zoom-in duration-300">
-                    <TypingIndicator />
-                 </div>
+              {isLoading && (
+                  <div className="flex w-full mb-8 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className="flex flex-col items-start max-w-3xl">
+                          <TypingIndicator />
+                      </div>
+                  </div>
               )}
               <div ref={messagesEndRef} />
             </div>
           </div>
 
-          <div className="w-full pt-2 pb-0 px-2 sm:px-4 bg-gradient-to-t from-brand-bg-light dark:from-brand-bg-dark z-10">
+          {/* Input Area */}
+          <div className="p-4 sm:p-6 bg-gradient-to-t from-brand-bg-light via-brand-bg-light to-transparent dark:from-brand-bg-dark dark:via-brand-bg-dark z-10">
             <InputArea 
-              onSend={handleSendMessage} isLoading={isLoading} selectedModel={selectedModel} onModelChange={setSelectedModel}
-              onInitiateVhfCall={() => setIsVoiceOpen(true)} isMonitoring={isMonitoring}
-              useSearch={useSearch} onToggleSearch={() => setUseSearch(!useSearch)}
-              useThinking={useThinking} onToggleThinking={() => setUseThinking(!useThinking)}
-              prefillText={prefillText} onPrefillConsumed={() => setPrefillText('')}
+              onSend={handleSendMessage} 
+              isLoading={isLoading}
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+              onInitiateVhfCall={() => setIsVoiceOpen(true)}
+              onInitiateScanner={() => setIsScannerOpen(true)}
+              onToggleRedAlert={handleToggleRedAlert}
+              isRedAlert={isRedAlert}
+              isMonitoring={isMonitoring}
+              useSearch={useSearch}
+              onToggleSearch={() => setUseSearch(!useSearch)}
+              useThinking={useThinking}
+              onToggleThinking={() => setUseThinking(!useThinking)}
+              prefillText={prefillText}
+              onPrefillConsumed={() => setPrefillText('')}
             />
+            
+            {/* Footer Info */}
+            <div className="mt-2 flex justify-between items-center px-4 text-[10px] text-zinc-400 dark:text-zinc-600 font-mono select-none">
+                <span>AI: {selectedModel.replace('gemini-', '')} {useSearch ? '+ SEARCH' : ''} {useThinking ? '+ THINKING' : ''}</span>
+                <div className="flex items-center gap-4">
+                    <button onClick={cycleTheme} className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
+                        {getThemeIcon()}
+                    </button>
+                    <span>SECURE CONNECTION</span>
+                </div>
+            </div>
           </div>
         </main>
-        
-        <StatusBar userProfile={userProfile} onToggleAuth={() => handleRoleChange(['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'][(['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'].indexOf(userProfile.role) + 1) % 3] as UserRole)} nodeHealth="connected" latency={12} activeChannel={activeChannel} />
+
+        {/* RIGHT: Canvas (Dynamic Dashboard) */}
+        <Canvas 
+          logs={logs}
+          registry={registry}
+          tenders={tenders}
+          trafficQueue={trafficQueue}
+          weatherData={weatherData}
+          activeChannel={activeChannel}
+          isMonitoring={isMonitoring}
+          userProfile={userProfile}
+          vesselsInPort={vesselsInPort}
+          onCheckIn={(id) => {}} 
+          onOpenTrace={() => setIsTraceModalOpen(true)}
+          onGenerateReport={() => setIsReportModalOpen(true)}
+          onNodeClick={handleNodeClick}
+          isOpen={isCanvasOpen}
+          onClose={() => setIsCanvasOpen(false)}
+          activeTab={activeCanvasTab}
+          onTabChange={setActiveCanvasTab}
+          isPanel={isDesktop}
+          isRedAlert={isRedAlert}
+        />
+
       </div>
 
-      {isGM && <Canvas isOpen={isCanvasOpen} onClose={() => setIsCanvasOpen(false)} isPanel={isDesktop} {...{ logs, registry, tenders, trafficQueue, weatherData, activeChannel, isMonitoring, userProfile, vesselsInPort, onCheckIn: () => {}, onOpenTrace: () => setIsTraceModalOpen(true), onGenerateReport: () => setIsReportModalOpen(true), onNodeClick: handleNodeClick, activeTab: activeCanvasTab, onTabChange: setActiveCanvasTab }} />}
-      <AgentTraceModal isOpen={isTraceModalOpen} onClose={() => setIsTraceModalOpen(false)} traces={agentTraces} />
-      <VoiceModal isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} userProfile={userProfile} onTranscriptReceived={handleTranscriptReceived} />
-      <DailyReportModal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} {...{ registry, logs, vesselsInPort, userProfile, weatherData }} />
+      {/* BOTTOM: Status Bar */}
+      <StatusBar 
+        userProfile={userProfile}
+        onToggleAuth={toggleAuth}
+        nodeHealth="connected"
+        latency={12}
+        activeChannel={activeChannel}
+      />
+
+      {/* --- MODALS --- */}
+      <VoiceModal 
+        isOpen={isVoiceOpen} 
+        onClose={() => setIsVoiceOpen(false)} 
+        userProfile={userProfile}
+        onTranscriptReceived={(userText, modelText) => {
+            setMessages(prev => [
+                ...prev, 
+                { id: Date.now().toString(), role: MessageRole.User, text: `[VHF TRANSCRIPT] ${userText}`, timestamp: Date.now() },
+                { id: (Date.now()+1).toString(), role: MessageRole.Model, text: modelText, timestamp: Date.now() }
+            ]);
+        }}
+      />
+
+      <AgentTraceModal
+        isOpen={isTraceModalOpen}
+        onClose={() => setIsTraceModalOpen(false)}
+        traces={agentTraces}
+      />
+
+      <DailyReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        registry={registry}
+        logs={logs}
+        vesselsInPort={vesselsInPort}
+        userProfile={userProfile}
+        weatherData={weatherData}
+      />
+
+      <PassportScanner
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScanComplete={handleScanComplete}
+      />
+
     </div>
   );
 }
