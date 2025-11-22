@@ -1,7 +1,7 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
-import { Anchor, Radio } from 'lucide-react';
+import React from 'react';
+import { BrainCircuit, Radio, X } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
+import { TENANT_CONFIG } from '../services/config';
 
 interface SidebarProps {
   nodeStates: Record<string, 'connected' | 'working' | 'disconnected'>;
@@ -12,6 +12,9 @@ interface SidebarProps {
   userProfile: UserProfile;
   onRoleChange: (role: UserRole) => void;
   onNodeClick: (nodeId: string) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  isPanel: boolean; // New prop to control rendering mode
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -22,37 +25,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMonitoringToggle,
   userProfile,
   onRoleChange,
-  onNodeClick 
+  onNodeClick,
+  isOpen,
+  onClose,
+  isPanel
 }) => {
-  // Resizable Sidebar State
-  const [sidebarWidth, setSidebarWidth] = useState(240); 
-  const [isResizing, setIsResizing] = useState(false);
 
-  const startResizing = useCallback(() => setIsResizing(true), []);
-  const stopResizing = useCallback(() => setIsResizing(false), []);
-
-  const resize = useCallback(
-    (mouseMoveEvent: MouseEvent) => {
-      if (isResizing) {
-        const newWidth = mouseMoveEvent.clientX;
-        if (newWidth > 180 && newWidth < 400) {
-          setSidebarWidth(newWidth);
-        }
-      }
-    },
-    [isResizing]
-  );
-
-  useEffect(() => {
-    window.addEventListener("mousemove", resize);
-    window.addEventListener("mouseup", stopResizing);
-    return () => {
-      window.removeEventListener("mousemove", resize);
-      window.removeEventListener("mouseup", stopResizing);
-    };
-  }, [resize, stopResizing]);
-
-  // Core nodes definition
   const coreNodes = [
     { id: 'ada.marina', label: 'MARINA' },
     { id: 'ada.vhf', label: 'VHF' },
@@ -68,53 +46,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const getStatusDotColor = (status: string) => {
     switch (status) {
-      case 'working': return 'bg-yellow-500';
-      case 'disconnected': return 'bg-red-500';
-      case 'connected': default: return 'bg-emerald-500';
+      case 'working': return 'bg-yellow-400 shadow-[0_0_4px_theme(colors.yellow.400)]';
+      case 'disconnected': return 'bg-red-500 shadow-[0_0_4px_theme(colors.red.500)]';
+      case 'connected': default: return 'bg-emerald-500 shadow-[0_0_4px_theme(colors.emerald.500)]';
     }
   };
 
-  return (
-    <div 
-      className="hidden md:flex flex-col h-full bg-white dark:bg-zinc-950 border-r border-zinc-100 dark:border-zinc-900 font-mono relative flex-shrink-0 select-none transition-colors duration-300"
-      style={{ width: sidebarWidth }}
-    >
-      {/* Resize Handle */}
-      <div 
-        className={`absolute top-0 right-0 w-[2px] h-full cursor-col-resize hover:bg-indigo-500/50 transition-colors z-50 ${isResizing ? 'bg-indigo-500' : 'bg-transparent'}`}
-        onMouseDown={startResizing}
-      />
-
+  const SidebarContent = () => (
+    <>
       {/* Header */}
-      <div className="p-6 pb-2 flex items-center justify-between">
-        <div className="flex items-center gap-3 text-zinc-400 dark:text-zinc-600">
-            <Anchor size={16} />
-            <span className="font-bold tracking-[0.2em] text-xs uppercase">Ada Explorer</span>
+      <div className="p-4 flex items-center justify-between border-b border-border-light dark:border-border-dark">
+        <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+            <BrainCircuit size={16} />
+            <span className="font-bold tracking-[0.2em] text-xs uppercase">Explorer</span>
         </div>
+         {/* Close Button (for drawer) */}
+        {!isPanel && (
+            <button onClick={onClose} className="p-1 text-zinc-500 hover:text-zinc-200 lg:hidden" aria-label="Close menu">
+               <X size={18} />
+            </button>
+        )}
       </div>
 
       {/* Context Label */}
-      <div className="px-6 pb-6">
+      <div className="px-4 pt-4 pb-2">
           <div className="text-[9px] text-indigo-500 dark:text-indigo-400/70 font-bold font-mono tracking-widest">
-            wim.ada.network
+            {TENANT_CONFIG.network}
           </div>
       </div>
 
-      {/* Vertical Node List (Ultra Flat) */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-6">
-        <div className="py-2 space-y-3">
+      {/* Vertical Node List */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
+        <div className="space-y-1">
             {coreNodes.map((node) => (
               <button 
                 key={node.id} 
                 onClick={() => onNodeClick(node.id)}
-                className="w-full flex items-center justify-start gap-4 group cursor-pointer transition-all text-left"
+                className="w-full flex items-center justify-start gap-4 group cursor-pointer transition-all text-left p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50"
               >
-                {/* Minimal Status Dot */}
-                <div className={`w-1 h-1 rounded-full flex-shrink-0 transition-all duration-300 group-hover:scale-125 ${getStatusDotColor(nodeStates[node.id] || 'connected')}`} />
-                
-                <span className={`text-[10px] tracking-widest uppercase transition-all duration-300 ${
-                  nodeStates[node.id] === 'working' ? 'text-yellow-600 dark:text-yellow-200' :
-                  nodeStates[node.id] === 'disconnected' ? 'text-red-600 dark:text-red-400' : 'text-zinc-400 dark:text-zinc-600 group-hover:text-zinc-900 dark:group-hover:text-zinc-200'
+                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 transition-all duration-300 group-hover:scale-125 ${getStatusDotColor(nodeStates[node.id] || 'connected')}`} />
+                <span className={`text-[10px] tracking-widest uppercase font-semibold transition-all duration-300 ${
+                  nodeStates[node.id] === 'working' ? 'text-yellow-500' :
+                  nodeStates[node.id] === 'disconnected' ? 'text-red-500' : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200'
                 }`}>
                   {node.label}
                 </span>
@@ -123,25 +96,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* RBAC Mode */}
-        <div className="mt-8 pt-4 border-t border-zinc-100 dark:border-zinc-900/50">
-            <div className="text-[9px] font-bold text-zinc-300 dark:text-zinc-700 uppercase mb-4 tracking-[0.2em]">
-                IDENTITY
+        <div className="mt-6 pt-4 border-t border-border-light dark:border-border-dark mx-2">
+            <div className="text-[9px] font-bold text-zinc-400 dark:text-zinc-600 uppercase mb-4 tracking-[0.2em]">
+                Identity
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {(['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] as UserRole[]).map(role => {
                     const isActive = userProfile.role === role;
                     return (
                         <button
                             key={role}
                             onClick={() => onRoleChange(role)}
-                            className={`w-full text-left text-[9px] transition-all flex items-center justify-between group uppercase tracking-wide ${
+                            className={`w-full text-left text-xs transition-all flex items-center justify-between group uppercase tracking-wide p-2 rounded-md ${
                                 isActive
-                                ? 'text-indigo-600 dark:text-indigo-400 font-bold' 
-                                : 'text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400'
+                                ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-500/10' 
+                                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
                             }`}
                         >
                             {role.replace('_', ' ')}
-                            {isActive && <div className="w-1 h-1 bg-indigo-500 rounded-full" />}
+                            {isActive && <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full" />}
                         </button>
                     )
                 })}
@@ -149,33 +122,70 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* VHF Control Panel (Super Compact Bottom Bar) */}
-      <div className="p-4 border-t border-zinc-100 dark:border-zinc-900/50">
-          <div className="flex items-center justify-between text-[9px]">
-              <div className="flex items-center gap-2 text-zinc-500">
-                   <button onClick={onMonitoringToggle} className={`transition-colors text-red-500 ${isMonitoring ? 'animate-pulse' : ''}`}>
+      {/* VHF Control Panel */}
+      <div className="p-4 border-t border-border-light dark:border-border-dark flex-shrink-0">
+          <div className="flex items-center justify-between text-[9px] mb-3">
+              <div className="flex items-center gap-2">
+                  <button onClick={onMonitoringToggle} className={`p-1 transition-colors rounded-full ${isMonitoring ? 'text-red-500 animate-pulse bg-red-500/10' : 'text-zinc-500 hover:bg-zinc-800'}`}>
                       <Radio size={12} />
                   </button>
-                  <span className="font-bold tracking-widest">VHF</span>
+                  <span className={`font-bold tracking-widest ${isMonitoring ? 'text-zinc-300' : 'text-zinc-600'}`}>VHF MONITOR</span>
               </div>
-              <div className="flex items-center gap-1 font-mono text-zinc-400">
-                  {['16', '72', '69', '13', '14', 'SCAN'].map((ch, idx, arr) => (
-                      <React.Fragment key={ch}>
-                          <button 
-                              onClick={() => ch === 'SCAN' ? null : onChannelChange(ch)}
-                              className={`hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors ${
-                                  activeChannel === ch ? 'text-indigo-500 font-bold' : 
-                                  ch === 'SCAN' ? 'text-amber-600 dark:text-amber-500' : ''
-                              }`}
-                          >
-                              {ch}
-                          </button>
-                          {idx < arr.length - 1 && <span className="text-zinc-200 dark:text-zinc-800">|</span>}
-                      </React.Fragment>
+              <div className="px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded font-bold font-mono">
+                CTRL: CH 72
+              </div>
+          </div>
+          
+          <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 border-t border-zinc-200 dark:border-zinc-800 pt-2">
+              <span className="text-zinc-500 text-[9px] uppercase tracking-wider font-sans">Listen:</span>
+              <div className="flex items-center gap-1.5">
+                  {['72', '16', '69', '13', '14'].map((ch) => (
+                      <button 
+                          key={ch}
+                          onClick={() => onChannelChange(ch)}
+                          className={`px-1.5 py-0.5 rounded transition-colors ${
+                              activeChannel === ch ? 'text-indigo-500 font-black bg-indigo-500/10' : 'hover:text-zinc-900 dark:hover:text-zinc-100'
+                          }`}
+                      >
+                          {ch}
+                      </button>
                   ))}
+                  <div className="w-px h-3 bg-zinc-300 dark:bg-zinc-700 mx-1"></div>
+                  <button className="text-amber-600 dark:text-amber-500 font-bold">SCAN</button>
               </div>
           </div>
       </div>
-    </div>
+    </>
+  );
+
+  const baseClasses = `flex flex-col bg-panel-light dark:bg-panel-dark border-r border-border-light dark:border-border-dark font-mono select-none transition-all duration-300`;
+
+  if (isPanel) {
+    return (
+        <aside className={`${baseClasses} ${isOpen ? 'w-[280px]' : 'w-0 hidden'}`}>
+            <SidebarContent />
+        </aside>
+    );
+  }
+
+  // --- DRAWER MODE ---
+  return (
+    <>
+        <div 
+            className={`fixed inset-0 bg-black/60 z-40 transition-opacity lg:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            onClick={onClose}
+            aria-hidden="true"
+        />
+        <div 
+            className={`
+            ${baseClasses}
+            fixed top-0 left-0 h-full
+            w-[280px] z-50 transition-transform duration-300 ease-in-out
+            ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+            `}
+        >
+            <SidebarContent />
+        </div>
+    </>
   );
 };

@@ -1,6 +1,7 @@
 
+
 import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
-import { ArrowUp, Loader2, X, Paperclip, Search, Brain, Mic, Radio } from 'lucide-react'; // Added Mic, Radio
+import { ArrowUp, Loader2, X, Paperclip, Search, Brain, Mic, Radio } from 'lucide-react'; 
 import { ModelType } from '../types';
 
 interface InputAreaProps {
@@ -15,6 +16,7 @@ interface InputAreaProps {
   useThinking: boolean;
   onToggleThinking: () => void;
   prefillText?: string;
+  onPrefillConsumed?: () => void;
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({ 
@@ -28,7 +30,8 @@ export const InputArea: React.FC<InputAreaProps> = ({
   onToggleSearch,
   useThinking,
   onToggleThinking,
-  prefillText 
+  prefillText,
+  onPrefillConsumed
 }) => {
   const [text, setText] = useState('');
   const [files, setFiles] = useState<File[]>([]);
@@ -39,8 +42,11 @@ export const InputArea: React.FC<InputAreaProps> = ({
   useEffect(() => {
       if (prefillText) {
           setText(prefillText);
+          if (onPrefillConsumed) {
+              onPrefillConsumed();
+          }
       }
-  }, [prefillText]);
+  }, [prefillText, onPrefillConsumed]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -91,10 +97,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto relative pb-4 font-mono">
+    <div className="w-full max-w-3xl mx-auto relative pb-4 font-sans">
       
       {/* --- COMMAND DECK HEADER (Model & Tools) --- */}
-      <div className="flex items-center justify-between px-1 mb-2">
+      <div className="flex items-center justify-between px-1 mb-2 font-mono">
         {/* Model Selectors (Text Only) */}
         <div className="flex items-center gap-4 pl-2">
           {(['Flash', 'Pro', 'Image'] as const).map(modelName => {
@@ -164,33 +170,39 @@ export const InputArea: React.FC<InputAreaProps> = ({
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Instructions..."
-            className="flex-1 bg-transparent border-none focus:outline-none text-[13px] text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-700 py-3.5 px-3 resize-none min-h-[48px] max-h-[160px] leading-relaxed tracking-tight font-mono"
+            className="flex-1 bg-transparent border-none focus:outline-none text-[13px] text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-700 py-3.5 px-3 resize-none min-h-[48px] max-h-[160px] leading-relaxed tracking-tight font-sans"
             disabled={isLoading}
         />
 
         {/* Right Controls Group */}
-        <div className="flex items-center gap-1 mb-0.5 mr-0.5">
-             {/* RESTORED: Voice Controls */}
+        <div className="flex items-center gap-1 mr-0.5">
+             {/* Voice Controls */}
              <button 
                onClick={onInitiateVhfCall}
-               className="p-2 text-zinc-400 hover:text-indigo-600 dark:text-zinc-500 dark:hover:text-indigo-400 transition-all"
-               title="VHF Channel Link"
+               className={`p-2.5 rounded-full transition-all ${
+                  isMonitoring
+                  ? 'text-red-500 animate-pulse bg-red-500/10'
+                  : 'text-zinc-400 hover:text-red-500 dark:text-zinc-500 dark:hover:text-red-400'
+                }`}
+               title="VHF Channel Link (CH 72)"
              >
                 <Radio size={18} />
              </button>
              <button 
-               className="p-2 text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
+               className="p-2.5 rounded-full text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors"
                title="Dictate (Mic)"
              >
                <Mic size={18} />
              </button>
+
+             <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800/50 mx-2"></div>
 
             {/* Send Button */}
             <button
                 onClick={handleSend}
                 disabled={(!text.trim() && files.length === 0) || isLoading}
                 className={`
-                    w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ml-1
+                    w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-200
                     ${(!text.trim() && files.length === 0) || isLoading 
                         ? 'bg-zinc-100 dark:bg-zinc-800/30 text-zinc-300 dark:text-zinc-700 cursor-not-allowed' 
                         : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-white'

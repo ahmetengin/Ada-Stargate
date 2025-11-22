@@ -12,7 +12,7 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     persona
 });
 
-export const passkitAgent = {
+export const passkitExpert = {
     // Skill: Issue Digital Pass
     issuePass: async (vesselName: string, ownerName: string, type: 'GUEST' | 'OWNER' | 'CREW', addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, passUrl?: string, qrCode?: string, message: string }> => {
         

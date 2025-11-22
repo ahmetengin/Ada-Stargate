@@ -82,7 +82,7 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
     return formattedResponse;
 }
 
-export const legalAgent = {
+export const legalExpert = {
   process: async (params: any, user: UserProfile, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
     
     // RBAC Check

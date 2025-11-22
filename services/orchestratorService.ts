@@ -1,14 +1,13 @@
-
 // services/orchestratorService.ts
 
 import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, VesselIntelligenceProfile } from '../types';
-import { seaAgent } from './agents/seaAgent';
-import { financeAgent } from './agents/financeAgent';
-import { legalAgent } from './agents/legalAgent';
-import { marinaAgent } from './agents/marinaAgent';
-import { customerAgent } from './agents/customerAgent';
-import { technicAgent } from './agents/technicAgent';
-import { passkitAgent } from './agents/passkitAgent'; // Import passkitAgent
+import { seaExpert } from './agents/seaAgent';
+import { financeExpert } from './agents/financeAgent';
+import { legalExpert } from './agents/legalAgent';
+import { marinaExpert } from './agents/marinaAgent';
+import { customerExpert } from './agents/customerAgent';
+import { technicExpert } from './agents/technicAgent';
+import { passkitExpert } from './agents/passkitAgent'; // Import passkitExpert
 import { wimMasterData } from './wimMasterData';
 import { dmsToDecimal } from './utils';
 import { generateComplianceSystemMessage } from './prompts';
@@ -111,7 +110,7 @@ export const orchestratorService = {
                 } else {
                     // Finance Workflow
                     if (prompt.toLowerCase().includes('debt') || prompt.toLowerCase().includes('balance')) {
-                        const status = await financeAgent.checkDebt(vesselName);
+                        const status = await financeExpert.checkDebt(vesselName);
                         responseText = status.status === 'DEBT' 
                             ? `**FINANCE ALERT:** ${vesselName} has an outstanding balance of **€${status.amount}**.` 
                             : `**ACCOUNT CLEAR:** ${vesselName} is in good standing.`;
@@ -121,12 +120,12 @@ export const orchestratorService = {
                         // If confirm payment intent
                         if (prompt.toLowerCase().includes('confirm') || prompt.toLowerCase().includes('received')) {
                              // Trigger processPayment directly via a mock loop
-                             const res = await financeAgent.processPayment(vesselName, "MANUAL-OVERRIDE", 850, t => traces.push(t));
+                             const res = await financeExpert.processPayment(vesselName, "MANUAL-OVERRIDE", 850, t => traces.push(t));
                              actions.push(...res);
                              responseText = `**PAYMENT CONFIRMED**\n\nAccount for ${vesselName} is now settled. Loyalty score updated.`;
                         } else {
                              // Create Invoice
-                             const res = await financeAgent.process({ intent: 'create_invoice', vesselName, amount: payAmount, serviceType: 'GENERAL' }, user, t => traces.push(t));
+                             const res = await financeExpert.process({ intent: 'create_invoice', vesselName, amount: payAmount, serviceType: 'GENERAL' }, user, t => traces.push(t));
                              actions.push(...res);
                              const link = res.find(a => a.name.includes('paymentLink'))?.params?.link?.url;
                              responseText = `**INVOICE GENERATED**\n\n[Pay Securely via Iyzico](${link})`;
@@ -143,17 +142,17 @@ export const orchestratorService = {
                         responseText = `**ACCESS DENIED**\n\nTechnical scheduling restricted to Captains/GM.`;
                      } else {
                         const date = new Date().toISOString().split('T')[0];
-                        const res = await technicAgent.scheduleService(vesselName, 'HAUL_OUT', date, t => traces.push(t));
+                        const res = await technicExpert.scheduleService(vesselName, 'HAUL_OUT', date, t => traces.push(t));
                         responseText = res.message;
                      }
                 } else if (prompt.toLowerCase().includes('status')) {
-                    responseText = await technicAgent.checkStatus(vesselName, t => traces.push(t));
+                    responseText = await technicExpert.checkStatus(vesselName, t => traces.push(t));
                 }
                 break;
 
             case 'LEGAL':
                 // Legal Workflow
-                const resLegal = await legalAgent.process({ query: prompt }, user, t => traces.push(t));
+                const resLegal = await legalExpert.process({ query: prompt }, user, t => traces.push(t));
                 actions.push(...resLegal);
                 const advice = resLegal.find(a => a.name === 'ada.legal.consultation')?.params?.advice;
                 responseText = advice || "Access Denied or No Info.";
@@ -163,14 +162,14 @@ export const orchestratorService = {
             case 'CUSTOMER':
                 // Customer Workflow
                 if (prompt.toLowerCase().includes('payment plan')) {
-                     const intel = await marinaAgent.getVesselIntelligence(vesselName);
+                     const intel = await marinaExpert.getVesselIntelligence(vesselName);
                      if (intel) {
-                         const res = await customerAgent.proposePaymentPlan(intel, t => traces.push(t));
+                         const res = await customerExpert.proposePaymentPlan(intel, t => traces.push(t));
                          actions.push(...res);
                          responseText = `**PAYMENT PLAN PROPOSAL**\n\nSubmitted to GM for review based on loyalty tier: **${intel.loyaltyTier}**.`;
                      }
                 } else {
-                    const res = await customerAgent.handleGeneralInquiry(prompt, t => traces.push(t));
+                    const res = await customerExpert.handleGeneralInquiry(prompt, t => traces.push(t));
                     responseText = res.text;
                 }
                 break;
@@ -180,11 +179,11 @@ export const orchestratorService = {
                 // Fallback / Marina Ops / Navigation / AIS
                 if (prompt.toLowerCase().includes('vessel') && prompt.toLowerCase().includes('near')) {
                      // Proximity Logic
-                     const nearby = await marinaAgent.findVesselsNear(wimMasterData.identity.location.coordinates.lat, wimMasterData.identity.location.coordinates.lng, 10, t => traces.push(t));
+                     const nearby = await marinaExpert.findVesselsNear(wimMasterData.identity.location.coordinates.lat, wimMasterData.identity.location.coordinates.lng, 10, t => traces.push(t));
                      responseText = `**RADAR SCAN:** Found ${nearby.length} vessels nearby.`;
                 } 
                 else if (prompt.toLowerCase().includes('intel') && vesselName) {
-                     const intel = await marinaAgent.getVesselIntelligence(vesselName);
+                     const intel = await marinaExpert.getVesselIntelligence(vesselName);
                      if (intel) {
                          responseText = `**INTELLIGENCE: ${intel.name}**\nIMO: ${intel.imo} | Flag: ${intel.flag} | Status: ${intel.status}`;
                          traces.push(createLog('ada.marina', 'OUTPUT', 'Profile loaded.', 'WORKER'));
@@ -192,13 +191,13 @@ export const orchestratorService = {
                 }
                 else if (prompt.toLowerCase().includes('depart')) {
                      // Departure Logic (Condensed for brevity, same as original)
-                     const debt = await financeAgent.checkDebt(vesselName);
+                     const debt = await financeExpert.checkDebt(vesselName);
                      if (debt.status === 'DEBT' && user.role !== 'GENERAL_MANAGER') {
                          responseText = `**DEPARTURE DENIED**\n\nOutstanding Debt: €${debt.amount}.`;
                          traces.push(createLog('ada.marina', 'ERROR', 'Departure blocked by Finance.', 'EXPERT'));
                      } else {
                          responseText = `**DEPARTURE APPROVED**\n\nTender dispatched.`;
-                         actions.push((await marinaAgent.processDeparture(vesselName))[0]);
+                         actions.push((await marinaExpert.processDeparture(vesselName))[0]);
                      }
                 }
                 else {
@@ -214,7 +213,7 @@ export const orchestratorService = {
         if (passkitAction) {
              const { vesselName, type } = passkitAction.params;
              // Execute PassKit Logic
-             const passResult = await passkitAgent.issuePass(vesselName, "Owner/Captain", type, t => traces.push(t));
+             const passResult = await passkitExpert.issuePass(vesselName, "Owner/Captain", type, t => traces.push(t));
              actions.push({
                  id: `passkit_res_${Date.now()}`,
                  kind: 'external',

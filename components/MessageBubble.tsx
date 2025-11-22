@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole, VesselIntelligenceProfile } from '../types';
-import { Anchor, Copy, Check, Volume2, StopCircle, Cpu, User, Mail, Phone } from 'lucide-react';
+import { BrainCircuit, Copy, Check, Volume2, StopCircle, User, Mail, Phone } from 'lucide-react';
 import { TypingIndicator } from './TypingIndicator';
-import { marinaAgent } from '../services/agents/marinaAgent';
+import { marinaExpert } from '../services/agents/marinaAgent';
 import { VESSEL_KEYWORDS } from '../services/constants';
 import { maskFullName, maskIdNumber, maskEmail, maskPhone } from '../services/utils';
 
@@ -28,7 +28,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
 
       if (matchedVesselKeyword && !vesselProfiles[matchedVesselKeyword] && loadingVessel !== matchedVesselKeyword) {
         setLoadingVessel(matchedVesselKeyword);
-        marinaAgent.getVesselIntelligence(matchedVesselKeyword)
+        marinaExpert.getVesselIntelligence(matchedVesselKeyword)
           .then(profile => {
             if (profile) {
               setVesselProfiles(prev => ({ ...prev, [matchedVesselKeyword]: profile }));
@@ -73,9 +73,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
   if (isSystem) {
       return (
           <div className="flex w-full mb-6 justify-center animate-in fade-in zoom-in duration-300">
-              <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 px-4 py-2 rounded-full flex items-center gap-3">
-                  <Cpu size={14} className="text-indigo-500 dark:text-indigo-400" />
-                  <span className="text-[11px] font-mono text-indigo-700 dark:text-indigo-200 uppercase tracking-wider">{message.text}</span>
+              <div className="bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 px-4 py-2 rounded-full flex items-center gap-3">
+                  <BrainCircuit size={14} className="text-indigo-500 dark:text-indigo-400" />
+                  <span className="text-[11px] font-mono text-zinc-600 dark:text-zinc-300 uppercase tracking-wider">{message.text}</span>
               </div>
           </div>
       )
@@ -84,7 +84,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
   if (isUser) {
     return (
       <div className="flex w-full mb-8 justify-end animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <div className="max-w-2xl flex flex-col items-end group">
+        <div className="max-w-3xl flex flex-col items-end group">
             {message.attachments && message.attachments.length > 0 && (
              <div className="flex flex-wrap gap-2 mb-2 justify-end">
                 {message.attachments.map((att, idx) => (
@@ -95,7 +95,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
              </div>
             )}
             
-            <div className="bg-white dark:bg-[#27272a] text-zinc-800 dark:text-zinc-100 px-5 py-2.5 rounded-[18px] rounded-tr-sm text-[13px] font-medium shadow-sm font-sans tracking-tight border border-zinc-200 dark:border-zinc-700/50">
+            <div className="bg-indigo-600 dark:bg-indigo-500 text-white dark:text-white px-5 py-3 rounded-2xl rounded-tr-lg shadow-md font-sans text-sm leading-relaxed">
                 {message.text}
             </div>
         </div>
@@ -104,43 +104,34 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
   }
 
   // --- MODEL MESSAGE ---
-  // Changed from font-mono to font-sans for better readability
   return (
-    <div className="flex w-full mb-10 gap-5 group animate-in fade-in slide-in-from-bottom-2 duration-500 font-sans">
+    <div className="flex w-full mb-10 gap-4 group animate-in fade-in slide-in-from-bottom-2 duration-500 font-sans">
         
         <div className="flex-shrink-0 flex flex-col items-center pt-1">
-            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-900/50 shadow-sm border border-zinc-200 dark:border-transparent">
-                <Anchor size={16} className="text-indigo-600 dark:text-indigo-500" />
+            <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-panel-dark shadow-sm border border-border-light dark:border-border-dark">
+                <BrainCircuit size={16} className="text-indigo-600 dark:text-indigo-500" />
             </div>
         </div>
 
         <div className="flex-1 max-w-3xl min-w-0">
-            {/* Header - Kept in MONO for style */}
-            <div className="flex justify-between items-center mb-3 font-mono">
-               <div className="flex items-center gap-3">
-                   <span className="text-[11px] font-bold text-zinc-600 dark:text-zinc-300 tracking-widest uppercase">ADA MARINA</span>
-                   <div className="h-px w-8 bg-zinc-200 dark:bg-zinc-800"></div>
-                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold">v3.2</span>
-               </div>
-               
-               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                    <button onClick={copyToClipboard} className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors" title="Copy Protocol">
-                        {copied ? <Check size={12} /> : <Copy size={12} />}
-                    </button>
-                    <button onClick={handleSpeak} className={`p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors ${isSpeaking ? 'text-indigo-500 dark:text-indigo-400' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300'}`} title="Read Out">
-                         {isSpeaking ? <StopCircle size={12} /> : <Volume2 size={12} />}
-                    </button>
-                </div>
+             <div className="absolute top-0 right-full mr-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                <button onClick={copyToClipboard} className="p-1.5 bg-panel-light hover:bg-zinc-200 dark:bg-panel-dark dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition-colors" title="Copy Protocol">
+                    {copied ? <Check size={12} /> : <Copy size={12} />}
+                </button>
+                <button onClick={handleSpeak} className={`p-1.5 bg-panel-light hover:bg-zinc-200 dark:bg-panel-dark dark:hover:bg-zinc-800 rounded transition-colors ${isSpeaking ? 'text-indigo-500 dark:text-indigo-400' : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300'}`} title="Read Out">
+                     {isSpeaking ? <StopCircle size={12} /> : <Volume2 size={12} />}
+                </button>
             </div>
 
-            <div className="prose prose-invert prose-sm max-w-none 
-                text-zinc-600 dark:text-zinc-300 text-[13px] leading-7
+
+            <div className="prose prose-sm max-w-none 
+                text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed
                 prose-p:my-2 prose-p:font-normal
                 prose-strong:text-zinc-900 dark:prose-strong:text-zinc-100 prose-strong:font-semibold
-                prose-headings:text-zinc-800 dark:prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-[14px] prose-headings:mt-6 prose-headings:mb-3
-                prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-zinc-100 dark:prose-code:bg-[#121214] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-mono prose-code:text-[11px]
-                prose-pre:bg-zinc-50 dark:prose-pre:bg-[#121214] prose-pre:border prose-pre:border-zinc-200 dark:prose-pre:border-zinc-800 prose-pre:rounded-lg prose-pre:p-3
-                prose-ul:my-2 prose-ul:pl-0 prose-li:list-none prose-li:pl-0 prose-li:relative prose-li:before:content-['•'] prose-li:before:absolute prose-li:before:left-0 prose-li:before:text-zinc-300 dark:prose-li:before:text-zinc-600 prose-li:pl-4"
+                prose-headings:text-zinc-800 dark:prose-headings:text-zinc-100 prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-base prose-headings:mt-6 prose-headings:mb-3
+                prose-code:text-indigo-600 dark:prose-code:text-indigo-300 prose-code:bg-zinc-100 dark:prose-code:bg-zinc-800/50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:font-mono prose-code:text-xs
+                prose-pre:bg-zinc-50 dark:prose-pre:bg-zinc-900/50 prose-pre:border prose-pre:border-border-light dark:prose-pre:border-border-dark prose-pre:rounded-lg prose-pre:p-3
+                prose-ul:my-2 prose-ul:pl-0 prose-li:list-none prose-li:pl-0 prose-li:relative prose-li:before:content-['•'] prose-li:before:absolute prose-li:before:left-0 prose-li:before:text-zinc-400 dark:prose-li:before:text-zinc-600 prose-li:pl-5"
             >
                 {message.text ? (
                     <ReactMarkdown>{message.text}</ReactMarkdown>
@@ -160,10 +151,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
                 const p = profile as VesselIntelligenceProfile;
                 return (
                 p && (
-                    <div key={idx} className="mt-6 pt-4 border-t border-zinc-200 dark:border-zinc-800/50 flex flex-col gap-3 font-mono">
+                    <div key={idx} className="mt-6 pt-4 border-t border-border-light dark:border-border-dark flex flex-col gap-3 font-mono">
                         <div className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-widest">Vessel Intelligence Profile</div>
                         
-                        <div className="bg-sky-50 dark:bg-sky-900/10 p-3 rounded-lg border border-sky-200 dark:border-sky-900/20 text-[11px] leading-snug space-y-2">
+                        <div className="bg-sky-50 dark:bg-sky-900/20 p-3 rounded-lg border border-sky-200 dark:border-sky-800/50 text-[11px] leading-snug space-y-2">
                            <div>
                                 <p className="font-bold text-zinc-800 dark:text-zinc-200">{p.name} (IMO: {p.imo})</p>
                                 <p className="text-zinc-600 dark:text-zinc-400">Type: {p.type} | Flag: {p.flag} | {p.loa}m LOA</p>
@@ -197,9 +188,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, onAction 
 
 
             {message.groundingSources && message.groundingSources.length > 0 && (
-                <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-900 flex flex-wrap gap-2 font-mono">
+                <div className="mt-4 pt-3 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap gap-2 font-mono">
                     {message.groundingSources.map((source, idx) => (
-                        <a key={idx} href={source.uri} target="_blank" rel="noreferrer" className="group flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-[#121214] dark:hover:bg-zinc-900 px-3 py-1.5 rounded-md text-[10px] text-zinc-600 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-300 transition-all">
+                        <a key={idx} href={source.uri} target="_blank" rel="noreferrer" className="group flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/50 dark:hover:bg-zinc-800 px-3 py-1.5 rounded-md text-[10px] text-zinc-600 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-300 transition-all">
                             <div className="w-1 h-1 rounded-full bg-indigo-500 group-hover:shadow-[0_0_5px_rgba(99,102,241,0.8)] transition-all"></div>
                             <span className="truncate max-w-[200px]">{source.title}</span>
                         </a>

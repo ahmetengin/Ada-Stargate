@@ -7,13 +7,13 @@ import { genericHandlers } from './genericAgent';
 import { marinaHandlers } from './marinaAgent';
 import { weatherHandlers } from './weatherAgent';
 import { technicHandlers } from './technicAgent';
-import { passkitAgent } from './passkitAgent'; // Import passkit
+import { passkitExpert } from './passkitAgent'; // Import passkit
 
 // Define a wrapper handler for passkit as it wasn't originally designed with TaskHandlerFn in mind
 const passkitIssueHandler: TaskHandlerFn = async (ctx, obs) => {
     const { vesselName, ownerName, type } = obs.payload;
     // Just a wrapper to make it compatible with the brain executor if needed
-    const result = await passkitAgent.issuePass(vesselName, ownerName || 'Unknown', type || 'GUEST', () => {});
+    const result = await passkitExpert.issuePass(vesselName, ownerName || 'Unknown', type || 'GUEST', () => {});
     return [{
         id: `act_pk_${Date.now()}`,
         kind: 'external',

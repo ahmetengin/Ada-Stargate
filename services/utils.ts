@@ -85,3 +85,14 @@ export function dmsToDecimal(dmsString: string): { lat: number, lng: number } | 
 
     return { lat, lng };
 }
+
+// Centralized coordinate formatter
+export const formatCoordinate = (coord: number, type: 'lat' | 'lng'): string => {
+    const direction = type === 'lat' ? (coord >= 0 ? 'N' : 'S') : (coord >= 0 ? 'E' : 'W');
+    const absCoord = Math.abs(coord);
+    const degrees = Math.floor(absCoord);
+    const minutesFloat = (absCoord - degrees) * 60;
+    const minutes = Math.floor(minutesFloat);
+    const seconds = Math.round((minutesFloat - minutes) * 60);
+    return `${degrees}°${minutes}'${seconds}'' ${direction}`;
+};

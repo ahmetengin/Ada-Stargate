@@ -1,10 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { List, Ship, Cloud, Radar, Search, AlertTriangle, AlertCircle, Wind, Sun, CloudRain, Thermometer, ArrowDown, ArrowUp, Clock, Navigation, BrainCircuit, LogIn, ExternalLink, Map as MapIcon, Anchor, Wrench, Zap, Droplets, QrCode } from 'lucide-react';
+import { List, Ship, Cloud, Radar, AlertTriangle, Wind, Sun, CloudRain, BrainCircuit, Printer, X, Wrench, BarChart, Map as MapIcon } from 'lucide-react';
 import { RegistryEntry, Tender, UserProfile, TrafficEntry, WeatherForecast, VesselIntelligenceProfile, MaintenanceJob } from '../types';
-import { marinaAgent } from '../services/agents/marinaAgent';
-import { technicAgent } from '../services/agents/technicAgent';
-import { wimMasterData } from '../services/wimMasterData';
-
+import { marinaExpert } from '../services/agents/marinaAgent';
+import { technicExpert } from '../services/agents/technicAgent';
 
 interface CanvasProps {
   logs: any[];
@@ -18,704 +16,221 @@ interface CanvasProps {
   vesselsInPort: number;
   onCheckIn: (id: string) => void;
   onOpenTrace: () => void;
+  onGenerateReport: () => void;
   onNodeClick: (nodeId: string) => void;
-  activeTab: 'fleet' | 'feed' | 'cloud' | 'ais' | 'map' | 'tech';
-  onTabChange: (tab: 'fleet' | 'feed' | 'cloud' | 'ais' | 'map' | 'tech') => void;
+  isOpen: boolean;
+  onClose: () => void;
+  activeTab: 'feed' | 'fleet' | 'tech' | 'ais' | 'map' | 'weather';
+  onTabChange: (tab: 'feed' | 'fleet' | 'tech' | 'ais' | 'map' | 'weather') => void;
+  isPanel: boolean; // New prop
 }
 
 export const Canvas: React.FC<CanvasProps> = ({ 
   logs, 
-  registry, 
-  tenders, 
   trafficQueue,
   weatherData,
-  activeChannel, 
-  isMonitoring, 
-  userProfile, 
   vesselsInPort,
-  onCheckIn,
   onOpenTrace,
-  onNodeClick,
+  onGenerateReport,
+  isOpen,
+  onClose,
   activeTab,
-  onTabChange
+  onTabChange,
+  isPanel
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showUrgentOnly, setShowUrgentOnly] = useState(false);
-  const [showWarningOnly, setShowWarningOnly] = useState(false);
-  
   const [width, setWidth] = useState(450);
   const [isResizing, setIsResizing] = useState(false);
-  
-  const [aisTargets, setAisTargets] = useState<TrafficEntry[]>([]);
-  const [isAisLoading, setIsAisLoading] = useState(false);
 
-  const [fleetSearchQuery, setFleetSearchQuery] = useState('');
-  const [allFleetVessels, setAllFleetVessels] = useState<VesselIntelligenceProfile[]>([]);
-  const [expandedVesselImo, setExpandedVesselImo] = useState<string | null>(null);
-  
-  const [activeJobs, setActiveJobs] = useState<MaintenanceJob[]>([]);
+  const TABS = [
+    { id: 'feed', label: 'Feed', icon: List },
+    { id: 'fleet', label: 'Fleet', icon: Ship },
+    { id: 'tech', label: 'Tech', icon: Wrench },
+    { id: 'ais', label: 'AIS', icon: Radar },
+    { id: 'map', label: 'Map', icon: MapIcon },
+    { id: 'weather', label: 'Weather', icon: Cloud },
+  ];
 
-
-  const startResizing = useCallback(() => setIsResizing(true), []);
-  const stopResizing = useCallback(() => setIsResizing(false), []);
-
-  const resize = useCallback((mouseMoveEvent: MouseEvent) => {
-    if (isResizing) {
-      const newWidth = window.innerWidth - mouseMoveEvent.clientX;
-      if (newWidth > 300 && newWidth < 900) setWidth(newWidth);
-    }
-  }, [isResizing]);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", resize);
-    window.addEventListener("mouseup", stopResizing);
-    return () => {
-      window.removeEventListener("mousemove", resize);
-      window.removeEventListener("mouseup", stopResizing);
-    };
-  }, [resize, stopResizing]);
-
-  useEffect(() => {
-      const fetchFleet = () => {
-          setAllFleetVessels(marinaAgent.getAllFleetVessels());
-      };
-      if (activeTab === 'fleet' || activeTab === 'map') {
-        fetchFleet();
-      }
-      if (activeTab === 'tech') {
-          setActiveJobs(technicAgent.getActiveJobs()); 
-      }
-  }, [activeTab]); 
-
-  useEffect(() => {
-    let intervalId: number | undefined;
-
-    const fetchAisData = async () => {
-        setIsAisLoading(true);
-        const data = await marinaAgent.fetchLiveAisData();
-        setAisTargets(data);
-        setIsAisLoading(false);
-    };
-
-    if (activeTab === 'ais') {
-        fetchAisData();
-        intervalId = window.setInterval(fetchAisData, 15000);
-    }
-
-    return () => {
-        if (intervalId) {
-            clearInterval(intervalId); 
-        }
-    };
-  }, [activeTab]);
-  
   const getRowStyle = (log: any) => {
     const type = log.type || 'info';
-    if (type === 'critical') return 'text-red-600 dark:text-red-400 font-bold';
-    if (type === 'alert' || type === 'atc_log') return 'text-amber-600 dark:text-amber-400 font-medium';
-    if (type === 'warning') return 'text-yellow-600 dark:text-yellow-400';
-    if (type === 'intelligence_briefing') return 'text-sky-600 dark:text-sky-400';
-    if (type === 'customer_engagement' || type === 'customer_proposal') return 'text-purple-600 dark:text-purple-400';
-    if (type === 'ENVIRONMENTAL_ALERT') return 'text-teal-600 dark:text-teal-400 font-bold';
-    if (type === 'passkit_issued') return 'text-zinc-800 dark:text-zinc-100 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded p-2 my-1 shadow-sm';
-    return 'text-zinc-600 dark:text-zinc-400';
+    if (type === 'critical') return 'bg-red-500/10 text-red-400';
+    if (type === 'alert' || type === 'atc_log') return 'bg-amber-500/10 text-amber-400';
+    if (type === 'passkit_issued') return 'bg-indigo-500/10 text-indigo-300';
+    return 'text-zinc-400';
   };
 
   const getSourceColor = (source: string) => {
     const s = source.toLowerCase();
-    if (s.includes('security')) return 'text-red-500 dark:text-red-400';
-    if (s.includes('marina')) return 'text-indigo-600 dark:text-indigo-400';
-    if (s.includes('finance')) return 'text-emerald-600 dark:text-emerald-400';
-    if (s.includes('vhf')) return 'text-orange-500 dark:text-orange-400';
-    if (s.includes('weather')) return 'text-sky-600 dark:text-sky-400';
-    if (s.includes('atc')) return 'text-amber-500 dark:text-amber-400';
-    if (s.includes('intelligence')) return 'text-sky-500 dark:text-sky-400';
-    if (s.includes('maintenance') || s.includes('technic')) return 'text-blue-500 dark:text-blue-400';
-    if (s.includes('sensor') || s.includes('sea')) return 'text-teal-500 dark:text-teal-400';
-    if (s.includes('customer')) return 'text-purple-500 dark:text-purple-400';
-    if (s.includes('passkit')) return 'text-pink-500 dark:text-pink-400';
+    if (s.includes('security')) return 'text-red-400';
+    if (s.includes('marina')) return 'text-indigo-400';
+    if (s.includes('finance')) return 'text-emerald-400';
+    if (s.includes('vhf')) return 'text-orange-400';
+    if (s.includes('weather')) return 'text-sky-400';
+    if (s.includes('atc')) return 'text-amber-400';
+    if (s.includes('intelligence')) return 'text-sky-400';
+    if (s.includes('maintenance') || s.includes('technic')) return 'text-blue-400';
+    if (s.includes('sea')) return 'text-teal-400';
+    if (s.includes('customer')) return 'text-purple-400';
+    if (s.includes('passkit')) return 'text-pink-400';
     return 'text-zinc-500';
   };
-  
-  const filteredLogs = logs.filter(log => {
-    const message = typeof log.message === 'string' ? log.message.toLowerCase() : JSON.stringify(log.message).toLowerCase();
-    const source = log.source.toLowerCase();
-    const query = searchQuery.toLowerCase();
-    const type = log.type || 'info';
 
-    if (showUrgentOnly && type !== 'critical' && type !== 'alert' && type !== 'atc_log' && type !== 'ENVIRONMENTAL_ALERT') return false;
-    if (showWarningOnly && type !== 'warning') return false;
-    
-    return message.includes(query) || source.includes(query);
-  });
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
 
-  const getWeatherIcon = (condition: string) => {
-    switch (condition) {
-      case 'Sunny': return <Sun size={24} className="text-yellow-500 dark:text-yellow-400" />;
-      case 'Cloudy': return <Cloud size={24} className="text-zinc-400" />;
-      case 'Rain': return <CloudRain size={24} className="text-blue-500 dark:text-blue-400" />;
-      case 'Storm': return <CloudRain size={24} className="text-indigo-500 dark:text-indigo-400 animate-pulse" />;
-      case 'Windy': return <Wind size={24} className="text-sky-500 dark:text-sky-400" />;
-      default: return <Thermometer size={24} className="text-zinc-500" />;
+  const stopResizing = useCallback(() => setIsResizing(false), []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth > 350 && newWidth < 800) {
+        setWidth(newWidth);
+      }
     }
-  };
+  }, [isResizing]);
 
-  const getTenderStatusColor = (status: string) => {
-    if (status === 'Busy') return 'text-yellow-500';
-    if (status === 'Maintenance') return 'text-red-500';
-    return 'text-emerald-500';
-  };
+  useEffect(() => {
+    document.addEventListener('mousemove', resize);
+    document.addEventListener('mouseup', stopResizing);
+    return () => {
+      document.removeEventListener('mousemove', resize);
+      document.removeEventListener('mouseup', stopResizing);
+    };
+  }, [resize, stopResizing]);
 
-  const getJobStatusColor = (status: string) => {
-      if (status === 'COMPLETED') return 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10';
-      if (status === 'IN_PROGRESS') return 'text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-50 dark:bg-blue-500/10';
-      if (status === 'WAITING_PARTS') return 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-50 dark:bg-amber-500/10';
-      return 'text-zinc-600 dark:text-zinc-400 border-zinc-500/20 bg-zinc-50 dark:bg-zinc-500/10';
-  };
-
-  const TabButton = ({ tabName, icon: Icon, currentTab }: any) => (
-    <button
-      onClick={() => onTabChange(tabName)}
-      className={`p-2 rounded-none transition-all duration-300 ${
-        currentTab === tabName 
-        ? 'text-indigo-600 dark:text-indigo-400 scale-110' 
-        : 'text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400'
-      }`}
-    >
-      <Icon size={14} />
-    </button>
-  );
-
-  const maskFullName = (name?: string) => {
-      if(!name || name.length < 3) return 'N/A';
-      const parts = name.trim().split(' ');
-      return parts.map(p => p.length > 2 ? `${p[0]}${'*'.repeat(p.length-2)}${p[p.length-1]}` : p).join(' ');
-  };
-  const maskId = (id?: string) => id ? `${id.substring(0,2)}******${id.substring(id.length-2)}` : 'N/A';
-  const maskContact = (contact?: string) => contact ? `${contact.substring(0,3)}****${contact.substring(contact.length-2)}` : 'N/A';
-
-
-  const renderMessage = (msg: any, type?: string) => {
-      if (type === 'intelligence_briefing' && typeof msg === 'object' && msg !== null && msg.imo) {
-        const profile = msg as VesselIntelligenceProfile;
-        return (
-            <div className="mt-1 text-[10px] leading-relaxed bg-sky-50 dark:bg-sky-900/10 p-2 rounded border border-sky-200 dark:border-sky-900/20">
-                <div className="font-bold text-sky-700 dark:text-sky-400">
-                    AUTO-PROFILE: {profile.name}
-                </div>
-                <div className="text-zinc-600 dark:text-zinc-400/80 mt-1">
-                    <span>IMO: `{profile.imo}` | </span>
-                    <span>Flag: {profile.flag} | </span>
-                    <span>Type: {profile.type} ({profile.loa}m)</span>
-                </div>
-                <div className="text-zinc-500 dark:text-zinc-500 mt-1">
-                    Voyage: {profile.voyage?.lastPort} → **{profile.voyage?.nextPort}** (ETA: {profile.voyage?.eta})
-                </div>
-            </div>
-        );
-      }
-      if ((type === 'customer_engagement' || type === 'customer_proposal') && typeof msg === 'string') {
-          return (
-              <div className="mt-1 text-[10px] leading-relaxed bg-purple-50 dark:bg-purple-900/10 p-2 rounded border border-purple-200 dark:border-purple-900/20 flex gap-2 items-start">
-                  <div className="p-1 bg-purple-100 dark:bg-purple-500/20 rounded-full">
-                      <BrainCircuit size={10} className="text-purple-600 dark:text-purple-400"/>
-                  </div>
-                  <div className="italic text-purple-800 dark:text-purple-300">{msg}</div>
-              </div>
-          )
-      }
-      if (type === 'passkit_issued' && typeof msg === 'object') {
-          return (
-              <div className="flex items-start gap-3">
-                  <div className="bg-zinc-100 dark:bg-zinc-800 p-1 rounded">
-                      <QrCode size={32} className="text-zinc-800 dark:text-zinc-200" />
-                  </div>
-                  <div>
-                      <div className="font-bold text-pink-600 dark:text-pink-400 text-[10px]">ACCESS GRANTED</div>
-                      <div className="text-[9px] text-zinc-500 dark:text-zinc-400">{msg.message}</div>
-                      <div className="text-[8px] font-mono text-zinc-400 mt-1">ID: {msg.passUrl?.split('/').pop()}</div>
-                  </div>
-              </div>
-          )
-      }
-      if (typeof msg === 'object') {
-          return JSON.stringify(msg);
-      }
-      return msg;
-  };
-
-  const filteredFleetVessels = allFleetVessels.filter(vessel => {
-      if (!fleetSearchQuery) return true;
-      const query = fleetSearchQuery.toLowerCase();
-      return (
-          vessel.name.toLowerCase().includes(query) ||
-          (vessel.imo && vessel.imo.toLowerCase().includes(query)) ||
-          (vessel.flag && vessel.flag.toLowerCase().includes(query))
-      );
-  });
-
-  const marinaLat = wimMasterData.identity.location.coordinates.lat;
-  const marinaLng = wimMasterData.identity.location.coordinates.lng;
-
-  const centerX = 50;
-  const centerY = 50; 
-
-  const toggleVesselPanel = (imo: string) => {
-      setExpandedVesselImo(prev => prev === imo ? null : imo);
-  };
-
-  return (
-    <div 
-      className="hidden lg:flex flex-col h-full bg-white dark:bg-[#09090b] border-l border-zinc-100 dark:border-zinc-900 flex-shrink-0 relative transition-colors duration-300"
-      style={{ width: width }}
-    >
-      <div 
-        className={`absolute top-0 left-0 w-[2px] h-full cursor-col-resize hover:bg-indigo-500 transition-colors z-50 ${isResizing ? 'bg-indigo-500' : 'bg-transparent'}`}
-        onMouseDown={startResizing}
-      />
-      
-      {/* Header - ZERO BOX */}
-      <div className="h-14 px-6 flex items-center justify-between select-none border-b border-transparent">
-        <div className="flex items-center gap-2 text-zinc-400">
-           <span className="font-bold tracking-[0.2em] text-[10px] uppercase font-mono text-zinc-400 dark:text-zinc-600">Operations Deck</span>
+  const CanvasContent = () => (
+    <>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border-light dark:border-border-dark flex-shrink-0">
+        <div className="flex items-center gap-2 text-zinc-800 dark:text-zinc-200">
+          <BarChart size={16} className="text-indigo-500" />
+          <span className="font-bold text-xs tracking-widest uppercase">Operations Desk</span>
         </div>
-        <div className="flex items-center gap-4">
-          <a href="https://www.marinetraffic.com/en/ais/home/centerx:28.665/centery:40.955/zoom:15" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" aria-label="Open Live Marine Traffic">
-              <ExternalLink size={14} />
-          </a>
-          <button 
-            onClick={onOpenTrace}
-            className="text-zinc-400 hover:text-indigo-600 dark:text-zinc-600 dark:hover:text-indigo-400 transition-all" 
-            aria-label="View Agent Traces" 
-          >
-            <BrainCircuit size={14} />
-          </button>
-          <div className="h-4 w-px bg-zinc-100 dark:bg-zinc-800"></div>
-          <div className="flex gap-3">
-            <TabButton tabName="feed" icon={List} currentTab={activeTab} />
-            <TabButton tabName="fleet" icon={Ship} currentTab={activeTab} />
-            <TabButton tabName="tech" icon={Wrench} currentTab={activeTab} />
-            <TabButton tabName="cloud" icon={Cloud} currentTab={activeTab} />
-            <TabButton tabName="ais" icon={Radar} currentTab={activeTab} />
-            <TabButton tabName="map" icon={MapIcon} currentTab={activeTab} />
+        <div className="flex items-center gap-1">
+            <button onClick={onGenerateReport} className="p-1.5 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50" title="Daily Report">
+                <Printer size={14} />
+            </button>
+            <button onClick={onOpenTrace} className="p-1.5 text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/50" title="Agent Trace">
+                <BrainCircuit size={14} />
+            </button>
+            {!isPanel && (
+                <button onClick={onClose} className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 rounded-md transition-colors">
+                    <X size={14} />
+                </button>
+            )}
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-3 gap-px bg-border-light dark:bg-border-dark flex-shrink-0">
+          <div className="p-3 bg-panel-light dark:bg-panel-dark text-center">
+              <div className="text-[9px] text-zinc-400 uppercase tracking-wider mb-0.5">Fleet</div>
+              <div className="text-lg font-bold text-zinc-700 dark:text-zinc-200 font-mono">{vesselsInPort}</div>
           </div>
-        </div>
+          <div className="p-3 bg-panel-light dark:bg-panel-dark text-center">
+              <div className="text-[9px] text-zinc-400 uppercase tracking-wider mb-0.5">Traffic</div>
+              <div className="text-lg font-bold text-zinc-700 dark:text-zinc-200 font-mono">{trafficQueue.length}</div>
+          </div>
+          <div className="p-3 bg-panel-light dark:bg-panel-dark text-center">
+              <div className="text-[9px] text-zinc-400 uppercase tracking-wider mb-0.5">Alerts</div>
+              <div className={`text-lg font-bold font-mono ${logs.filter(l => l.type === 'critical').length > 0 ? 'text-red-500 animate-pulse' : 'text-zinc-700 dark:text-zinc-200'}`}>
+                  {logs.filter(l => l.type === 'critical' || l.type === 'warning').length}
+              </div>
+          </div>
+      </div>
+      
+      {/* Tabs */}
+      <div className="flex border-b border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark overflow-x-auto flex-shrink-0">
+         {TABS.map(tab => (
+             <button 
+                key={tab.id}
+                onClick={() => onTabChange(tab.id as any)} 
+                className={`flex items-center justify-center gap-2 py-3 px-1 text-[10px] font-bold uppercase tracking-wider border-b-2 transition-all flex-1 ${
+                    activeTab === tab.id
+                    ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400 bg-indigo-500/10' 
+                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/50'
+                }`}
+             >
+                <tab.icon size={12} />
+                <span>{tab.label}</span>
+            </button>
+         ))}
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col bg-transparent">
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-brand-bg-light dark:bg-brand-bg-dark relative p-2">
         {activeTab === 'feed' && (
-           <>
-            <div className="px-6 py-2 flex items-center gap-3">
-                <button onClick={() => setShowWarningOnly(!showWarningOnly)} className={`transition-colors ${showWarningOnly ? 'text-yellow-500' : 'text-zinc-300 hover:text-zinc-500 dark:text-zinc-700 dark:hover:text-zinc-500'}`} title="Warnings Only"><AlertTriangle size={12} /></button>
-                <button onClick={() => setShowUrgentOnly(!showUrgentOnly)} className={`transition-colors ${showUrgentOnly ? 'text-red-500' : 'text-zinc-300 hover:text-zinc-500 dark:text-zinc-700 dark:hover:text-zinc-500'}`} title="Urgent Only"><AlertCircle size={12} /></button>
-                <div className="h-3 w-px bg-zinc-100 dark:bg-zinc-800"></div>
-                <Search size={12} className="text-zinc-300 dark:text-zinc-700 flex-shrink-0" />
-                <input 
-                    type="text"
-                    placeholder="Filter logs..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent w-full text-[10px] focus:outline-none text-zinc-700 dark:text-zinc-300 font-mono placeholder:text-zinc-300 dark:placeholder:text-zinc-700 tracking-wide"
-                />
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 space-y-2 custom-scrollbar font-mono text-[10px]">
-                {filteredLogs.map(log => (
-                    <div key={log.id} className="flex gap-4 py-1 group last:border-0">
-                        <div className="opacity-40 w-12 text-zinc-400 dark:text-zinc-600 flex-shrink-0">{log.timestamp}</div>
-                        <div 
-                            onClick={() => onNodeClick(log.source)} 
-                            className={`font-bold w-24 truncate flex-shrink-0 transition-colors cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-100 ${getSourceColor(log.source)}`}
-                        >
-                            {log.source}
-                        </div>
-                        <div className={`flex-1 break-words leading-relaxed whitespace-pre-wrap ${getRowStyle(log)}`}>
-                            {renderMessage(log.message, log.type)}
-                        </div>
+             <div className="font-mono text-[11px] space-y-1">
+                 {logs.slice(0, 100).map(log => (
+                     <div key={log.id} className={`flex items-start gap-3 p-1.5 rounded-sm ${getRowStyle(log)}`}>
+                        <div className="w-16 opacity-70 shrink-0">{log.timestamp}</div>
+                        <div className={`w-24 font-bold shrink-0 ${getSourceColor(log.source)}`}>{log.source}</div>
+                        <div className="flex-1 break-words leading-relaxed">{typeof log.message === 'string' ? log.message : JSON.stringify(log.message)}</div>
+                     </div>
+                 ))}
+             </div>
+        )}
+        {activeTab === 'weather' && (
+             <div className="p-2 space-y-4">
+                 {weatherData.map(day => (
+                    <div key={day.day} className={`p-4 rounded-lg border ${day.alertLevel !== 'NONE' ? 'bg-amber-500/10 border-amber-500/20' : 'bg-panel-light dark:bg-panel-dark border-border-light dark:border-border-dark'}`}>
+                       <div className="flex justify-between items-center">
+                          <span className="font-bold text-zinc-800 dark:text-zinc-100">{day.day}</span>
+                          {day.alertLevel !== 'NONE' && <div className="text-amber-500 flex items-center gap-1 text-xs font-bold"><AlertTriangle size={12}/> {day.alertLevel}</div>}
+                       </div>
+                       <div className="flex items-end justify-between mt-2">
+                         <div className="flex items-center gap-3">
+                           {day.condition === 'Rain' ? <CloudRain size={24} className="text-blue-400"/> : <Sun size={24} className="text-yellow-400"/>}
+                           <div className="text-3xl font-bold">{day.temp}°C</div>
+                         </div>
+                         <div className="text-right font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                           <div><Wind size={10} className="inline mr-1"/>{day.windSpeed} kn {day.windDir}</div>
+                         </div>
+                       </div>
                     </div>
-                ))}
-            </div>
-           </>
-        )}
-        {activeTab === 'tech' && (
-            <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar space-y-4 text-xs font-mono">
-                <div>
-                    <h3 className="font-bold text-zinc-400 dark:text-zinc-600 text-[9px] uppercase mb-4 tracking-[0.2em] flex items-center gap-2">
-                        <Wrench size={10} /> Active Maintenance Jobs
-                    </h3>
-                    {activeJobs.length > 0 ? (
-                        <div className="space-y-2">
-                            {activeJobs.map(job => (
-                                <div key={job.id} className="bg-zinc-50 dark:bg-zinc-900/20 border border-zinc-100 dark:border-zinc-900 rounded-lg p-4 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <div className="font-bold text-zinc-800 dark:text-zinc-200">{job.vesselName}</div>
-                                            <div className="text-[9px] text-zinc-400 dark:text-zinc-600">Job ID: {job.id}</div>
-                                        </div>
-                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold border ${getJobStatusColor(job.status)}`}>
-                                            {job.status.replace('_', ' ')}
-                                        </span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 text-[10px] mb-2">
-                                        <div>
-                                            <div className="text-zinc-400 dark:text-zinc-600">Service Type</div>
-                                            <div className="font-medium">{job.jobType.replace('_', ' ')}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-zinc-400 dark:text-zinc-600">Schedule</div>
-                                            <div className="font-medium">{job.scheduledDate}</div>
-                                        </div>
-                                    </div>
-                                    <div className="text-[10px] border-t border-zinc-100 dark:border-zinc-800 pt-2 mt-2">
-                                        <span className="text-zinc-400 dark:text-zinc-600">Contractor: </span>
-                                        <span className="font-medium">{job.contractor}</span>
-                                        {job.partsStatus && job.partsStatus !== 'N/A' && (
-                                            <div className="mt-1">
-                                                <span className="text-zinc-400 dark:text-zinc-600">Parts Status: </span>
-                                                <span className={`font-bold ${job.partsStatus === 'ARRIVED' ? 'text-emerald-500' : 'text-amber-500'}`}>{job.partsStatus}</span>
-                                            </div>
-                                        )}
-                                        <div className="mt-1 text-zinc-500 italic">"{job.notes}"</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-zinc-400 dark:text-zinc-700 text-center py-8 text-[10px]">
-                            No active technical service tickets.
-                        </div>
-                    )}
-                </div>
-            </div>
-        )}
-        {activeTab === 'fleet' && (
-           <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar space-y-8 text-xs font-mono">
-              
-              {/* KPI Panel */}
-              <div className="grid grid-cols-3 gap-8 border-b border-zinc-100 dark:border-zinc-900 pb-6">
-                  <div className="text-center">
-                      <div className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2">Vessels</div>
-                      <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400 tracking-tighter">{vesselsInPort}</div>
-                  </div>
-                   <div className="text-center">
-                      <div className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2">Movements</div>
-                      <div className="text-3xl font-bold text-zinc-700 dark:text-zinc-300 tracking-tighter">{registry.length}</div>
-                  </div>
-                   <div className="text-center">
-                      <div className="text-[9px] text-zinc-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-2">Occupancy</div>
-                      <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400 tracking-tighter">92%</div>
-                  </div>
-              </div>
-
-               {/* TENDER OPERATIONS - Compact Grid */}
-               <div>
-                <h3 className="font-bold text-zinc-400 dark:text-zinc-600 text-[9px] uppercase mb-4 tracking-[0.2em]">Tender Operations</h3>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                    {tenders.map(t => (
-                        <div key={t.id} className="flex items-center justify-between text-[10px]">
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-zinc-700 dark:text-zinc-300">{t.name}</span>
-                                {t.status === 'Busy' && t.assignment && <span className="text-zinc-400 text-[9px] flex items-center">&gt; {t.assignment}</span>}
-                            </div>
-                            <span className={`font-bold uppercase tracking-wide text-[9px] ${getTenderStatusColor(t.status)}`}>{t.status}</span>
-                        </div>
-                    ))}
-                </div>
-              </div>
-
-              {/* Fleet Roster */}
-              <div>
-                <h3 className="font-bold text-zinc-400 dark:text-zinc-600 text-[9px] uppercase mb-4 tracking-[0.2em]">Fleet Roster</h3>
-                <div className="relative mb-4 flex items-center border-b border-zinc-100 dark:border-zinc-900 pb-2">
-                    <Search size={12} className="absolute left-0 text-zinc-300 dark:text-zinc-700" />
-                    <input 
-                        type="text"
-                        placeholder="Search vessel by name, IMO, or flag..."
-                        value={fleetSearchQuery}
-                        onChange={(e) => setFleetSearchQuery(e.target.value)}
-                        className="bg-transparent w-full text-[10px] focus:outline-none rounded-md py-1 pl-6 pr-2 text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-300 dark:placeholder:text-zinc-700"
-                    />
-                </div>
-                <div className="space-y-2">
-                    {filteredFleetVessels.length > 0 ? (
-                        filteredFleetVessels.map(v => (
-                            <div key={v.imo} className="flex flex-col transition-all overflow-hidden">
-                                <div 
-                                    className="cursor-pointer group"
-                                    onClick={() => toggleVesselPanel(v.imo)}
-                                >
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-zinc-800 dark:text-zinc-200 text-[11px] group-hover:text-indigo-500 transition-colors">{v.name}</span>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${v.status === 'DOCKED' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5 font-mono">
-                                        <span>IMO: {v.imo}</span>
-                                        <span className="text-zinc-200 dark:text-zinc-800">|</span>
-                                        <span>{v.flag}</span>
-                                        {v.outstandingDebt && v.outstandingDebt > 0 && (
-                                            <>
-                                                <span className="text-zinc-200 dark:text-zinc-800">|</span>
-                                                <span className="text-red-500 font-bold">€{v.outstandingDebt}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                
-                                {expandedVesselImo === v.imo && (
-                                    <div className="bg-zinc-50 dark:bg-zinc-900/20 p-3 mt-2 rounded border border-zinc-100 dark:border-zinc-800/50 animate-in slide-in-from-top-1 duration-200">
-                                        <div className="grid grid-cols-2 gap-4 text-[10px]">
-                                            <div>
-                                                <div className="text-zinc-400 text-[9px] uppercase tracking-wider mb-1">Details</div>
-                                                <div className="text-zinc-600 dark:text-zinc-300">{v.type} ({v.loa}m)</div>
-                                                <div className="text-zinc-500">Loc: {v.location}</div>
-                                            </div>
-                                            <div>
-                                                <div className="text-zinc-400 text-[9px] uppercase tracking-wider mb-1">Contact</div>
-                                                <div className="text-zinc-600 dark:text-zinc-300 truncate">{maskFullName(v.ownerName)}</div>
-                                                <div className="text-zinc-500">{maskContact(v.ownerPhone)}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-zinc-300 dark:text-zinc-700 text-center py-8 text-[10px]">
-                            No vessels found.
-                        </div>
-                    )}
-                </div>
-              </div>
-           </div>
-        )}
-        {/* ... (Cloud, AIS, Map tabs remain similar but ensured they are wrapped properly) ... */}
-        {activeTab === 'cloud' && (
-           <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar space-y-8 text-xs font-mono">
-                <div>
-                  <h3 className="font-bold text-zinc-400 dark:text-zinc-600 text-[9px] uppercase mb-4 tracking-[0.2em]">Forecast</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    {weatherData.map((day, i) => (
-                        <div key={i} className="flex flex-col items-center text-center">
-                            <div className="font-bold text-zinc-400 text-[9px] mb-2 tracking-widest">{day.day.toUpperCase()}</div>
-                            {getWeatherIcon(day.condition)}
-                            <div className="text-xl font-bold text-zinc-700 dark:text-zinc-200 mt-2">{day.temp}°</div>
-                            <div className="mt-1 text-[9px] text-sky-500 dark:text-sky-400 flex items-center gap-1">
-                                <Wind size={10} /> {day.windSpeed}kn
-                            </div>
-                        </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-bold text-zinc-400 dark:text-zinc-600 text-[9px] uppercase mb-4 tracking-[0.2em]">Traffic Control</h3>
-                  <div className="space-y-1">
-                      {trafficQueue.map(t => (
-                          <div className="flex items-center justify-between py-2 px-1 hover:bg-zinc-50 dark:hover:bg-zinc-900/30 rounded group">
-                              <div className="flex items-center gap-3">
-                                {t.status === 'INBOUND' && <ArrowDown size={10} className="text-emerald-500 dark:text-emerald-400"/>}
-                                {t.status === 'OUTBOUND' && <ArrowUp size={10} className="text-blue-500 dark:text-blue-400"/>}
-                                {t.status === 'HOLDING' && <Clock size={10} className="text-yellow-500 dark:text-yellow-400"/>}
-                                {t.status === 'TAXIING' && <Navigation size={10} className="text-sky-500 dark:text-sky-400"/>}
-                                
-                                <div className="flex flex-col">
-                                   <span className="font-bold text-zinc-700 dark:text-zinc-300 text-[10px]">{t.vessel}</span>
-                                   <span className="text-[9px] text-zinc-400 dark:text-zinc-600">{t.sector}</span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">AI</span>
-                                </div>
-                                <button 
-                                    onClick={() => onCheckIn(t.id)}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-900 dark:hover:text-white p-1 rounded"
-                                    title="Manual Override"
-                                >
-                                    <LogIn size={10} />
-                                </button>
-                              </div>
-                          </div>
-                      ))}
-                      {trafficQueue.length === 0 && (
-                          <div className="text-zinc-300 dark:text-zinc-700 text-center py-8 text-[10px]">Sector Zulu Clear.</div>
-                      )}
-                  </div>
-                </div>
-           </div>
-        )}
-        {activeTab === 'ais' && (
-           <div className="flex-1 flex flex-col bg-indigo-50/30 dark:bg-[#050505] relative overflow-hidden font-mono transition-colors duration-500">
-             <div className="absolute top-6 left-6 z-20 pointer-events-none">
-                <div className="flex items-center gap-2 text-emerald-600/50 dark:text-emerald-500/50 mb-1">
-                    <Radar size={14} className={isAisLoading ? 'animate-spin' : ''} />
-                    <span className="text-[10px] font-bold tracking-[0.2em]">AIS LIVE | {aisTargets.length} TARGETS</span>
-                </div>
+                 ))}
              </div>
-
-             <div className="flex-1 relative flex items-center justify-center">
-                <div className="relative w-[280px] h-[280px] rounded-full bg-emerald-200/20 dark:bg-emerald-900/5 flex items-center justify-center">
-                    <div className="absolute w-[200px] h-[200px] rounded-full bg-emerald-200/20 dark:bg-emerald-900/5" />
-                    <div className="absolute w-[120px] h-[120px] rounded-full bg-emerald-200/20 dark:bg-emerald-900/5" />
-                    <div className="absolute w-[40px] h-[40px] rounded-full bg-emerald-500/20 dark:bg-emerald-500/10" />
-                    
-                    <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-500 rounded-full z-10 animate-ping" />
-                    <div className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-500 rounded-full z-10 absolute" />
-
-                    {aisTargets.map((t) => {
-                        const hash = t.vessel.split('').reduce((a,b)=>a+b.charCodeAt(0),0);
-                        const angle = (t.course || hash % 360) * (Math.PI / 180);
-                        const distance = 50 + (hash % 80); 
-                        const x = Math.cos(angle) * distance;
-                        const y = Math.sin(angle) * distance;
-
-                        return (
-                            <div 
-                                key={t.id}
-                                className="absolute z-20 group cursor-pointer"
-                                title={`${t.vessel}\nStatus: ${t.status}\nSpeed: ${t.speedKnots}kn\nCourse: ${t.course}°`}
-                            >
-                                <div className="w-2 h-2 bg-emerald-600 dark:bg-white rounded-full shadow-[0_0_5px_rgba(16,185,129,0.8)] hover:scale-150 transition-transform" />
-                                
-                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-black/60 text-emerald-700 dark:text-emerald-400 text-[9px] px-2 py-1 rounded border border-emerald-100 dark:border-zinc-800 whitespace-nowrap z-50 backdrop-blur-sm flex flex-col items-center shadow-sm">
-                                    <div className="font-bold">{t.vessel}</div>
-                                    <div className="text-zinc-500 dark:text-zinc-300 text-[8px] flex gap-1">
-                                        <span>{t.nextPort}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-             </div>
-
-             <div className="h-32 bg-transparent px-6 overflow-y-auto custom-scrollbar">
-                <table className="w-full text-left">
-                    <thead className="sticky top-0 bg-indigo-50/50 dark:bg-[#050505] z-10 backdrop-blur-sm">
-                        <tr>
-                            <th className="py-2 text-[9px] text-zinc-400 dark:text-zinc-600 font-normal tracking-wider">VESSEL</th>
-                            <th className="py-2 text-[9px] text-zinc-400 dark:text-zinc-600 font-normal tracking-wider">STATUS</th>
-                            <th className="py-2 text-[9px] text-zinc-400 dark:text-zinc-600 font-normal tracking-wider text-right">SPD</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {aisTargets.length > 0 ? aisTargets.map((t) => (
-                            <tr key={t.id} className="text-[9px] hover:bg-emerald-100/50 dark:hover:bg-zinc-900/30 group transition-colors">
-                                <td className="py-1 text-emerald-700 dark:text-emerald-400 font-bold group-hover:text-emerald-900 dark:group-hover:text-white transition-colors">{t.vessel}</td>
-                                 <td className="py-1 text-zinc-500 dark:text-zinc-400 font-mono">{t.status}</td>
-                                <td className="py-1 text-zinc-400 dark:text-zinc-500 text-right">{t.speedKnots} kn</td>
-                            </tr>
-                        )) : (
-                            <tr>
-                                <td colSpan={3} className="text-center py-4 text-zinc-500 text-[9px]">
-                                    {isAisLoading ? 'Acquiring targets...' : 'No AIS targets in range.'}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-             </div>
-           </div>
-        )}
-        {activeTab === 'map' && (
-            <div className="flex-1 relative flex items-center justify-center bg-zinc-50 dark:bg-[#050505] overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-full h-full bg-[radial-gradient(#1a1a1a_1px,transparent_1px)] dark:bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:20px_20px] opacity-10"></div>
-                </div>
-                <div className="relative w-[300px] h-[300px] bg-sky-200/20 dark:bg-sky-900/10 rounded-full flex items-center justify-center shadow-lg border border-sky-300/50 dark:border-sky-900/50">
-                    <div className="absolute z-20" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} title="West Istanbul Marina">
-                        <Anchor size={20} className="text-indigo-600 dark:text-indigo-400 animate-pulse" />
-                    </div>
-
-                    {wimMasterData.identity.location.dedicated_locations && Object.values(wimMasterData.identity.location.dedicated_locations).map((loc, idx) => {
-                        if (!loc.coordinates) return null;
-                        const latDiff = (loc.coordinates.lat - marinaLat) * 10000;
-                        const lngDiff = (loc.coordinates.lng - marinaLng) * 10000;
-                        const scaleFactor = 1500;
-                        const relativeX = centerX + (lngDiff * scaleFactor);
-                        const relativeY = centerY - (latDiff * scaleFactor);
-
-                        if (relativeX < 0 || relativeX > 100 || relativeY < 0 || relativeY > 100) return null;
-
-                        return (
-                            <div
-                                key={`dedicated-${idx}`}
-                                className="absolute z-10 group cursor-pointer flex flex-col items-center"
-                                style={{
-                                    top: `${relativeY}%`,
-                                    left: `${relativeX}%`,
-                                    transform: 'translate(-50%, -50%)'
-                                }}
-                                title={loc.label}
-                            >
-                                {loc.label.includes("Fuel") ? (
-                                    <div className="bg-yellow-500 p-1 rounded-full shadow-sm"><Zap size={8} className="text-white" /></div>
-                                ) : (
-                                    <div className="bg-red-500 p-1 rounded-full shadow-sm"><Anchor size={8} className="text-white" /></div>
-                                )}
-                                <span className="text-[7px] bg-white/80 dark:bg-black/80 px-1 rounded mt-0.5 whitespace-nowrap hidden group-hover:block">{loc.label}</span>
-                            </div>
-                        )
-                    })}
-
-                    {wimMasterData.identity.location.pontoons && wimMasterData.identity.location.pontoons.map((pontoon, idx) => {
-                        const scaleFactor = 1500;
-                        const pX = centerX + (pontoon.relative_position.lng_offset * 100 * scaleFactor / 5); 
-                        const pY = centerY - (pontoon.relative_position.lat_offset * 100 * scaleFactor / 5);
-                        const width = pontoon.relative_position.width_scale * 30; 
-                        const height = pontoon.relative_position.length_scale * 30;
-
-                        return (
-                            <div
-                                key={`pontoon-${idx}`}
-                                className="absolute border border-zinc-400/50 bg-zinc-200/30 dark:bg-zinc-800/30 flex items-center justify-center text-[8px] text-zinc-500 select-none"
-                                style={{
-                                    top: `${pY}%`,
-                                    left: `${pX}%`,
-                                    width: `${width}px`,
-                                    height: `${height}px`,
-                                    transform: 'translate(-50%, -50%)'
-                                }}
-                            >
-                                {pontoon.label}
-                            </div>
-                        )
-                    })}
-
-
-                    {allFleetVessels.map(vessel => {
-                        if (!vessel.coordinates || !vessel.coordinates.lat || !vessel.coordinates.lng) return null;
-
-                        const latDiff = (vessel.coordinates.lat - marinaLat) * 10000; 
-                        const lngDiff = (vessel.coordinates.lng - marinaLng) * 10000; 
-
-                        const scaleFactor = 1500; 
-                        const relativeX = centerX + (lngDiff * scaleFactor);
-                        const relativeY = centerY - (latDiff * scaleFactor); 
-
-                        if (relativeX < 0 || relativeX > 100 || relativeY < 0 || relativeY > 100) return null;
-
-                        return (
-                            <div 
-                                key={vessel.imo}
-                                className="absolute z-10 group cursor-pointer"
-                                style={{ 
-                                    top: `${relativeY}%`, 
-                                    left: `${relativeX}%`, 
-                                    transform: 'translate(-50%, -50%)' 
-                                }}
-                                title={`${vessel.name} (IMO: ${vessel.imo})\nStatus: ${vessel.status}\nLocation: ${vessel.location}`}
-                            >
-                                <div className="w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full shadow-[0_0_5px_rgba(59,130,246,0.8)] group-hover:scale-150 transition-transform" />
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
         )}
       </div>
-    </div>
+    </>
   );
+
+  const baseClasses = `flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark select-none transition-all duration-300`;
+
+  if (isPanel) {
+    return (
+        <aside 
+            className={`${baseClasses} relative ${isOpen ? '' : 'w-0 !p-0 !border-0 hidden'}`}
+            style={{ width: isOpen ? width : 0 }}
+        >
+            <div 
+            className={`absolute top-0 left-0 w-1.5 h-full cursor-col-resize hover:bg-indigo-500/20 transition-colors z-50 ${isResizing ? 'bg-indigo-500/50' : ''}`}
+            onMouseDown={startResizing}
+            />
+            <CanvasContent/>
+      </aside>
+    );
+  }
+
+  // --- DRAWER MODE ---
+  return (
+     <>
+      <div 
+        className={`fixed inset-0 bg-black/60 z-40 transition-opacity lg:hidden ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div 
+        className={`
+          ${baseClasses}
+          fixed top-0 right-0 h-full shadow-2xl w-full max-w-md
+          transition-transform duration-300 ease-in-out z-50
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+        `}
+      >
+        <CanvasContent/>
+      </div>
+    </>
+  )
 };

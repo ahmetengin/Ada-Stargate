@@ -1,38 +1,29 @@
-
 import React, { useEffect, useState } from 'react';
 import { X, Mic, Radio, SignalHigh, Waves, Power } from 'lucide-react';
 import { LiveSession } from '../services/geminiService';
 import { LiveConnectionState, UserProfile } from '../types'; // Import UserProfile
 import { wimMasterData } from '../services/wimMasterData'; // Import wimMasterData
+import { formatCoordinate } from '../services/utils';
 
 interface VoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   userProfile: UserProfile; // Add UserProfile prop
+  onTranscriptReceived: (userText: string, modelText: string) => void;
 }
 
-export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userProfile }) => {
+export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userProfile, onTranscriptReceived }) => {
   const [status, setStatus] = useState<LiveConnectionState>(LiveConnectionState.Disconnected);
   const [audioLevel, setAudioLevel] = useState(0);
   const [session, setSession] = useState<LiveSession | null>(null);
+  const [showProtocol, setShowProtocol] = useState(false);
 
   // Get coordinates from wimMasterData
   const { lat, lng } = wimMasterData.identity.location.coordinates;
 
-  // Function to format decimal degrees to degrees, minutes, seconds
-  const formatCoordinate = (coord: number, type: 'lat' | 'lng') => {
-    const direction = type === 'lat' ? (coord >= 0 ? 'N' : 'S') : (coord >= 0 ? 'E' : 'W');
-    const absCoord = Math.abs(coord);
-    const degrees = Math.floor(absCoord);
-    const minutesFloat = (absCoord - degrees) * 60;
-    const minutes = Math.floor(minutesFloat);
-    const seconds = Math.round((minutesFloat - minutes) * 60);
-    return `${direction} ${degrees}°${minutes}’${seconds}’’`;
-  };
-
   const formattedLat = formatCoordinate(lat, 'lat');
   const formattedLng = formatCoordinate(lng, 'lng');
-  const displayCoordinates = `${formattedLat} ${formattedLng}`;
+  const displayCoordinates = `${formattedLat} / ${formattedLng}`;
 
   useEffect(() => {
     if (isOpen && status === LiveConnectionState.Disconnected) {
@@ -45,6 +36,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
       newSession.onAudioLevel = (level) => {
         // Smooth the level for visualization
         setAudioLevel(prev => prev * 0.8 + level * 0.2);
+      };
+
+      newSession.onTurnComplete = (userText, modelText) => {
+          onTranscriptReceived(userText, modelText);
       };
 
       setSession(newSession);
@@ -81,7 +76,13 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
             <Radio className="text-indigo-500" />
             <span className="font-mono font-bold tracking-widest text-zinc-200">ADA VHF</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+             {status === LiveConnectionState.Connected && (
+                <div className="flex items-center gap-1.5 text-red-500 animate-pulse">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-[10px] font-mono font-bold">REC</span>
+                </div>
+              )}
              <div className={`w-2 h-2 rounded-full ${status === LiveConnectionState.Connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
              <span className="text-[10px] font-mono uppercase text-zinc-500">{status}</span>
           </div>
@@ -124,11 +125,33 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
              {status === LiveConnectionState.Connected && (audioLevel > 0.05 ? "RECEIVING / TRANSMITTING" : "MONITORING...")}
              {status === LiveConnectionState.Error && "CONNECTION FAILED"}
            </div>
-
+            
+           {/* Protocol Instructions */}
+           {showProtocol && (
+                <div className="mt-6 w-full max-w-sm text-left font-mono text-xs text-zinc-400 bg-zinc-800/50 p-4 rounded-lg animate-in fade-in duration-300 border border-zinc-700/50">
+                    <h4 className="font-bold text-indigo-400 mb-2 uppercase tracking-widest">VHF Comms Protocol</h4>
+                    <ul className="list-disc list-inside space-y-1 text-[11px] text-zinc-300">
+                        <li>State your call sign clearly.</li>
+                        <li>Keep transmissions brief and concise.</li>
+                        <li>Use standard phrases (Affirmative, Negative).</li>
+                        <li>End every transmission with "Over".</li>
+                        <li className="pt-2 text-zinc-500 italic">Ex: "Ada Marina, this is Phisedelia, requesting departure. Over."</li>
+                    </ul>
+                </div>
+            )}
         </div>
 
         {/* Controls */}
-        <div className="bg-zinc-800 p-4 border-t border-zinc-700 flex justify-center relative z-10">
+        <div className="bg-zinc-800 p-4 border-t border-zinc-700 flex flex-col items-center justify-center relative z-10">
+          <div className="mb-4 text-center">
+            <button
+                onClick={() => setShowProtocol(!showProtocol)}
+                className="text-xs font-mono text-zinc-500 hover:text-indigo-400 transition-colors"
+                aria-expanded={showProtocol}
+            >
+                {showProtocol ? '[ Hide Protocol ]' : '[ Show Comms Protocol ]'}
+            </button>
+          </div>
           <button 
             onClick={handleDisconnect}
             className="group flex items-center gap-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-500 px-8 py-3 rounded-full transition-all font-mono uppercase font-bold tracking-wider hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]"

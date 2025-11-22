@@ -2,7 +2,7 @@
 import { AgentAction } from '../../types';
 
 // COLREGs Rules Logic for ada.sea
-export const seaAgent = {
+export const seaExpert = {
   process: async (params: any): Promise<AgentAction[]> => {
     const actions: AgentAction[] = [];
     const { situation, mySpeed, targetBearing, targetDistance, visibility } = params;

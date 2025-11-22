@@ -67,7 +67,7 @@ export const technicHandlers: Record<string, TaskHandlerFn> = {
 };
 
 // --- DIRECT AGENT INTERFACE ---
-export const technicAgent = {
+export const technicExpert = {
     
     // Skill: Get all active jobs for UI
     getActiveJobs: (): MaintenanceJob[] => {

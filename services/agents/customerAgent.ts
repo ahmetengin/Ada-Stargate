@@ -46,7 +46,7 @@ const WIM_INFO_DB: Record<string, string> = {
     'academy': 'Education: **Paris Saint-Germain Academy Beylikdüzü** for football. Sailing School (TYF/RYA) also available.'
 };
 
-export const customerAgent = {
+export const customerExpert = {
   // Lightweight Processor for General Info
   handleGeneralInquiry: async (query: string, addTrace: (t: AgentTraceLog) => void): Promise<{ text: string, actions: AgentAction[] }> => {
     

@@ -114,7 +114,7 @@ const GARANTI_BBVA_API_MOCK = {
 }
 
 
-export const financeAgent = {
+export const financeExpert = {
   // Helper for Orchestrator Fast-Path
   checkDebt: async (vesselName: string): Promise<{ status: 'CLEAR' | 'DEBT', amount: number, paymentHistoryStatus: PaymentHistoryStatus }> => {
       const data = PARASUT_API_MOCK.getBalance(vesselName);
@@ -201,7 +201,7 @@ export const financeAgent = {
                   addTrace(createLog('ada.finance', 'PLANNING', `Reconciling payment for ${vesselName} (Ref: ${tx.transactionId})...`, 'EXPERT'));
                   
                   // This call internally updates the balance and triggers actions (including PassKit)
-                  const processPaymentActions = await financeAgent.processPayment(vesselName, tx.transactionId, tx.amount, addTrace);
+                  const processPaymentActions = await financeExpert.processPayment(vesselName, tx.transactionId, tx.amount, addTrace);
                   actions.push(...processPaymentActions);
                   totalSettledAmount += tx.amount;
               } else {

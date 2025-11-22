@@ -1,6 +1,3 @@
-
-
-
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { BASE_SYSTEM_INSTRUCTION } from "./prompts";
 import { UserProfile } from "../types"; // Import UserProfile
@@ -17,7 +14,11 @@ export class LiveSession {
   private processor: ScriptProcessorNode | null = null;
   public onStatusChange: ((status: string) => void) | null = null;
   public onAudioLevel: ((level: number) => void) | null = null;
+  public onTurnComplete: ((userText: string, modelText: string) => void) | null = null;
   private nextStartTime = 0;
+  
+  private currentInputTranscription = '';
+  private currentOutputTranscription = '';
 
   constructor() {
     this.client = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -69,7 +70,9 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
            systemInstruction: BASE_SYSTEM_INSTRUCTION + VHF_PROTOCOL + rbacInstruction,
            speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } 
-           }
+           },
+           inputAudioTranscription: {}, // Enable transcription for user input
+           outputAudioTranscription: {}, // Enable transcription for model output
         },
         callbacks: {
             onopen: async () => {
@@ -121,10 +124,26 @@ If they ask for departure, say: "Negative. Unauthorized. Contact Marina Office. 
         source.start(start);
         this.nextStartTime = start + buffer.duration;
       }
+      
+      // Handle Input Transcription
+      if (msg.serverContent?.inputTranscription) {
+          this.currentInputTranscription += msg.serverContent.inputTranscription.text;
+      }
 
-      // Handle Turn Complete (Reset visualization)
+      // Handle Output Transcription
+      if (msg.serverContent?.outputTranscription) {
+          this.currentOutputTranscription += msg.serverContent.outputTranscription.text;
+      }
+
+      // Handle Turn Complete (Reset visualization and log transcript)
       if (msg.serverContent?.turnComplete) {
         this.onAudioLevel?.(0); 
+        if (this.onTurnComplete) {
+            this.onTurnComplete(this.currentInputTranscription.trim(), this.currentOutputTranscription.trim());
+        }
+        // Reset for next turn
+        this.currentInputTranscription = '';
+        this.currentOutputTranscription = '';
       }
   }
 

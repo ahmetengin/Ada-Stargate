@@ -6,7 +6,7 @@ import { AgentAction, AgentTraceLog, MaintenanceJob } from '../../types';
 
 export const maintenanceHandlers = {};
 
-export const maintenanceAgent = {
+export const maintenanceExpert = {
     getActiveJobs: (): MaintenanceJob[] => [],
     scheduleService: async (): Promise<any> => ({ success: false, message: "Deprecated agent. Use ada.technic." }),
     checkStatus: async (): Promise<string> => "Deprecated agent. Use ada.technic.",

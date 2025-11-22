@@ -3,7 +3,7 @@
 import { TaskHandlerFn } from '../decomposition/types';
 import { AgentAction, AgentTraceLog, KplerAisTarget, TrafficEntry, VesselIntelligenceProfile, NodeName } from '../../types';
 import { wimMasterData } from '../wimMasterData';
-import { financeAgent } from './financeAgent'; 
+import { financeExpert } from './financeAgent'; 
 import { haversineDistance } from '../utils';
 import { persistenceService, STORAGE_KEYS } from '../persistence'; // Enterprise Persistence
 
@@ -110,7 +110,7 @@ export const marinaHandlers: Record<string, TaskHandlerFn> = {
 };
 
 // --- DIRECT AGENT INTERFACE (Ada.marina.wim Node) ---
-export const marinaAgent = {
+export const marinaExpert = {
     isContractedVessel: (imo: string): boolean => {
         if (!imo) return false;
         return FLEET_DB.some(v => v.imo === imo);
@@ -147,7 +147,7 @@ export const marinaAgent = {
         if (!vessel) return null;
 
         // Enrich with live financial data
-        const debtStatus = await financeAgent.checkDebt(vessel.name);
+        const debtStatus = await financeExpert.checkDebt(vessel.name);
         return {
             ...vessel,
             outstandingDebt: debtStatus.amount,
@@ -298,7 +298,7 @@ export const marinaAgent = {
     findVesselsNear: async (centerLat: number, centerLng: number, radiusMiles: number, addTrace: (t: AgentTraceLog) => void): Promise<(TrafficEntry & { distanceMiles: number })[]> => {
         addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `Searching for vessels within ${radiusMiles} miles of Lat: ${centerLat}, Lng: ${centerLng}...`, 'WORKER'));
 
-        const allAisTargets = await marinaAgent.fetchLiveAisData();
+        const allAisTargets = await marinaExpert.fetchLiveAisData();
         const vesselsInProximity: (TrafficEntry & { distanceMiles: number })[] = [];
 
         for (const target of allAisTargets) {
