@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -57,7 +58,7 @@ const INITIAL_MESSAGE: Message = {
 [ OK ] ADA FINANCE: PARASUT/IYZICO INTEGRATED.
 [ OK ] ADA LEGAL: RAG KNOWLEDGE GRAPH READY.
 SYSTEM IS OPERATING IN DISTRIBUTED MODE VIA FASTRTC MESH. AUTHENTICATION REQUIRED FOR SENSITIVE NODES.
-( KIRMIZI BOLD İLE ) N 40°57’46" E 28°39’49" VHF 72`,
+<b class="text-red-500 font-bold">N 40°57’46" E 28°39’49" VHF 72</b>`,
   timestamp: Date.now()
 };
 
