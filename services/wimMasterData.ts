@@ -1,3 +1,4 @@
+
 // services/wimMasterData.ts
 
 export const wimMasterData = {
@@ -105,6 +106,22 @@ export const wimMasterData = {
               "capabilities": ["Reservation"] 
           }
       ],
+      "cross_border_partners": [
+          {
+              "name": "Manos",
+              "location": "Symi",
+              "node": "ada.restaurant.manos",
+              "specialty": "Greek Taverna / Seafood",
+              "docking": "Direct quay access available"
+          },
+          {
+              "name": "Pantelis",
+              "location": "Symi",
+              "node": "ada.restaurant.pantelis",
+              "specialty": "Traditional Greek",
+              "docking": "Town quay"
+          }
+      ],
       "contract_perks": {
           "free_transfers": "3 per year (Airport <-> Marina)",
           "free_haul_out": "1 per year (max 7 days hardstanding)",
@@ -113,8 +130,14 @@ export const wimMasterData = {
       },
       "partner_marinas": [
           { "name": "Alesta Yachting", "location": "Fethiye", "node": "ada.marina.alesta" },
-          { "name": "D-Marin Göcek", "location": "Göcek", "node": "ada.marina.gocek" }
+          { "name": "D-Marin Göcek", "location": "Göcek", "node": "ada.marina.gocek" },
+          { "name": "Setur Kaş", "location": "Kaş", "node": "ada.marina.setur_kas" },
+          { "name": "Setur Ayvalık", "location": "Ayvalık", "node": "ada.marina.setur_ayvalik" }
       ],
+      "federation_rules": {
+          "cross_berthing_discount": 0.15, // 15% discount for network members
+          "loyalty_recognition": true
+      },
       "culinary_experience": {
           "partner": "Migros Jet Yacht Service",
           "capabilities": ["Provisioning List", "Delivery to Pontoon"]
@@ -218,11 +241,11 @@ export const wimMasterData = {
         "hardstanding": "60.000 m2"
     },
     "berth_map": {
-        "A": { "type": "Concrete", "max_loa": 25, "depth": 5.5, "capacity": 40, "status": "90%" },
-        "B": { "type": "Concrete", "max_loa": 20, "depth": 4.5, "capacity": 50, "status": "85%" },
-        "C": { "type": "Concrete", "max_loa": 15, "depth": 4.0, "capacity": 60, "status": "FULL" },
-        "VIP": { "type": "Quay", "max_loa": 90, "depth": 8.0, "capacity": 10, "status": "AVAILABLE" },
-        "T": { "type": "T-Head", "max_loa": 40, "depth": 6.0, "capacity": 8, "status": "AVAILABLE" }
+        "A": { "type": "Concrete", "tier": "PREMIUM", "max_loa": 25, "depth": 5.5, "capacity": 40, "status": "90%", "amenities": ["Fiber", "63A", "Pump-out"] },
+        "B": { "type": "Concrete", "tier": "STANDARD", "max_loa": 20, "depth": 4.5, "capacity": 50, "status": "85%", "amenities": ["Fiber", "32A"] },
+        "C": { "type": "Concrete", "tier": "STANDARD", "max_loa": 15, "depth": 4.0, "capacity": 60, "status": "FULL", "amenities": ["16A"] },
+        "VIP": { "type": "Quay", "tier": "VIP", "max_loa": 90, "depth": 8.0, "capacity": 10, "status": "AVAILABLE", "amenities": ["Restricted Access", "125A", "Private Parking"] },
+        "T": { "type": "T-Head", "tier": "PREMIUM", "max_loa": 40, "depth": 6.0, "capacity": 8, "status": "AVAILABLE", "amenities": ["Easy Maneuver", "63A"] }
     }
   },
   "legal_framework": {
@@ -232,9 +255,21 @@ export const wimMasterData = {
     "payment_terms": "Advance Payment",
     "contract_types": ["Mooring", "Lifting", "Launching", "Dry Berthing"],
     "base_pricing": {
-        "mooring_daily": 1.5, // EUR per m2
+        "mooring_daily": 1.5, // EUR per m2 (Base Rate)
         "electricity": 0.35, // EUR per kW
         "water": 3.50 // EUR per m3
+    },
+    "pricing_multipliers": {
+        "tiers": {
+            "VIP": 2.5,      // 150% markup for VIP Quay
+            "PREMIUM": 1.25, // 25% markup for T-Heads/Sea View
+            "STANDARD": 1.0, // Base rate
+            "ECONOMY": 0.85  // 15% discount for inner berths
+        },
+        "seasonality": {
+            "HIGH": 1.2, // Summer
+            "LOW": 0.8   // Winter
+        }
     },
     "cross_border_protocols": {
         "greece": {

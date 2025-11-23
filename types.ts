@@ -1,3 +1,4 @@
+
 // types.ts
 
 export enum MessageRole {
@@ -207,7 +208,7 @@ export interface AgentContext {
 }
 
 // --- NEW: Agent Orchestration Types ---
-export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather' | 'ada.technic' | 'ada.atc' | 'ada.intelligence' | 'ada.travel' | 'ada.congress' | 'ada.facility' | 'ada.hr' | 'ada.commercial' | 'ada.analytics' | 'ada.reservations' | 'ada.berth';
+export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather' | 'ada.technic' | 'ada.travel' | 'ada.congress' | 'ada.facility' | 'ada.hr' | 'ada.commercial' | 'ada.analytics' | 'ada.berth' | 'ada.reservations';
 
 export type AgentPersona = 'ORCHESTRATOR' | 'EXPERT' | 'WORKER';
 

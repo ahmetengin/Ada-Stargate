@@ -19,11 +19,11 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
 // --- DEFAULT FLEET DATA ---
 const DEFAULT_FLEET: VesselIntelligenceProfile[] = [
     { 
-        name: 'S/Y Phisedelia', imo: '987654321', type: 'Sailing Yacht', flag: 'MT', 
+        name: 'S/Y Phisedelia', imo: '987654321', type: 'VO65 Racing Yacht (ex-Mapfre)', flag: 'MT', 
         ownerName: 'Ahmet Engin', ownerId: '12345678901', ownerEmail: 'ahmet.engin@example.com', ownerPhone: '+905321234567',
-        dwt: 150, loa: 18.4, beam: 5.2, status: 'INBOUND', location: 'Marmara Approach', 
+        dwt: 150, loa: 20.4, beam: 5.6, status: 'INBOUND', location: 'Marmara Approach', 
         coordinates: { lat: 40.8500, lng: 28.6200 }, // 10nm out
-        voyage: { lastPort: 'Piraeus', nextPort: 'WIM', eta: 'Today 14:00' },
+        voyage: { lastPort: 'Alicante', nextPort: 'WIM', eta: 'Today 14:00' },
         paymentHistoryStatus: 'REGULAR',
         adaSeaOneStatus: 'INACTIVE', // Set to INACTIVE to demonstrate the marketing/upsell UI
         utilities: { electricityKwh: 450.2, waterM3: 12.5, lastReading: 'Today 08:00', status: 'ACTIVE' }
@@ -195,7 +195,7 @@ export const marinaExpert = {
         if (context?.isFuelCritical) return 2; // LEVEL 2: Distress
         
         if (!vessel) return 5;
-        if (vessel.type === 'Superyacht') return 4; // VIP
+        if (vessel.type.includes('VO65') || vessel.type === 'Superyacht') return 4; // VIP & Racing
         if (vessel.type === 'State' || vessel.type === 'Coast Guard') return 1; 
         return 5; // Standard Pleasure Craft
     },
@@ -231,7 +231,7 @@ export const marinaExpert = {
             };
         }
 
-        addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `[ATC-GND] Dispatching ${availableTender.name} to Gate C-12.`, 'WORKER'));
+        addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `[ATC-GND] Reserving ${availableTender.name} for ${vesselName} maneuver.`, 'WORKER'));
 
         const actions: AgentAction[] = [];
         actions.push({
@@ -259,12 +259,13 @@ export const marinaExpert = {
             }
         });
 
+        // Log the Tender Reservation explicitly
         actions.push({
             id: `marina_log_${Date.now()}`,
             kind: 'internal',
             name: 'ada.marina.log_operation',
             params: {
-                message: `[ATC-DEP] SQ:${squawk} | VS:${vesselName.toUpperCase()} | GATE:C-12 | AST:${availableTender.name.toUpperCase()} | STS:TAXI`,
+                message: `[ATC-DEP] TENDER RESERVED | AST:${availableTender.name.toUpperCase()} -> VS:${vesselName.toUpperCase()} | CH:14`,
                 type: 'info'
             }
         });
@@ -299,6 +300,8 @@ export const marinaExpert = {
              };
         }
 
+        addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `[ATC-APP] Reserving ${availableTender.name} for arrival escort.`, 'WORKER'));
+
         const actions: AgentAction[] = [];
         actions.push({
             id: `marina_arr_${Date.now()}`,
@@ -330,7 +333,7 @@ export const marinaExpert = {
             kind: 'internal',
             name: 'ada.marina.log_operation',
             params: {
-                message: `[ATC-ARR] SQ:${squawk} | VS:${vesselName.toUpperCase()} | LOC:BREAKWATER | AST:${availableTender.name.toUpperCase()} | GATE:${berth}`,
+                message: `[ATC-ARR] TENDER RESERVED | AST:${availableTender.name.toUpperCase()} -> VS:${vesselName.toUpperCase()} | GATE:${berth}`,
                 type: 'info'
             }
         });

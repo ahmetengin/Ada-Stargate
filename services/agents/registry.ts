@@ -1,3 +1,4 @@
+
 // services/agents/registry.ts
 import { TaskHandlerFn } from '../decomposition/types';
 import { travelHandlers } from './travelAgent';
@@ -8,12 +9,14 @@ import { weatherHandlers } from './weatherAgent';
 import { technicHandlers } from './technicAgent';
 import { passkitExpert } from './passkitAgent';
 import { securityHandlers } from './securityAgent';
-import { hrHandlers } from './hrAgent'; // New
-import { commercialHandlers } from './commercialAgent'; // New
-import { analyticsHandlers } from './analyticsAgent'; // New
-import { facilityHandlers } from './facilityAgent'; // New
+import { hrHandlers } from './hrAgent';
+import { commercialHandlers } from './commercialAgent';
+import { analyticsHandlers } from './analyticsAgent';
+import { facilityHandlers } from './facilityAgent';
+import { berthHandlers } from './berthAgent'; // New
+import { reservationsHandlers } from './reservationsAgent'; // New
 
-// Define a wrapper handler for passkit as it wasn't originally designed with TaskHandlerFn in mind
+// Define a wrapper handler for passkit
 const passkitIssueHandler: TaskHandlerFn = async (ctx, obs) => {
     const { vesselName, ownerName, type } = obs.payload;
     const result = await passkitExpert.issuePass(vesselName, ownerName || 'Unknown', type || 'GUEST', () => {});
@@ -37,6 +40,8 @@ const handlers: Record<string, TaskHandlerFn> = {
   ...commercialHandlers,
   ...analyticsHandlers,
   ...facilityHandlers,
+  ...berthHandlers,
+  ...reservationsHandlers,
   'passkit.issue': passkitIssueHandler, 
 };
 

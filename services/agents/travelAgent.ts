@@ -1,7 +1,9 @@
 
+
 import { AgentAction, AgentTraceLog, FlightBooking, HotelBooking, NodeName, TravelItinerary, VipTransfer } from '../../types';
 import { marinaExpert } from './marinaAgent'; // Import to check fleet
 import { TaskHandlerFn } from '../decomposition/types'; // Import for handlers
+import { wimMasterData } from '../wimMasterData';
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -18,7 +20,8 @@ const PROVIDERS = {
     AVIATION: 'Ada.Travel.Adriyatik (IATA)',
     HOTELS: 'Ada.Travel.Tinkon (Global)',
     GROUND: 'WIM VIP Services',
-    MARINE: 'WIM Charter Fleet (Operator)'
+    MARINE: 'WIM Charter Fleet (Operator)',
+    CROSS_BORDER: 'Kites Global Concierge'
 };
 
 // --- MOCK ITINERARY DATABASE ---
@@ -157,6 +160,41 @@ export const kitesExpert = {
                         `*Everything is taken care of. Please prepare for disembarkation.*`;
 
         return { success: true, plan: { flight, nearestPort }, message };
+    },
+
+    // Skill: Manage Cross-Border Dining (Symi - Manos/Pantelis)
+    manageCrossBorderDining: async (venue: string, guests: number, time: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, action?: AgentAction }> => {
+        addTrace(createLog('ada.travel', 'THINKING', `Processing Cross-Border Reservation for **${venue}** (Greece). Checking Partner Network...`, 'EXPERT'));
+
+        const partner = wimMasterData.strategic_partners.cross_border_partners?.find(p => p.name.toLowerCase().includes(venue.toLowerCase()));
+
+        if (!partner) {
+             addTrace(createLog('ada.travel', 'ERROR', `Venue '${venue}' not found in Cross-Border Partner Network.`, 'WORKER'));
+             return { success: false, message: `I'm sorry, I don't have a direct partnership link with **${venue}**. I can only book confirmed tables at **Manos** or **Pantelis** in Symi.` };
+        }
+
+        addTrace(createLog('ada.travel', 'TOOL_EXECUTION', `Connecting to ${partner.node} (Symi)... Checking availability for ${guests} pax.`, 'WORKER'));
+        
+        // Simulate network latency to Greece
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        addTrace(createLog('ada.travel', 'OUTPUT', `Response from ${partner.node}: Confirmed. Table assigned on the Quay.`, 'EXPERT'));
+
+        const message = `**🇬🇷 CROSS-BORDER RESERVATION CONFIRMED**\n\n` +
+                        `**Venue:** ${partner.name} (${partner.location})\n` +
+                        `**Specialty:** ${partner.specialty}\n` +
+                        `**Time:** ${time} (${guests} Guests)\n\n` +
+                        `> **Docking Info:** ${partner.docking}. The restaurant team has been notified of your vessel's arrival.\n` +
+                        `> **Logistics:** Managed by Kites Travel. Enjoy your evening in Symi.`;
+
+        const action: AgentAction = {
+            id: `travel_dining_${Date.now()}`,
+            kind: 'internal',
+            name: 'ada.travel.itineraryUpdate',
+            params: { type: 'DINING', location: 'Symi', venue: partner.name, time }
+        };
+
+        return { success: true, message, action };
     },
 
     // Skill: Check TÜRSAB Compliance

@@ -1,13 +1,11 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 import { 
   Activity, Anchor, AlertTriangle, Ship, Thermometer, Wind, Map as MapIcon, 
   List, X, FileText, BrainCircuit, Droplets, Zap, Gauge, Battery, 
   Clock, Calendar, CloudRain, Sun, Utensils, ShoppingBag, Wifi, Info, 
   Car, PartyPopper, CheckCircle2, Siren, Radio, Lock, Flame, Music, Leaf, Recycle, DollarSign, Flag, Microscope, LifeBuoy, ShieldCheck, Plane,
-  Users, Store, TrendingUp // New icons
+  Users, Store, TrendingUp, BookOpen 
 } from 'lucide-react';
 import { RegistryEntry, Tender, TrafficEntry, UserProfile, WeatherForecast, CongressEvent, Delegate, TravelItinerary } from '../types';
 import { wimMasterData } from '../services/wimMasterData';
@@ -19,6 +17,8 @@ import { kitesExpert } from '../services/agents/travelAgent';
 import { hrExpert } from '../services/agents/hrAgent';
 import { commercialExpert } from '../services/agents/commercialAgent';
 import { analyticsExpert } from '../services/agents/analyticsAgent';
+import { berthExpert } from '../services/agents/berthAgent';
+import { reservationsExpert } from '../services/agents/reservationsAgent';
 
 
 interface CanvasProps {
@@ -376,7 +376,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   // --- 3. GENERAL MANAGER UI (Ops & Finance) ---
   const GMDashboard = () => {
     const criticalLogs = logs.filter(log => log.type === 'critical' || log.type === 'alert');
-    const [activeGmTab, setActiveGmTab] = useState<'ops' | 'fleet' | 'facility' | 'congress' | 'hr' | 'commercial' | 'analytics'>('ops');
+    const [activeGmTab, setActiveGmTab] = useState<'ops' | 'fleet' | 'facility' | 'congress' | 'hr' | 'commercial' | 'analytics' | 'berths' | 'bookings'>('ops');
     const [zeroWasteStats, setZeroWasteStats] = useState<any>(null);
     const [blueFlagStatus, setBlueFlagStatus] = useState<any>(null);
     const [eventDetails, setEventDetails] = useState<CongressEvent | null>(null);
@@ -384,6 +384,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     const [hrData, setHrData] = useState<any>(null);
     const [commercialData, setCommercialData] = useState<any[]>([]);
     const [analyticsData, setAnalyticsData] = useState<any>(null);
+    const [berthAllocation, setBerthAllocation] = useState<any>(null);
+    const [bookings, setBookings] = useState<any[]>([]);
 
     useEffect(() => {
         if (activeGmTab === 'facility') {
@@ -403,6 +405,14 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (activeGmTab === 'analytics') {
             analyticsExpert.predictOccupancy('3M', () => {}).then(setAnalyticsData);
         }
+        if (activeGmTab === 'berths') {
+            // Simulation for Phisedelia
+            berthExpert.findOptimalBerth({ loa: 20.4, beam: 5.6, draft: 4.7, type: 'VO65 Racing Yacht' }, () => {}).then(setBerthAllocation);
+        }
+        if (activeGmTab === 'bookings') {
+            // Simulation for new Booking
+            reservationsExpert.processBooking({ name: "S/Y Wind Chaser", type: "Sailing Yacht", loa: 16, beam: 4.5 }, { start: "2025-06-10", end: "2025-06-15" }, () => {}).then(res => setBookings([res.proposal]));
+        }
     }, [activeGmTab]);
     
     return (
@@ -419,8 +429,8 @@ export const Canvas: React.FC<CanvasProps> = ({
             </div>
 
             {/* GM Sub-Tabs */}
-            <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-1 flex-shrink-0">
-                {['ops', 'fleet', 'facility', 'congress', 'hr', 'commercial', 'analytics'].map(tab => (
+            <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-1 flex-shrink-0 overflow-x-auto">
+                {['ops', 'fleet', 'facility', 'congress', 'hr', 'commercial', 'analytics', 'berths', 'bookings'].map(tab => (
                     <button 
                         key={tab} 
                         onClick={() => setActiveGmTab(tab as any)}
@@ -605,6 +615,25 @@ export const Canvas: React.FC<CanvasProps> = ({
                             </div>
                         </div>
                     </div>
+
+                    {/* Infrastructure Alerts */}
+                    <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                        <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Infrastructure Health</h3>
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center p-2 bg-red-500/10 border border-red-500/20 rounded">
+                                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs font-bold">
+                                    <AlertTriangle size={12} /> Pedestal B-12
+                                </div>
+                                <span className="text-[9px] text-red-500">BREAKER TRIP</span>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded">
+                                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300 text-xs">
+                                    <Droplets size={12} /> Main Water Line C
+                                </div>
+                                <span className="text-[9px] text-emerald-500">PRESSURE NORMAL</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -717,6 +746,100 @@ export const Canvas: React.FC<CanvasProps> = ({
                 </div>
             )}
 
+            {activeGmTab === 'berths' && (
+                <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-widest flex items-center gap-2">
+                            <Anchor size={14} /> Harbormaster Control
+                        </h3>
+                        <div className="text-[10px] bg-indigo-500/10 text-indigo-500 px-2 py-1 rounded font-bold">
+                            Dynamic Pricing Active
+                        </div>
+                    </div>
+
+                    {/* Berth Map Visual (Simplified) */}
+                    <div className="grid grid-cols-2 gap-2 mb-4">
+                        {Object.entries(wimMasterData.assets.berth_map).map(([key, data]) => (
+                            <div key={key} className="bg-white dark:bg-zinc-900 p-3 rounded border border-zinc-200 dark:border-zinc-700 relative overflow-hidden">
+                                <div className="flex justify-between mb-1">
+                                    <span className="font-bold text-xs">{key === 'T' ? 'T-Head' : `Pontoon ${key}`}</span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${data.tier === 'VIP' ? 'bg-purple-500/10 text-purple-500' : data.tier === 'PREMIUM' ? 'bg-amber-500/10 text-amber-500' : 'bg-zinc-500/10 text-zinc-500'}`}>{data.tier}</span>
+                                </div>
+                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                                    <div className="bg-indigo-500 h-full" style={{ width: data.status === 'FULL' ? '100%' : data.status.replace('%', '') + '%' }}></div>
+                                </div>
+                                <div className="text-[9px] text-zinc-400 mt-1 text-right">{data.status} Occupied</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Optimal Assignment Card */}
+                    {berthAllocation && (
+                        <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-2">Inbound Vessel Analysis</div>
+                            <div className="bg-white dark:bg-zinc-900 p-3 rounded border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="font-bold text-indigo-500">S/Y Phisedelia</div>
+                                        <div className="text-[10px] text-zinc-500">VO65 Racing Yacht (ex-Mapfre) • 20.4m x 5.6m</div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-lg font-bold text-emerald-500">€{berthAllocation.priceQuote}</div>
+                                        <div className="text-[9px] text-zinc-400">per day (Dynamic)</div>
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-2 text-xs">
+                                    <div className="flex justify-between items-center p-2 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700">
+                                        <span className="text-zinc-500 font-medium">Optimal Allocation</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm">{berthAllocation.berth}</span>
+                                            <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20">CONFIRMED</span>
+                                        </div>
+                                    </div>
+                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/10 rounded text-indigo-700 dark:text-indigo-300 italic border border-indigo-100 dark:border-indigo-800/30">
+                                        <span className="font-bold not-italic text-[10px] uppercase text-indigo-400 block mb-1">Logic Trace:</span>
+                                        "{berthAllocation.reasoning}"
+                                    </div>
+                                    <div className="flex gap-2 mt-2">
+                                         <span className="text-[9px] px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-500">Reg: Art. E.7.4</span>
+                                         <span className="text-[9px] px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 text-zinc-500">Multiplier: {berthAllocation.pontoon === 'VIP' ? '2.5x' : berthAllocation.pontoon === 'T' ? '1.25x' : '1.0x'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeGmTab === 'bookings' && (
+                <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-4 uppercase tracking-widest flex items-center gap-2">
+                        <BookOpen size={14} /> Online Reservations
+                    </h3>
+                    <div className="space-y-3">
+                        {bookings.length === 0 ? (
+                            <div className="text-xs text-zinc-500 italic text-center p-4">No active booking requests.</div>
+                        ) : (
+                            bookings.map((booking, i) => (
+                                <div key={i} className="p-3 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <span className="text-xs font-bold block">S/Y Wind Chaser</span>
+                                            <span className="text-[10px] text-zinc-500">June 10 - June 15</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-500">€{booking.totalCost.toFixed(2)}</span>
+                                    </div>
+                                    <div className="mt-2 text-[10px] bg-zinc-100 dark:bg-zinc-800 p-2 rounded">
+                                        Auto-Assigned: <strong>{booking.berth}</strong> <span className="text-zinc-500">({booking.reasoning})</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
             </div>
         </div>
@@ -804,47 +927,68 @@ export const Canvas: React.FC<CanvasProps> = ({
       );
   }
 
-  const renderDashboard = () => {
-      switch(userProfile.role) {
-          case 'GUEST':
-              return <GuestDashboard />;
-          case 'CAPTAIN':
-              return <CaptainDashboard />;
-          case 'GENERAL_MANAGER':
-              return <GMDashboard />;
-          default:
-              return null;
-      }
-  };
+  if (userProfile.role === 'GUEST' && isOpen) {
+      return (
+        <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? 'w-[320px] lg:w-[360px]' : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
+            {!isPanel && (
+              <div className="absolute top-2 right-2 z-50 lg:hidden">
+                  <button onClick={onClose} className="p-2 bg-black/50 text-white rounded-full"><X size={16}/></button>
+              </div>
+            )}
+            <GuestDashboard />
+        </aside>
+      );
+  }
 
-  const getDashboardWidth = () => {
-       switch(userProfile.role) {
-          case 'GUEST': return 'w-[320px] lg:w-[360px]';
-          case 'CAPTAIN': return 'w-[320px] lg:w-[400px]';
-          case 'GENERAL_MANAGER': return 'w-[320px] lg:w-[600px]';
-          default: return 'w-[320px]';
-      }
+  if (userProfile.role === 'CAPTAIN' && isOpen) {
+      return (
+        <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? 'w-[320px] lg:w-[400px]' : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
+            {/* CAPTAIN HEADER */}
+            <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-zinc-900 text-white">
+                <div className="flex items-center gap-2">
+                   <Ship size={18} />
+                   <span className="font-bold tracking-wider text-xs">VESSEL COMMAND</span>
+                </div>
+                {!isPanel && (
+                    <button onClick={onClose} className="text-zinc-400 lg:hidden">
+                        <X size={18} />
+                    </button>
+                )}
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-zinc-950">
+                <CaptainDashboard />
+            </div>
+        </aside>
+      );
   }
 
   return (
-    <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? getDashboardWidth() : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
+    <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? 'w-[320px] lg:w-[400px]' : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
       
       {/* HEADER */}
-      <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between flex-shrink-0">
+      <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between">
         <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
            <Activity size={18} />
-           <span className="font-bold tracking-wider text-xs uppercase">{userProfile.role.replace('_', ' ')} VIEW</span>
+           <span className="font-bold tracking-wider text-xs">LIVE OPERATIONS</span>
         </div>
-        {!isPanel && (
-            <button onClick={onClose} className="text-zinc-500 lg:hidden">
-                <X size={18} />
+        <div className="flex items-center gap-2">
+            <button onClick={onOpenTrace} className="text-indigo-500 hover:text-indigo-400 text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 px-2 py-1 rounded">
+                Brain Trace
             </button>
-        )}
+            <button onClick={onGenerateReport} className="text-zinc-500 hover:text-zinc-300" title="Daily Report">
+                <FileText size={16} />
+            </button>
+            {!isPanel && (
+                <button onClick={onClose} className="text-zinc-500 lg:hidden">
+                    <X size={18} />
+                </button>
+            )}
+        </div>
       </div>
 
       {/* CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {renderDashboard()}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+          <GMDashboard />
       </div>
     </aside>
   );

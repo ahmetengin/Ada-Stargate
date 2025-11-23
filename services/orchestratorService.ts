@@ -1,3 +1,4 @@
+
 // services/orchestratorService.ts
 
 import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, VesselIntelligenceProfile, Tender } from '../types';
@@ -15,12 +16,14 @@ import { facilityExpert } from './agents/facilityAgent';
 import { hrExpert } from './agents/hrAgent';
 import { commercialExpert } from './agents/commercialAgent';
 import { analyticsExpert } from './agents/analyticsAgent';
+import { berthExpert } from './agents/berthAgent';
+import { reservationsExpert } from './agents/reservationsAgent';
 import { wimMasterData } from './wimMasterData';
 import { dmsToDecimal } from './utils';
 import { generateComplianceSystemMessage } from './prompts';
 import { VESSEL_KEYWORDS } from './constants';
 
-type ExpertName = 'FINANCE' | 'TECHNIC' | 'LEGAL' | 'MARINA' | 'CUSTOMER' | 'SECURITY' | 'TRAVEL' | 'CONGRESS' | 'FACILITY' | 'HR' | 'COMMERCIAL' | 'ANALYTICS';
+type ExpertName = 'FINANCE' | 'TECHNIC' | 'LEGAL' | 'MARINA' | 'CUSTOMER' | 'SECURITY' | 'TRAVEL' | 'CONGRESS' | 'FACILITY' | 'HR' | 'COMMERCIAL' | 'ANALYTICS' | 'BERTH' | 'RESERVATIONS';
 
 interface RouterIntent {
     target: ExpertName;
@@ -52,13 +55,19 @@ class Router {
             return { target: 'ANALYTICS', confidence: 0.9, reasoning: 'Analytics and prediction keywords detected.' };
         }
 
-        // FACILITY / ZERO WASTE / BLUE FLAG
-        if (lower.includes('zero waste') || lower.includes('sıfır atık') || lower.includes('sifir atik') || lower.includes('recycling') || lower.includes('geri dönüşüm') || lower.includes('pedestal') || lower.includes('ponton') || lower.includes('yangın dolabı') || lower.includes('tesis') || lower.includes('facility') || lower.includes('denetim') || lower.includes('audit') || lower.includes('blue flag') || lower.includes('mavi bayrak') || lower.includes('sea water') || lower.includes('deniz suyu') || lower.includes('analiz') || lower.includes('analysis') || lower.includes('clean') || lower.includes('temiz')) {
-            return { target: 'FACILITY', confidence: 0.9, reasoning: 'Facility/Env/Blue Flag keywords detected.' };
+        // FACILITY / ZERO WASTE / BLUE FLAG / PEDESTAL
+        if (lower.includes('zero waste') || lower.includes('sıfır atık') || lower.includes('sifir atik') || lower.includes('recycling') || lower.includes('geri dönüşüm') || lower.includes('pedestal') || lower.includes('ponton') || lower.includes('yangın dolabı') || lower.includes('tesis') || lower.includes('facility') || lower.includes('denetim') || lower.includes('audit') || lower.includes('blue flag') || lower.includes('mavi bayrak') || lower.includes('sea water') || lower.includes('deniz suyu') || lower.includes('analiz') || lower.includes('analysis') || lower.includes('clean') || lower.includes('temiz') || lower.includes('elektriğ') || lower.includes('suyu kes') || lower.includes('power') || lower.includes('utility')) {
+            return { target: 'FACILITY', confidence: 0.9, reasoning: 'Facility/Env/Blue Flag/Pedestal keywords detected.' };
         }
 
         if (lower.includes('congress') || lower.includes('kongre') || lower.includes('event') || lower.includes('etkinlik') || lower.includes('delegate') || lower.includes('delegasyon')) {
             return { target: 'CONGRESS', confidence: 0.9, reasoning: 'Congress/Event keywords detected.' };
+        }
+
+        // BOOKINGS / RESERVATIONS
+        if (lower.includes('booking') || lower.includes('reservation') || lower.includes('rezervasyon') || (lower.includes('yer') && lower.includes('ayır'))) {
+            if (lower.includes('poem') || lower.includes('fersah') || lower.includes('restaurant')) return { target: 'CUSTOMER', confidence: 0.8, reasoning: 'Dining booking.' };
+            return { target: 'RESERVATIONS', confidence: 0.9, reasoning: 'Berth booking request detected.' };
         }
 
         if (lower.includes('vurdu') || lower.includes('çarptı') || lower.includes('collision') || lower.includes('hit') || lower.includes('damage') || lower.includes('hasar') || lower.includes('inkar')) {
@@ -74,10 +83,13 @@ class Router {
         if (lower.includes('contract') || lower.includes('legal') || lower.includes('rule') || lower.includes('regulation') || lower.includes('kvkk')) {
             return { target: 'LEGAL', confidence: 0.9, reasoning: 'Legal/Regulatory keywords detected.' };
         }
-        if (lower.includes('acil dön') || lower.includes('urgent return') || lower.includes('emergency exit') || lower.includes('hemen dön') || lower.includes('uçak') || lower.includes('flight') || lower.includes('transfer') || lower.includes('bilet') || lower.includes('ticket') || lower.includes('hotel') || lower.includes('otel') || lower.includes('tatil')) {
-            return { target: 'TRAVEL', confidence: 0.95, reasoning: 'Travel/Urgent Exit keywords detected.' };
+        
+        // UPDATED: Cross-Border Travel & Dining (Symi, Greek Islands) goes to TRAVEL
+        if (lower.includes('acil dön') || lower.includes('urgent return') || lower.includes('emergency exit') || lower.includes('hemen dön') || lower.includes('uçak') || lower.includes('flight') || lower.includes('transfer') || lower.includes('bilet') || lower.includes('ticket') || lower.includes('hotel') || lower.includes('otel') || lower.includes('tatil') || lower.includes('symi') || lower.includes('simi') || lower.includes('yunan') || lower.includes('greek') || lower.includes('manos') || lower.includes('pantelis')) {
+            return { target: 'TRAVEL', confidence: 0.95, reasoning: 'Travel/Urgent Exit/Cross-Border keywords detected.' };
         }
-        if (lower.includes('wifi') || lower.includes('restaurant') || lower.includes('taxi') || lower.includes('market') || lower.includes('plan') || lower.includes('poem') || lower.includes('fersah') || lower.includes('eat') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('reserve') || lower.includes('booking') || lower.includes('otopark') || lower.includes('parking') || lower.includes('ispark') || lower.includes('fiş') || lower.includes('ticket') || lower.includes('yarış') || lower.includes('race') || lower.includes('party')) {
+        
+        if (lower.includes('wifi') || lower.includes('restaurant') || lower.includes('taxi') || lower.includes('market') || lower.includes('plan') || lower.includes('poem') || lower.includes('fersah') || lower.includes('eat') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('otopark') || lower.includes('parking') || lower.includes('ispark') || lower.includes('fiş') || lower.includes('ticket') || lower.includes('yarış') || lower.includes('race') || lower.includes('party')) {
             return { target: 'CUSTOMER', confidence: 0.8, reasoning: 'General inquiry/Customer/Dining/Parking service keywords.' };
         }
         
@@ -100,7 +112,7 @@ export const orchestratorService = {
         const vesselName = findVesselInPrompt(prompt) || (user.role === 'CAPTAIN' ? 'S/Y Phisedelia' : 's/y phisedelia');
 
         // RBAC Check for GM-only agents
-        const gmOnlyAgents: ExpertName[] = ['HR', 'COMMERCIAL', 'ANALYTICS'];
+        const gmOnlyAgents: ExpertName[] = ['HR', 'COMMERCIAL', 'ANALYTICS', 'BERTH'];
         if (gmOnlyAgents.includes(intent.target) && user.role !== 'GENERAL_MANAGER') {
              responseText = `**ACCESS DENIED**\n\nThis information requires General Manager clearance.`;
              return { text: responseText, actions, traces };
@@ -143,6 +155,14 @@ export const orchestratorService = {
                 } else if (prompt.toLowerCase().includes('blue flag') || prompt.toLowerCase().includes('mavi bayrak') || prompt.toLowerCase().includes('water') || prompt.toLowerCase().includes('deniz') || prompt.toLowerCase().includes('clean') || prompt.toLowerCase().includes('temiz')) {
                     const report = await facilityExpert.checkSeaWaterQuality(t => traces.push(t));
                     responseText = report.message;
+                } else if (prompt.toLowerCase().includes('power') || prompt.toLowerCase().includes('elektrik') || prompt.toLowerCase().includes('pedestal') || prompt.toLowerCase().includes('utility')) {
+                    if (user.role === 'CAPTAIN') {
+                        const result = await facilityExpert.controlPedestal("Pedestal-C12", "toggle", t => traces.push(t));
+                        responseText = result.message;
+                    } else {
+                        const status = await facilityExpert.checkInfrastructureStatus(t => traces.push(t));
+                        responseText = `**FACILITY STATUS**\nSystem: ${status.status}\nAlerts: ${status.alerts.length > 0 ? status.alerts.join(', ') : 'None'}`;
+                    }
                 } else {
                     const status = await facilityExpert.checkInfrastructureStatus(t => traces.push(t));
                     responseText = `**FACILITY STATUS**\nSystem: ${status.status}\nAlerts: ${status.alerts.length > 0 ? status.alerts.join(', ') : 'None'}`;
@@ -155,12 +175,24 @@ export const orchestratorService = {
                 break;
 
             case 'TRAVEL':
-                if (prompt.toLowerCase().includes('acil') || prompt.toLowerCase().includes('urgent')) {
+                // Handle Cross-Border Dining (Symi/Pantelis) in Travel Node
+                if (prompt.toLowerCase().includes('symi') || prompt.toLowerCase().includes('simi') || prompt.toLowerCase().includes('manos') || prompt.toLowerCase().includes('pantelis')) {
+                    let venue = "Pantelis";
+                    if (prompt.toLowerCase().includes('manos')) venue = "Manos";
+                    const res = await kitesExpert.manageCrossBorderDining(venue, 4, "20:00", t => traces.push(t));
+                    responseText = res.message;
+                } 
+                else if (prompt.toLowerCase().includes('acil') || prompt.toLowerCase().includes('urgent')) {
                     const extraction = await kitesExpert.arrangeEmergencyExit({ lat: 36.6, lng: 28.9 }, 'Istanbul', t => traces.push(t));
                     responseText = extraction.message;
                 } else {
                     responseText = "Kites Travel (TÜRSAB A-2648) at your service. How can I assist with your travel plans?";
                 }
+                break;
+
+            case 'RESERVATIONS':
+                const resResult = await reservationsExpert.processBooking({ name: "Guest Vessel", type: "Yacht", loa: 15, beam: 4.5 }, { start: "Tomorrow", end: "Next Week" }, t => traces.push(t));
+                responseText = resResult.message;
                 break;
 
             case 'SECURITY':
@@ -305,12 +337,16 @@ export const orchestratorService = {
                      } else {
                          const debt = await financeExpert.checkDebt(vesselName);
                          if (debt.status === 'DEBT' && user.role !== 'GENERAL_MANAGER') {
-                             responseText = `**DEPARTURE DENIED**\n\nFinancial Hold Active. Outstanding: **€${debt.amount}**.`;
+                             // Polite Denial with Legal Reference
+                             responseText = `**DEPARTURE CLEARANCE: DENIED**\n\n` +
+                                            `Captain, I regret to inform you that I cannot authorize departure at this time.\n\n` +
+                                            `Pursuant to **Marina Regulation Article H.2 (Right of Retention)**, clearance is withheld due to an outstanding balance on your account.\n\n` +
+                                            `Please contact the **Marina Office (VHF Ch 72)** to resolve this administrative matter.`;
                          } else {
                              const departureResult = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
                              if (departureResult.success) {
                                  actions.push(...departureResult.actions);
-                                 responseText = `**CLEARED FOR DEPARTURE**\n\n> **[ATC]:** ${vesselName.toUpperCase()}, CLRD PUSH-BACK GATE C-12. ${departureResult.tender?.name.toUpperCase()} ASSIGNED.`;
+                                 responseText = `**DEPARTURE APPROVED**\n\n> **[ATC]:** ${vesselName.toUpperCase()}, cleared for departure. **${departureResult.tender?.name.toUpperCase()}** has been reserved for your assistance. Switch to **VHF Channel 14** for coordination. Out.`;
                              } else {
                                  responseText = `**DEPARTURE DELAYED**\n\n${departureResult.message}`;
                              }
@@ -318,10 +354,27 @@ export const orchestratorService = {
                      }
                 }
                 else if (prompt.toLowerCase().includes('arrival') || prompt.toLowerCase().includes('enter')) {
+                     // Berth Allocation via new Berth Agent
+                     let assignedBerth = "Pontoon C-12";
+                     if (user.role !== 'GUEST') {
+                         const vesselProfile = await marinaExpert.getVesselIntelligence(vesselName);
+                         if (vesselProfile) {
+                             const allocation = await berthExpert.findOptimalBerth({
+                                 loa: vesselProfile.loa || 15,
+                                 beam: vesselProfile.beam || 4,
+                                 draft: 3, 
+                                 type: vesselProfile.type
+                             }, t => traces.push(t));
+                             assignedBerth = allocation.berth;
+                             const fee = await berthExpert.calculateBerthPrice(vesselProfile.loa || 15, vesselProfile.beam || 4, allocation.pontoon === 'VIP' ? 'VIP' : 'STANDARD', t => traces.push(t));
+                             responseText += `\n*Estimated Daily Fee: €${fee}*`;
+                         }
+                     }
+
                      const arrivalResult = await marinaExpert.processArrival(vesselName, tenders, t => traces.push(t));
                      if (arrivalResult.success) {
                          actions.push(...arrivalResult.actions);
-                         responseText = `**APPROACH CLEARED**\n\n> **[ATC]:** ${vesselName.toUpperCase()}, RADAR CONTACT. SQUAWK ${arrivalResult.squawk}. PROCEED DIRECT BREAKWATER.`;
+                         responseText = `**ARRIVAL APPROVED**\n\n> **[ATC]:** ${vesselName.toUpperCase()}, radar contact. Proceed to breakwater. **${arrivalResult.tender?.name.toUpperCase()}** is reserved and standing by on **Channel 14** to escort you to **${assignedBerth}**. Welcome home.`;
                      } else {
                          responseText = `**APPROACH DENIED**\n\n${arrivalResult.message}`;
                      }

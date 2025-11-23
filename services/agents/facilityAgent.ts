@@ -48,6 +48,27 @@ export const facilityExpert = {
         return { load: currentLoad, optimization };
     },
 
+    // Skill: Control Pedestal (Remote Utility Management)
+    controlPedestal: async (pedestalId: string, action: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string }> => {
+        addTrace(createLog('ada.facility', 'THINKING', `Processing remote command for ${pedestalId}: ${action.toUpperCase()}...`, 'EXPERT'));
+        
+        // Simulate IoT latency
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        addTrace(createLog('ada.facility', 'TOOL_EXECUTION', `Sending encoded signal to Pedestal Controller (PLC)...`, 'WORKER'));
+        
+        // Determine state for messaging
+        let newState = 'UNKNOWN';
+        if (action.toLowerCase() === 'toggle') newState = 'ON (Toggled)';
+        else if (action.toLowerCase() === 'on') newState = 'ON';
+        else if (action.toLowerCase() === 'off') newState = 'OFF';
+        else if (action.toLowerCase() === 'reset') newState = 'RESET';
+
+        const message = `**PEDESTAL CONTROL**\n\nCommand execution successful for **${pedestalId}**.\nAction: **${action.toUpperCase()}**\nNew State: **${newState}**.\n\n*Telemetry confirmed.*`;
+        
+        return { success: true, message };
+    },
+
     // Skill: Generate Zero Waste Report (Sustainability Audit)
     generateZeroWasteReport: async (addTrace: (t: AgentTraceLog) => void): Promise<{ compliance: string, recyclingRate: number, nextAudit: string, message: string }> => {
         addTrace(createLog('ada.facility', 'THINKING', `Compiling Zero Waste (Sıfır Atık) Compliance Report for Ministry Audit...`, 'EXPERT'));
