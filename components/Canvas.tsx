@@ -1,17 +1,19 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { 
   Activity, Anchor, AlertTriangle, Ship, Thermometer, Wind, Map as MapIcon, 
   List, X, FileText, BrainCircuit, Droplets, Zap, Gauge, Battery, 
   Clock, Calendar, CloudRain, Sun, Utensils, ShoppingBag, Wifi, Info, 
-  Car, PartyPopper, CheckCircle2, Siren, Radio, Lock, Flame, Music, Leaf, Recycle, DollarSign, Flag, Microscope, LifeBuoy, ShieldCheck
+  Car, PartyPopper, CheckCircle2, Siren, Radio, Lock, Flame, Music, Leaf, Recycle, DollarSign, Flag, Microscope, LifeBuoy, ShieldCheck, Plane
 } from 'lucide-react';
-import { RegistryEntry, Tender, TrafficEntry, UserProfile, WeatherForecast } from '../types';
+import { RegistryEntry, Tender, TrafficEntry, UserProfile, WeatherForecast, CongressEvent, Delegate, TravelItinerary } from '../types';
 import { wimMasterData } from '../services/wimMasterData';
-import { marinaExpert } from '../services/agents/marinaExpert'; // Corrected import
+import { marinaExpert } from '../services/agents/marinaAgent';
 import { technicExpert } from '../services/agents/technicAgent';
 import { congressExpert } from '../services/agents/congressAgent'; 
 import { facilityExpert } from '../services/agents/facilityAgent'; 
+import { kitesExpert } from '../services/agents/travelAgent';
 
 interface CanvasProps {
   logs: any[];
@@ -292,6 +294,35 @@ export const Canvas: React.FC<CanvasProps> = ({
                 </div>
             )}
 
+            {activeCaptainTab === 'finance' && (
+                <div className="space-y-4">
+                    {/* Finance content would go here */}
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <ShieldCheck size={64} />
+                        </div>
+                        <div className="flex justify-between items-start mb-2 relative z-10">
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                <ShieldCheck size={12} className="text-blue-500"/> INSURANCE POLICY
+                            </div>
+                            <div className="bg-emerald-500/10 text-emerald-500 text-[9px] font-bold px-2 py-0.5 rounded border border-emerald-500/20">
+                                ACTIVE
+                            </div>
+                        </div>
+                        <div className="space-y-1 relative z-10">
+                            <div className="text-lg font-bold text-zinc-200">Turk P&I <span className="text-xs font-normal text-zinc-500">Gold Hull & Machinery</span></div>
+                            <div className="flex justify-between text-xs text-zinc-400">
+                                <span>Policy #: TR-99281</span>
+                                <span>Exp: 14 Days</span>
+                            </div>
+                        </div>
+                        <button className="mt-4 w-full bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/50 text-blue-400 hover:text-white py-2 rounded text-xs font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                            <Zap size={12} /> Get Renewal Quote
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {activeCaptainTab === 'bluecard' && (
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                     <div className="flex justify-between items-start mb-4">
@@ -342,12 +373,17 @@ export const Canvas: React.FC<CanvasProps> = ({
     const [activeGmTab, setActiveGmTab] = useState<'ops' | 'facility' | 'congress'>('ops');
     const [zeroWasteStats, setZeroWasteStats] = useState<any>(null);
     const [blueFlagStatus, setBlueFlagStatus] = useState<any>(null);
+    const [eventDetails, setEventDetails] = useState<CongressEvent | null>(null);
+    const [delegates, setDelegates] = useState<Delegate[]>([]);
 
     useEffect(() => {
-        // Simulate fetching Facility data
         if (activeGmTab === 'facility') {
             facilityExpert.generateZeroWasteReport(() => {}).then(res => setZeroWasteStats(res));
             facilityExpert.checkSeaWaterQuality(() => {}).then(res => setBlueFlagStatus(res));
+        }
+        if (activeGmTab === 'congress') {
+            congressExpert.getEventDetails().then(setEventDetails);
+            congressExpert.getDelegates().then(setDelegates);
         }
     }, [activeGmTab]);
     
@@ -544,12 +580,58 @@ export const Canvas: React.FC<CanvasProps> = ({
                 </div>
             )}
 
-            {activeGmTab === 'congress' && (
-                <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 text-center">
-                    <Activity size={32} className="mx-auto text-zinc-400 mb-2"/>
-                    <div className="text-sm text-zinc-500 italic">
-                        Congress Management Module Active.
-                        <br/>See "ADA.CONGRESS" in Sidebar for full details.
+            {activeGmTab === 'congress' && eventDetails && (
+                <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <div className="flex justify-between items-start mb-4">
+                        <div>
+                            <div className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                                <Activity size={12} /> ADA.CONGRESS.KITES
+                            </div>
+                            <div className="text-lg font-bold text-zinc-800 dark:text-zinc-200">
+                                {eventDetails.name}
+                            </div>
+                        </div>
+                        <div className="bg-indigo-500/10 text-indigo-500 text-[9px] font-bold px-2 py-0.5 rounded border border-indigo-500/20">
+                            {eventDetails.status}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* Delegate Status */}
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="bg-white dark:bg-zinc-900 p-2 rounded border border-zinc-200 dark:border-zinc-700">
+                                <div className="text-[10px] text-zinc-500 uppercase">Registered</div>
+                                <div className="text-xl font-bold">{eventDetails.delegateCount}</div>
+                            </div>
+                            <div className="bg-white dark:bg-zinc-900 p-2 rounded border border-zinc-200 dark:border-zinc-700">
+                                <div className="text-[10px] text-zinc-500 uppercase">Checked-In</div>
+                                <div className="text-xl font-bold text-emerald-500">{delegates.filter(d => d.status === 'CHECKED_IN').length}</div>
+                            </div>
+                            <div className="bg-white dark:bg-zinc-900 p-2 rounded border border-zinc-200 dark:border-zinc-700">
+                                <div className="text-[10px] text-zinc-500 uppercase">In Transit</div>
+                                <div className="text-xl font-bold text-amber-500">{delegates.filter(d => d.status === 'IN_TRANSIT').length}</div>
+                            </div>
+                        </div>
+
+                        {/* Live Venue Feed */}
+                        <div>
+                            <div className="text-[10px] font-bold text-zinc-500 uppercase mb-2">Delegate Status</div>
+                            <div className="space-y-2 text-xs">
+                                {delegates.map(del => (
+                                     <div key={del.id} className="flex justify-between items-center p-2 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700">
+                                        <div>
+                                            <span className="font-bold">{del.name}</span>
+                                            <span className="text-zinc-500 ml-2">({del.company})</span>
+                                        </div>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                                            del.status === 'CHECKED_IN' ? 'bg-emerald-500/10 text-emerald-500' :
+                                            del.status === 'IN_TRANSIT' ? 'bg-amber-500/10 text-amber-500' :
+                                            'bg-zinc-700/10 text-zinc-400'
+                                        }`}>{del.status}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -640,68 +722,47 @@ export const Canvas: React.FC<CanvasProps> = ({
       );
   }
 
-  if (userProfile.role === 'GUEST' && isOpen) {
-      return (
-        <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? 'w-[320px] lg:w-[360px]' : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
-            {!isPanel && (
-              <div className="absolute top-2 right-2 z-50 lg:hidden">
-                  <button onClick={onClose} className="p-2 bg-black/50 text-white rounded-full"><X size={16}/></button>
-              </div>
-            )}
-            <GuestDashboard />
-        </aside>
-      );
-  }
+  const renderDashboard = () => {
+      switch(userProfile.role) {
+          case 'GUEST':
+              return <GuestDashboard />;
+          case 'CAPTAIN':
+              return <CaptainDashboard />;
+          case 'GENERAL_MANAGER':
+              return <GMDashboard />;
+          default:
+              return null;
+      }
+  };
 
-  if (userProfile.role === 'CAPTAIN' && isOpen) {
-      return (
-        <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? 'w-[320px] lg:w-[400px]' : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
-            {/* CAPTAIN HEADER */}
-            <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between bg-zinc-900 text-white">
-                <div className="flex items-center gap-2">
-                   <Ship size={18} />
-                   <span className="font-bold tracking-wider text-xs">VESSEL COMMAND</span>
-                </div>
-                {!isPanel && (
-                    <button onClick={onClose} className="text-zinc-400 lg:hidden">
-                        <X size={18} />
-                    </button>
-                )}
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-zinc-950">
-                <CaptainDashboard />
-            </div>
-        </aside>
-      );
+  const getDashboardWidth = () => {
+       switch(userProfile.role) {
+          case 'GUEST': return 'w-[320px] lg:w-[360px]';
+          case 'CAPTAIN': return 'w-[320px] lg:w-[400px]';
+          case 'GENERAL_MANAGER': return 'w-[320px] lg:w-[600px]';
+          default: return 'w-[320px]';
+      }
   }
 
   return (
-    <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? 'w-[320px] lg:w-[400px]' : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
+    <aside className={`flex flex-col bg-panel-light dark:bg-panel-dark border-l border-border-light dark:border-border-dark transition-all duration-300 ${isOpen ? getDashboardWidth() : 'w-0 hidden'} ${isPanel ? '' : 'fixed right-0 top-0 h-full z-50'}`}>
       
       {/* HEADER */}
-      <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between">
+      <div className="p-4 border-b border-border-light dark:border-border-dark flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300">
            <Activity size={18} />
-           <span className="font-bold tracking-wider text-xs">LIVE OPERATIONS</span>
+           <span className="font-bold tracking-wider text-xs uppercase">{userProfile.role.replace('_', ' ')} VIEW</span>
         </div>
-        <div className="flex items-center gap-2">
-            <button onClick={onOpenTrace} className="text-indigo-500 hover:text-indigo-400 text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 px-2 py-1 rounded">
-                Brain Trace
+        {!isPanel && (
+            <button onClick={onClose} className="text-zinc-500 lg:hidden">
+                <X size={18} />
             </button>
-            <button onClick={onGenerateReport} className="text-zinc-500 hover:text-zinc-300" title="Daily Report">
-                <FileText size={16} />
-            </button>
-            {!isPanel && (
-                <button onClick={onClose} className="text-zinc-500 lg:hidden">
-                    <X size={18} />
-                </button>
-            )}
-        </div>
+        )}
       </div>
 
       {/* CONTENT AREA */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
-          <GMDashboard />
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {renderDashboard()}
       </div>
     </aside>
   );

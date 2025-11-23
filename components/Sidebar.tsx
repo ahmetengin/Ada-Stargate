@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrainCircuit, Radio, X } from 'lucide-react';
+import { BrainCircuit, Radio, X, Plane, Activity, HardHat } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { TENANT_CONFIG } from '../services/config';
 
@@ -35,12 +35,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'ada.marina', label: 'MARINA', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.vhf', label: 'VHF', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.sea', label: 'SEA', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
-    { id: 'ada.technic', label: 'TECHNIC', roles: ['CAPTAIN', 'GENERAL_MANAGER'] }, // Captain sees only own tickets
-    { id: 'ada.finance', label: 'FINANCE', roles: ['CAPTAIN', 'GENERAL_MANAGER'] }, // Captain sees own wallet
+    { id: 'ada.technic', label: 'TECHNIC', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
+    { id: 'ada.finance', label: 'FINANCE', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.customer', label: 'CUSTOMER', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
-    { id: 'ada.passkit', label: 'PASSKIT', roles: ['GENERAL_MANAGER'] }, // Admin tool
-    { id: 'ada.legal', label: 'LEGAL', roles: ['GENERAL_MANAGER'] }, // Internal Compliance
-    { id: 'ada.security', label: 'SECURITY', roles: ['GENERAL_MANAGER'] }, // CCTV/Incident
+    { id: 'ada.travel', label: 'KITES', icon: Plane, roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER']},
+    { id: 'ada.congress', label: 'EVENT', icon: Activity, roles: ['GENERAL_MANAGER', 'GUEST'] },
+    { id: 'ada.facility', label: 'FACILITY', icon: HardHat, roles: ['GENERAL_MANAGER'] },
+    { id: 'ada.passkit', label: 'PASSKIT', roles: ['GENERAL_MANAGER'] },
+    { id: 'ada.legal', label: 'LEGAL', roles: ['GENERAL_MANAGER'] },
+    { id: 'ada.security', label: 'SECURITY', roles: ['GENERAL_MANAGER'] },
     { id: 'ada.weather', label: 'WX', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
   ];
 

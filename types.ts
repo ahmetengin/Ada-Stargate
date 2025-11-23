@@ -209,8 +209,7 @@ export interface AgentContext {
 }
 
 // --- NEW: Agent Orchestration Types ---
-// FIX: Add missing node types ('ada.vhf', 'ada.security', 'ada.weather') identified from components/Sidebar.tsx
-export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather' | 'ada.technic' | 'ada.atc' | 'ada.intelligence' | 'ada.travel';
+export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather' | 'ada.technic' | 'ada.atc' | 'ada.intelligence' | 'ada.travel' | 'ada.congress' | 'ada.facility';
 
 export type AgentPersona = 'ORCHESTRATOR' | 'EXPERT' | 'WORKER';
 
@@ -341,4 +340,22 @@ export interface TravelItinerary {
     transfers: VipTransfer[];
     status: 'ACTIVE' | 'DRAFT' | 'COMPLETED';
     totalCost?: number;
+}
+
+// --- NEW: CONGRESS TYPES ---
+export interface CongressEvent {
+    id: string;
+    name: string;
+    dates: { start: string, end: string };
+    venues: string[];
+    status: 'PLANNING' | 'LIVE' | 'COMPLETED';
+    delegateCount: number;
+}
+
+export interface Delegate {
+    id: string;
+    name: string;
+    company: string;
+    status: 'REGISTERED' | 'CHECKED_IN' | 'IN_TRANSIT' | 'NO_SHOW';
+    location: string;
 }
