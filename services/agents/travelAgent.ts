@@ -1,6 +1,7 @@
 
 import { AgentAction, AgentTraceLog, FlightBooking, HotelBooking, NodeName, TravelItinerary, VipTransfer } from '../../types';
 import { marinaExpert } from './marinaAgent'; // Import to check fleet
+import { TaskHandlerFn } from '../decomposition/types'; // Import for handlers
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -167,7 +168,17 @@ export const kitesExpert = {
 };
 
 // --- Handlers for the Brain ---
-export const travelHandlers = {
+export const travelHandlers: Record<string, TaskHandlerFn> = {
+    'travel.searchFlights': async (ctx: any, obs: any) => {
+        const { origin, dest, date } = obs.payload;
+        const result = await kitesExpert.searchFlights(origin, dest, date, () => {});
+        return [{
+            id: `act_travel_flights_${Date.now()}`,
+            kind: 'internal',
+            name: 'travel.flightResults',
+            params: result
+        }];
+    },
     'travel.dateDestinationCheck': async (ctx: any, obs: any) => [],
     'travel.generateFlights': async (ctx: any, obs: any) => [],
     'travel.matchHotelTransfer': async (ctx: any, obs: any) => [],

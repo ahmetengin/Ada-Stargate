@@ -20,6 +20,7 @@ import { DailyReportModal } from './components/DailyReportModal';
 import { PassportScanner } from './components/PassportScanner';
 import { TENANT_CONFIG } from './services/config';
 import { formatCoordinate } from './services/utils';
+import { QuickActions } from './components/QuickActions'; // Import the new component
 
 // --- SIMULATED USER DATABASE ---
 const MOCK_USER_DATABASE: Record<UserRole, UserProfile> = {
@@ -131,7 +132,7 @@ export default function App() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   
-  const [isRedAlert, setIsRedAlert] = useState(false); // NEW: Red Alert State
+  const [isRedAlert, setIsRedAlert] = useState(false); 
 
   const [userProfile, setUserProfile] = useState<UserProfile>(() => 
     persistenceService.load(STORAGE_KEYS.USER_PROFILE, MOCK_USER_DATABASE['GUEST'])
@@ -139,7 +140,6 @@ export default function App() {
 
   const [logs, setLogs] = useState<any[]>(() => persistenceService.load(STORAGE_KEYS.LOGS, []));
   const [registry, setRegistry] = useState<RegistryEntry[]>(() => persistenceService.load(STORAGE_KEYS.REGISTRY, []));
-  // Initialize Tenders from MasterData
   const [tenders, setTenders] = useState<Tender[]>(() => persistenceService.load(STORAGE_KEYS.TENDERS, wimMasterData.assets.tenders as Tender[]));
   const [trafficQueue, setTrafficQueue] = useState<TrafficEntry[]>(() => persistenceService.load(STORAGE_KEYS.TRAFFIC, []));
   const [weatherData, setWeatherData] = useState<WeatherForecast[]>([]);
@@ -202,7 +202,7 @@ export default function App() {
               t.id === action.params.tenderId ? { 
                   ...t, 
                   status: 'Busy',
-                  assignment: action.params.vessel // Capture vessel name
+                  assignment: action.params.vessel
               } : t
           ));
       }
@@ -236,7 +236,6 @@ export default function App() {
       setIsRedAlert(newState);
       
       if (newState) {
-          // Automatically open Canvas if closed to show the Emergency Dashboard
           setIsCanvasOpen(true);
           addLog({
               id: `alert_log_${Date.now()}`,
@@ -245,7 +244,6 @@ export default function App() {
               type: 'critical',
               message: '**GUARDIAN PROTOCOL ACTIVATED.** CODE RED.'
           });
-          // Optionally send a system message to the chat
           setMessages(prev => [...prev, { 
               id: `sys_alert_${Date.now()}`, 
               role: MessageRole.Model, 
@@ -291,7 +289,6 @@ export default function App() {
              return;
         }
 
-        // Fallback to Gemini if orchestrator doesn't handle directly
         if (text.trim() !== "") {
             streamChatResponse(
               [...messages, newMessage],
@@ -356,10 +353,8 @@ export default function App() {
   return (
     <div className={`flex flex-col h-screen bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-500 overflow-hidden ${theme}`}>
       
-      {/* --- MAIN LAYOUT --- */}
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* LEFT: Sidebar (Navigation) */}
         <Sidebar 
           nodeStates={nodeStates}
           activeChannel={activeChannel}
@@ -374,16 +369,13 @@ export default function App() {
           isPanel={isDesktop}
         />
 
-        {/* CENTER: Chat & Orchestrator */}
         <main className="flex-1 flex flex-col relative min-w-0">
-          {/* Mobile Header */}
           <div className="lg:hidden flex items-center justify-between p-4 border-b border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark z-10">
              <button onClick={() => setIsSidebarOpen(true)} className="text-zinc-500"><PanelLeft size={20} /></button>
              <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">ADA.MARINA</span>
              <button onClick={() => setIsCanvasOpen(true)} className="text-zinc-500"><PanelRight size={20} /></button>
           </div>
 
-          {/* Chat Scroll Area */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
             <div className="max-w-3xl mx-auto space-y-6 pb-4">
               {messages.map((msg) => (
@@ -403,28 +395,29 @@ export default function App() {
             </div>
           </div>
 
-          {/* Input Area */}
           <div className="p-4 sm:p-6 bg-gradient-to-t from-brand-bg-light via-brand-bg-light to-transparent dark:from-brand-bg-dark dark:via-brand-bg-dark z-10">
-            <InputArea 
-              onSend={handleSendMessage} 
-              isLoading={isLoading}
-              selectedModel={selectedModel}
-              onModelChange={setSelectedModel}
-              onInitiateVhfCall={() => setIsVoiceOpen(true)}
-              onInitiateScanner={() => setIsScannerOpen(true)}
-              onToggleRedAlert={handleToggleRedAlert}
-              isRedAlert={isRedAlert}
-              isMonitoring={isMonitoring}
-              useSearch={useSearch}
-              onToggleSearch={() => setUseSearch(!useSearch)}
-              useThinking={useThinking}
-              onToggleThinking={() => setUseThinking(!useThinking)}
-              prefillText={prefillText}
-              onPrefillConsumed={() => setPrefillText('')}
-            />
+            <div className="max-w-3xl mx-auto">
+              <InputArea 
+                onSend={handleSendMessage} 
+                isLoading={isLoading}
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+                onInitiateVhfCall={() => setIsVoiceOpen(true)}
+                onInitiateScanner={() => setIsScannerOpen(true)}
+                onToggleRedAlert={handleToggleRedAlert}
+                isRedAlert={isRedAlert}
+                isMonitoring={isMonitoring}
+                useSearch={useSearch}
+                onToggleSearch={() => setUseSearch(!useSearch)}
+                useThinking={useThinking}
+                onToggleThinking={() => setUseThinking(!useThinking)}
+                prefillText={prefillText}
+                onPrefillConsumed={() => setPrefillText('')}
+              />
+              <QuickActions onAction={setPrefillText} userRole={userProfile.role} />
+            </div>
             
-            {/* Footer Info */}
-            <div className="mt-2 flex justify-between items-center px-4 text-[10px] text-zinc-400 dark:text-zinc-600 font-mono select-none">
+            <div className="mt-2 flex justify-between items-center px-4 text-[10px] text-zinc-400 dark:text-zinc-600 font-mono select-none max-w-3xl mx-auto">
                 <span>AI: {selectedModel.replace('gemini-', '')} {useSearch ? '+ SEARCH' : ''} {useThinking ? '+ THINKING' : ''}</span>
                 <div className="flex items-center gap-4">
                     <button onClick={cycleTheme} className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
@@ -436,7 +429,6 @@ export default function App() {
           </div>
         </main>
 
-        {/* RIGHT: Canvas (Dynamic Dashboard) */}
         <Canvas 
           logs={logs}
           registry={registry}
@@ -461,7 +453,6 @@ export default function App() {
 
       </div>
 
-      {/* BOTTOM: Status Bar */}
       <StatusBar 
         userProfile={userProfile}
         onToggleAuth={toggleAuth}
@@ -470,7 +461,6 @@ export default function App() {
         activeChannel={activeChannel}
       />
 
-      {/* --- MODALS --- */}
       <VoiceModal 
         isOpen={isVoiceOpen} 
         onClose={() => setIsVoiceOpen(false)} 

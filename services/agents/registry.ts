@@ -1,4 +1,3 @@
-
 // services/agents/registry.ts
 import { TaskHandlerFn } from '../decomposition/types';
 import { travelHandlers } from './travelAgent';
@@ -7,13 +6,16 @@ import { genericHandlers } from './genericAgent';
 import { marinaHandlers } from './marinaAgent';
 import { weatherHandlers } from './weatherAgent';
 import { technicHandlers } from './technicAgent';
-import { passkitExpert } from './passkitAgent'; // Import passkit
-import { securityHandlers } from './securityAgent'; // Import security
+import { passkitExpert } from './passkitAgent';
+import { securityHandlers } from './securityAgent';
+import { hrHandlers } from './hrAgent'; // New
+import { commercialHandlers } from './commercialAgent'; // New
+import { analyticsHandlers } from './analyticsAgent'; // New
+import { facilityHandlers } from './facilityAgent'; // New
 
 // Define a wrapper handler for passkit as it wasn't originally designed with TaskHandlerFn in mind
 const passkitIssueHandler: TaskHandlerFn = async (ctx, obs) => {
     const { vesselName, ownerName, type } = obs.payload;
-    // Just a wrapper to make it compatible with the brain executor if needed
     const result = await passkitExpert.issuePass(vesselName, ownerName || 'Unknown', type || 'GUEST', () => {});
     return [{
         id: `act_pk_${Date.now()}`,
@@ -30,7 +32,11 @@ const handlers: Record<string, TaskHandlerFn> = {
   ...marinaHandlers,
   ...weatherHandlers,
   ...technicHandlers,
-  ...securityHandlers, // Register Security
+  ...securityHandlers,
+  ...hrHandlers,
+  ...commercialHandlers,
+  ...analyticsHandlers,
+  ...facilityHandlers,
   'passkit.issue': passkitIssueHandler, 
 };
 

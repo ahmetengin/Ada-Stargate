@@ -1,11 +1,13 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { 
   Activity, Anchor, AlertTriangle, Ship, Thermometer, Wind, Map as MapIcon, 
   List, X, FileText, BrainCircuit, Droplets, Zap, Gauge, Battery, 
   Clock, Calendar, CloudRain, Sun, Utensils, ShoppingBag, Wifi, Info, 
-  Car, PartyPopper, CheckCircle2, Siren, Radio, Lock, Flame, Music, Leaf, Recycle, DollarSign, Flag, Microscope, LifeBuoy, ShieldCheck, Plane
+  Car, PartyPopper, CheckCircle2, Siren, Radio, Lock, Flame, Music, Leaf, Recycle, DollarSign, Flag, Microscope, LifeBuoy, ShieldCheck, Plane,
+  Users, Store, TrendingUp // New icons
 } from 'lucide-react';
 import { RegistryEntry, Tender, TrafficEntry, UserProfile, WeatherForecast, CongressEvent, Delegate, TravelItinerary } from '../types';
 import { wimMasterData } from '../services/wimMasterData';
@@ -14,6 +16,10 @@ import { technicExpert } from '../services/agents/technicAgent';
 import { congressExpert } from '../services/agents/congressAgent'; 
 import { facilityExpert } from '../services/agents/facilityAgent'; 
 import { kitesExpert } from '../services/agents/travelAgent';
+import { hrExpert } from '../services/agents/hrAgent';
+import { commercialExpert } from '../services/agents/commercialAgent';
+import { analyticsExpert } from '../services/agents/analyticsAgent';
+
 
 interface CanvasProps {
   logs: any[];
@@ -370,11 +376,14 @@ export const Canvas: React.FC<CanvasProps> = ({
   // --- 3. GENERAL MANAGER UI (Ops & Finance) ---
   const GMDashboard = () => {
     const criticalLogs = logs.filter(log => log.type === 'critical' || log.type === 'alert');
-    const [activeGmTab, setActiveGmTab] = useState<'ops' | 'facility' | 'congress'>('ops');
+    const [activeGmTab, setActiveGmTab] = useState<'ops' | 'fleet' | 'facility' | 'congress' | 'hr' | 'commercial' | 'analytics'>('ops');
     const [zeroWasteStats, setZeroWasteStats] = useState<any>(null);
     const [blueFlagStatus, setBlueFlagStatus] = useState<any>(null);
     const [eventDetails, setEventDetails] = useState<CongressEvent | null>(null);
     const [delegates, setDelegates] = useState<Delegate[]>([]);
+    const [hrData, setHrData] = useState<any>(null);
+    const [commercialData, setCommercialData] = useState<any[]>([]);
+    const [analyticsData, setAnalyticsData] = useState<any>(null);
 
     useEffect(() => {
         if (activeGmTab === 'facility') {
@@ -384,6 +393,15 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (activeGmTab === 'congress') {
             congressExpert.getEventDetails().then(setEventDetails);
             congressExpert.getDelegates().then(setDelegates);
+        }
+        if (activeGmTab === 'hr') {
+            hrExpert.getShiftSchedule('Security', () => {}).then(setHrData);
+        }
+        if (activeGmTab === 'commercial') {
+            commercialExpert.getTenantLeases(() => {}).then(setCommercialData);
+        }
+        if (activeGmTab === 'analytics') {
+            analyticsExpert.predictOccupancy('3M', () => {}).then(setAnalyticsData);
         }
     }, [activeGmTab]);
     
@@ -402,7 +420,7 @@ export const Canvas: React.FC<CanvasProps> = ({
 
             {/* GM Sub-Tabs */}
             <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-1 flex-shrink-0">
-                {['ops', 'facility', 'congress'].map(tab => (
+                {['ops', 'fleet', 'facility', 'congress', 'hr', 'commercial', 'analytics'].map(tab => (
                     <button 
                         key={tab} 
                         onClick={() => setActiveGmTab(tab as any)}
@@ -475,12 +493,41 @@ export const Canvas: React.FC<CanvasProps> = ({
                     </div>
                 </>
             )}
+            
+            {activeGmTab === 'fleet' && (
+                <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-4 uppercase tracking-widest flex items-center gap-2">
+                        <Ship size={14} /> Fleet Status (Tenders)
+                    </h3>
+                    <div className="space-y-3">
+                        {tenders.map((tender) => {
+                            const statusColor = tender.status === 'Idle' ? 'bg-emerald-500' : tender.status === 'Busy' ? 'bg-amber-500' : 'bg-red-500';
+                            return (
+                                <div key={tender.id} className="flex justify-between items-center p-3 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-2 h-2 rounded-full ${statusColor}`} />
+                                        <div>
+                                            <span className="font-mono font-bold text-sm text-zinc-800 dark:text-zinc-200">{tender.name}</span>
+                                            <span className="block text-[10px] text-zinc-500 uppercase">{tender.status}</span>
+                                        </div>
+                                    </div>
+                                    {tender.status === 'Busy' && tender.assignment && (
+                                        <div className="text-right">
+                                            <span className="text-[10px] text-zinc-500 block">ASSIGNED TO</span>
+                                            <span className="font-mono font-bold text-sm text-indigo-500">{tender.assignment}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {activeGmTab === 'facility' && (
                 <div className="space-y-4">
                     {/* BLUE FLAG / SEA WATER HUD */}
                     <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl relative overflow-hidden">
-                        {/* Background Wave Effect */}
                         <div className="absolute inset-0 bg-[linear-gradient(to_right,#3b82f620_1px,transparent_1px),linear-gradient(to_bottom,#3b82f620_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
                         
                         <div className="flex justify-between items-start mb-4 relative z-10">
@@ -558,25 +605,6 @@ export const Canvas: React.FC<CanvasProps> = ({
                             </div>
                         </div>
                     </div>
-
-                    {/* Infrastructure Alerts */}
-                    <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-                        <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3">Infrastructure Health</h3>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center p-2 bg-red-500/10 border border-red-500/20 rounded">
-                                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs font-bold">
-                                    <AlertTriangle size={12} /> Pedestal B-12
-                                </div>
-                                <span className="text-[9px] text-red-500">BREAKER TRIP</span>
-                            </div>
-                            <div className="flex justify-between items-center p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded">
-                                <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-300 text-xs">
-                                    <Droplets size={12} /> Main Water Line C
-                                </div>
-                                <span className="text-[9px] text-emerald-500">PRESSURE NORMAL</span>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             )}
 
@@ -635,6 +663,60 @@ export const Canvas: React.FC<CanvasProps> = ({
                     </div>
                 </div>
             )}
+            
+            {activeGmTab === 'hr' && hrData && (
+                 <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-4 uppercase tracking-widest">
+                        <Users size={14} className="inline-block -mt-1 mr-2"/> HR / Shift Status
+                    </h3>
+                    <div className="space-y-2 text-xs">
+                        {hrData.schedule.map((staff: any) => (
+                             <div key={staff.name} className="flex justify-between items-center p-2 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700">
+                                <div>
+                                    <span className="font-bold">{staff.name}</span>
+                                    <span className="text-zinc-500 ml-2">({hrData.department})</span>
+                                </div>
+                                <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded">{staff.status}</span>
+                            </div>
+                        ))}
+                    </div>
+                 </div>
+            )}
+
+            {activeGmTab === 'commercial' && (
+                 <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                     <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-4 uppercase tracking-widest">
+                        <Store size={14} className="inline-block -mt-1 mr-2"/> Commercial Tenants
+                    </h3>
+                     <div className="space-y-2 text-xs">
+                        {commercialData.map((tenant: any) => (
+                            <div key={tenant.id} className="flex justify-between items-center p-2 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700">
+                                <div>
+                                    <span className="font-bold">{tenant.name}</span>
+                                    <span className="text-zinc-500 ml-2">(Rent: €{tenant.rent})</span>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${tenant.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500 animate-pulse'}`}>
+                                    {tenant.status}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                 </div>
+            )}
+
+            {activeGmTab === 'analytics' && analyticsData && (
+                <div className="bg-zinc-100 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 mb-4 uppercase tracking-widest">
+                        <TrendingUp size={14} className="inline-block -mt-1 mr-2"/> Strategic Analytics
+                    </h3>
+                    <div className="bg-white dark:bg-zinc-900 p-4 rounded text-center">
+                        <div className="text-xs text-zinc-500 uppercase">Predicted Occupancy ({analyticsData.period})</div>
+                        <div className="text-5xl font-black text-indigo-500 my-2">{analyticsData.prediction}%</div>
+                        <div className="text-[10px] text-zinc-400">(Confidence: {analyticsData.confidence}%)</div>
+                    </div>
+                </div>
+            )}
+
 
             </div>
         </div>

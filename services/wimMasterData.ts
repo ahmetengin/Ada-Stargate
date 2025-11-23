@@ -1,4 +1,3 @@
-
 // services/wimMasterData.ts
 
 export const wimMasterData = {
@@ -45,6 +44,23 @@ export const wimMasterData = {
       "call_sign": "West Istanbul Marina",
       "phone": "+90 212 850 22 00"
     }
+  },
+  "hr_management": {
+      "staff_count": 120,
+      "departments": ["Operations", "Technical", "Security", "Front Office", "Cleaning"],
+      "shift_pattern": "3 shifts (08-16, 16-24, 24-08)",
+      "patrol_protocol": "Security must scan QR codes at 15 checkpoints every 2 hours."
+  },
+  "commercial_tenants": {
+      "count": 45,
+      "categories": ["Restaurants", "Boutiques", "Yacht Brokers", "Service Workshops"],
+      "lease_model": "Fixed Rent + % Turnover Share",
+      "common_area_charge_formula": "Total Cost / Total Leased Area * Tenant Area"
+  },
+  "analytics_data": {
+      "historical_occupancy": { "2024_Q4": "88%", "2025_Q1": "75%", "2025_Q2": "92%" },
+      "prediction_model": "Seasonal ARIMA",
+      "what_if_scenarios_enabled": true
   },
   "strategic_partners": {
       "travel_agency": {

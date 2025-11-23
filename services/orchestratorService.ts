@@ -12,12 +12,15 @@ import { securityExpert } from './agents/securityAgent';
 import { kitesExpert } from './agents/travelAgent'; 
 import { congressExpert } from './agents/congressAgent';
 import { facilityExpert } from './agents/facilityAgent'; 
+import { hrExpert } from './agents/hrAgent';
+import { commercialExpert } from './agents/commercialAgent';
+import { analyticsExpert } from './agents/analyticsAgent';
 import { wimMasterData } from './wimMasterData';
 import { dmsToDecimal } from './utils';
 import { generateComplianceSystemMessage } from './prompts';
 import { VESSEL_KEYWORDS } from './constants';
 
-type ExpertName = 'FINANCE' | 'TECHNIC' | 'LEGAL' | 'MARINA' | 'CUSTOMER' | 'SECURITY' | 'TRAVEL' | 'CONGRESS' | 'FACILITY';
+type ExpertName = 'FINANCE' | 'TECHNIC' | 'LEGAL' | 'MARINA' | 'CUSTOMER' | 'SECURITY' | 'TRAVEL' | 'CONGRESS' | 'FACILITY' | 'HR' | 'COMMERCIAL' | 'ANALYTICS';
 
 interface RouterIntent {
     target: ExpertName;
@@ -37,6 +40,17 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
 class Router {
     static route(prompt: string, user: UserProfile): RouterIntent {
         const lower = prompt.toLowerCase();
+
+        // INTERNAL OPS
+        if (lower.includes('vardiya') || lower.includes('shift') || lower.includes('personel') || lower.includes('staff') || lower.includes('patrol') || lower.includes('devriye')) {
+            return { target: 'HR', confidence: 0.95, reasoning: 'HR and staff management keywords detected.' };
+        }
+        if (lower.includes('kiracı') || lower.includes('tenant') || lower.includes('dükkan') || lower.includes('shop') || lower.includes('kira') || lower.includes('rent')) {
+            return { target: 'COMMERCIAL', confidence: 0.95, reasoning: 'Commercial tenant and lease keywords detected.' };
+        }
+        if (lower.includes('analiz') || lower.includes('analysis') || lower.includes('tahmin') || lower.includes('predict') || lower.includes('forecast') || lower.includes('rapor')) {
+            return { target: 'ANALYTICS', confidence: 0.9, reasoning: 'Analytics and prediction keywords detected.' };
+        }
 
         // FACILITY / ZERO WASTE / BLUE FLAG
         if (lower.includes('zero waste') || lower.includes('sıfır atık') || lower.includes('sifir atik') || lower.includes('recycling') || lower.includes('geri dönüşüm') || lower.includes('pedestal') || lower.includes('ponton') || lower.includes('yangın dolabı') || lower.includes('tesis') || lower.includes('facility') || lower.includes('denetim') || lower.includes('audit') || lower.includes('blue flag') || lower.includes('mavi bayrak') || lower.includes('sea water') || lower.includes('deniz suyu') || lower.includes('analiz') || lower.includes('analysis') || lower.includes('clean') || lower.includes('temiz')) {
@@ -85,7 +99,43 @@ export const orchestratorService = {
         const findVesselInPrompt = (p: string) => VESSEL_KEYWORDS.find(v => p.toLowerCase().includes(v));
         const vesselName = findVesselInPrompt(prompt) || (user.role === 'CAPTAIN' ? 'S/Y Phisedelia' : 's/y phisedelia');
 
+        // RBAC Check for GM-only agents
+        const gmOnlyAgents: ExpertName[] = ['HR', 'COMMERCIAL', 'ANALYTICS'];
+        if (gmOnlyAgents.includes(intent.target) && user.role !== 'GENERAL_MANAGER') {
+             responseText = `**ACCESS DENIED**\n\nThis information requires General Manager clearance.`;
+             return { text: responseText, actions, traces };
+        }
+
         switch (intent.target) {
+            case 'HR':
+                if (prompt.toLowerCase().includes('vardiya') || prompt.toLowerCase().includes('shift')) {
+                    const res = await hrExpert.getShiftSchedule('Security', t => traces.push(t));
+                    responseText = `**SECURITY SHIFT (Today):**\n` + res.schedule.map(s => `- ${s.name} (${s.shift}) - ${s.status}`).join('\n');
+                } else {
+                    const res = await hrExpert.trackPatrolStatus(t => traces.push(t));
+                    responseText = res.message;
+                }
+                break;
+            
+            case 'COMMERCIAL':
+                const leases = await commercialExpert.getTenantLeases(t => traces.push(t));
+                const overdue = leases.filter(l => l.status === 'OVERDUE');
+                responseText = `**COMMERCIAL TENANT OVERVIEW:**\n- Total Leases: ${leases.length}\n- Overdue Rent: ${overdue.length}\n\n`
+                if(overdue.length > 0) {
+                    responseText += `**Overdue Tenants:**\n${overdue.map(o => `- ${o.name} (€${o.rent})`).join('\n')}`;
+                }
+                break;
+
+            case 'ANALYTICS':
+                 if (prompt.toLowerCase().includes('what if') || prompt.toLowerCase().includes('senaryo')) {
+                     const res = await analyticsExpert.runWhatIfScenario(prompt, t => traces.push(t));
+                     responseText = res.message;
+                 } else {
+                     const res = await analyticsExpert.predictOccupancy('3M', t => traces.push(t));
+                     responseText = res.message;
+                 }
+                 break;
+
             case 'FACILITY':
                 if (prompt.toLowerCase().includes('waste') || prompt.toLowerCase().includes('atık') || prompt.toLowerCase().includes('denetim') || prompt.toLowerCase().includes('audit')) {
                     const report = await facilityExpert.generateZeroWasteReport(t => traces.push(t));

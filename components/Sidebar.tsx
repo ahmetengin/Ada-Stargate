@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrainCircuit, Radio, X, Plane, Activity, HardHat } from 'lucide-react';
+import { BrainCircuit, Radio, X, Plane, Activity, HardHat, Users, Store, TrendingUp } from 'lucide-react';
 import { UserProfile, UserRole } from '../types';
 import { TENANT_CONFIG } from '../services/config';
 
@@ -32,19 +32,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
 
   const allNodes = [
+    // External Ops
     { id: 'ada.marina', label: 'MARINA', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.vhf', label: 'VHF', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.sea', label: 'SEA', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.technic', label: 'TECHNIC', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
+    { id: 'ada.weather', label: 'WX', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
+    // Business Ops
     { id: 'ada.finance', label: 'FINANCE', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.customer', label: 'CUSTOMER', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
     { id: 'ada.travel', label: 'KITES', icon: Plane, roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER']},
     { id: 'ada.congress', label: 'EVENT', icon: Activity, roles: ['GENERAL_MANAGER', 'GUEST'] },
+    // Internal & Strategic Ops (GM Only)
     { id: 'ada.facility', label: 'FACILITY', icon: HardHat, roles: ['GENERAL_MANAGER'] },
     { id: 'ada.passkit', label: 'PASSKIT', roles: ['GENERAL_MANAGER'] },
     { id: 'ada.legal', label: 'LEGAL', roles: ['GENERAL_MANAGER'] },
     { id: 'ada.security', label: 'SECURITY', roles: ['GENERAL_MANAGER'] },
-    { id: 'ada.weather', label: 'WX', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
+    { id: 'ada.hr', label: 'HR', icon: Users, roles: ['GENERAL_MANAGER'] },
+    { id: 'ada.commercial', label: 'COMMERCIAL', icon: Store, roles: ['GENERAL_MANAGER'] },
+    { id: 'ada.analytics', label: 'ANALYTICS', icon: TrendingUp, roles: ['GENERAL_MANAGER'] },
   ];
 
   // Filter nodes based on current role
