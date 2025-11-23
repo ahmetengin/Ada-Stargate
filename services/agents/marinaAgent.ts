@@ -1,5 +1,4 @@
 
-
 // services/agents/marinaAgent.ts
 import { TaskHandlerFn } from '../decomposition/types';
 import { AgentAction, AgentTraceLog, VesselIntelligenceProfile, NodeName, Tender, VesselSystemsStatus } from '../../types';
@@ -143,13 +142,14 @@ export const marinaExpert = {
             type: v.type,
             distance: haversineDistance(lat, lng, v.coordinates!.lat, v.coordinates!.lng).toFixed(1),
             squawk: '1200', // VFR Standard
-            status: v.status
+            status: v.status,
+            coordinates: v.coordinates
         }));
 
         // 2. Ambarlı Commercial Traffic (Simulated Injection)
         const commercialTraffic = [
-            { name: "M/V MSC Gulsun", type: "Container Ship", distance: "4.2", squawk: "7700", status: "CROSSING", speed: "14kn" },
-            { name: "M/T Torm Republican", type: "Chemical Tanker", distance: "6.5", squawk: "2305", status: "ANCHORED", speed: "0kn" }
+            { name: "M/V MSC Gulsun", type: "Container Ship", distance: "4.2", squawk: "7700", status: "CROSSING", speed: "14kn", coordinates: { lat: 40.9200, lng: 28.6100 } },
+            { name: "M/T Torm Republican", type: "Chemical Tanker", distance: "6.5", squawk: "2305", status: "ANCHORED", speed: "0kn", coordinates: { lat: 40.9000, lng: 28.6000 } }
         ];
 
         addTrace(createLog('ada.marina', 'OUTPUT', `Radar Contact: ${fleet.length} WIM vessels + ${commercialTraffic.length} Commercial Targets (Ambarlı).`, 'WORKER'));
@@ -160,6 +160,20 @@ export const marinaExpert = {
     // Alias for findVesselsNear to use scanSector logic
     findVesselsNear: async (lat: number, lng: number, radiusMiles: number, addTrace: (t: AgentTraceLog) => void): Promise<any[]> => {
         return marinaExpert.scanSector(lat, lng, radiusMiles, addTrace);
+    },
+
+    // NEW: Capability to check WIM Charter Fleet Availability for Kites Travel
+    checkCharterFleetAvailability: async (type: string, date: string, addTrace: (t: AgentTraceLog) => void): Promise<any[]> => {
+        addTrace(createLog('ada.marina', 'THINKING', `Checking availability of Marina-owned charter assets for ${date}...`, 'EXPERT'));
+        
+        // In a real system, this would check a booking calendar database.
+        // Here we filter wimMasterData.assets.charter_fleet
+        
+        const fleet = wimMasterData.assets.charter_fleet || [];
+        const available = fleet.filter(boat => boat.status === 'Available');
+        
+        addTrace(createLog('ada.marina', 'OUTPUT', `Found ${available.length} available charter vessels in WIM Registry.`, 'WORKER'));
+        return available;
     },
 
     // Proactive Hailing Logic - The "Welcome Home" Protocol

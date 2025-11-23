@@ -8,6 +8,7 @@ import { marinaHandlers } from './marinaAgent';
 import { weatherHandlers } from './weatherAgent';
 import { technicHandlers } from './technicAgent';
 import { passkitExpert } from './passkitAgent'; // Import passkit
+import { securityHandlers } from './securityAgent'; // Import security
 
 // Define a wrapper handler for passkit as it wasn't originally designed with TaskHandlerFn in mind
 const passkitIssueHandler: TaskHandlerFn = async (ctx, obs) => {
@@ -29,7 +30,8 @@ const handlers: Record<string, TaskHandlerFn> = {
   ...marinaHandlers,
   ...weatherHandlers,
   ...technicHandlers,
-  'passkit.issue': passkitIssueHandler, // Register
+  ...securityHandlers, // Register Security
+  'passkit.issue': passkitIssueHandler, 
 };
 
 export function getTaskHandler(name: string): TaskHandlerFn {

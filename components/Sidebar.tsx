@@ -31,18 +31,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isPanel
 }) => {
 
-  const coreNodes = [
-    { id: 'ada.marina', label: 'MARINA' },
-    { id: 'ada.vhf', label: 'VHF' },
-    { id: 'ada.sea', label: 'SEA' },
-    { id: 'ada.technic', label: 'TECHNIC' },
-    { id: 'ada.finance', label: 'FINANCE' },
-    { id: 'ada.customer', label: 'CUSTOMER' },
-    { id: 'ada.passkit', label: 'PASSKIT' },
-    { id: 'ada.legal', label: 'LEGAL' },
-    { id: 'ada.security', label: 'SECURITY' },
-    { id: 'ada.weather', label: 'WX' },
+  const allNodes = [
+    { id: 'ada.marina', label: 'MARINA', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
+    { id: 'ada.vhf', label: 'VHF', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
+    { id: 'ada.sea', label: 'SEA', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
+    { id: 'ada.technic', label: 'TECHNIC', roles: ['CAPTAIN', 'GENERAL_MANAGER'] }, // Captain sees only own tickets
+    { id: 'ada.finance', label: 'FINANCE', roles: ['CAPTAIN', 'GENERAL_MANAGER'] }, // Captain sees own wallet
+    { id: 'ada.customer', label: 'CUSTOMER', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
+    { id: 'ada.passkit', label: 'PASSKIT', roles: ['GENERAL_MANAGER'] }, // Admin tool
+    { id: 'ada.legal', label: 'LEGAL', roles: ['GENERAL_MANAGER'] }, // Internal Compliance
+    { id: 'ada.security', label: 'SECURITY', roles: ['GENERAL_MANAGER'] }, // CCTV/Incident
+    { id: 'ada.weather', label: 'WX', roles: ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] },
   ];
+
+  // Filter nodes based on current role
+  const visibleNodes = allNodes.filter(node => node.roles.includes(userProfile.role));
 
   const getStatusDotColor = (status: string) => {
     switch (status) {
@@ -78,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Vertical Node List */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2">
         <div className="space-y-1">
-            {coreNodes.map((node) => (
+            {visibleNodes.map((node) => (
               <button 
                 key={node.id} 
                 onClick={() => onNodeClick(node.id)}

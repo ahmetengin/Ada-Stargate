@@ -8,15 +8,17 @@ import { legalExpert } from './agents/legalAgent';
 import { marinaExpert } from './agents/marinaAgent';
 import { customerExpert } from './agents/customerAgent';
 import { technicExpert } from './agents/technicAgent';
-import { passkitExpert } from './agents/passkitAgent'; // Import passkitExpert
+import { passkitExpert } from './agents/passkitAgent'; 
+import { securityExpert } from './agents/securityAgent'; 
+import { kitesExpert } from './agents/travelAgent'; 
+import { congressExpert } from './agents/congressAgent';
+import { facilityExpert } from './agents/facilityAgent'; 
 import { wimMasterData } from './wimMasterData';
 import { dmsToDecimal } from './utils';
 import { generateComplianceSystemMessage } from './prompts';
 import { VESSEL_KEYWORDS } from './constants';
 
-// --- TYPES FOR BIG 3 ARCHITECTURE (TS Implementation) ---
-
-type ExpertName = 'FINANCE' | 'TECHNIC' | 'LEGAL' | 'MARINA' | 'CUSTOMER';
+type ExpertName = 'FINANCE' | 'TECHNIC' | 'LEGAL' | 'MARINA' | 'CUSTOMER' | 'SECURITY' | 'TRAVEL' | 'CONGRESS' | 'FACILITY';
 
 interface RouterIntent {
     target: ExpertName;
@@ -24,7 +26,6 @@ interface RouterIntent {
     reasoning: string;
 }
 
-// Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
     id: `trace_${Date.now()}_${Math.random()}`,
     timestamp: new Date().toLocaleTimeString(),
@@ -34,125 +35,163 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     persona
 });
 
-// --- LEVEL 1: THE ROUTER (The Brain) ---
-// Decides which Expert should handle the request based on keywords/regex (Heuristic)
 class Router {
     static route(prompt: string, user: UserProfile): RouterIntent {
         const lower = prompt.toLowerCase();
 
-        if (lower.includes('invoice') || lower.includes('pay') || lower.includes('debt') || lower.includes('balance')) {
-            return { target: 'FINANCE', confidence: 0.9, reasoning: 'Financial keywords detected.' };
+        // FACILITY / ZERO WASTE / BLUE FLAG
+        if (lower.includes('zero waste') || lower.includes('sıfır atık') || lower.includes('sifir atik') || lower.includes('recycling') || lower.includes('geri dönüşüm') || lower.includes('pedestal') || lower.includes('ponton') || lower.includes('yangın dolabı') || lower.includes('tesis') || lower.includes('facility') || lower.includes('denetim') || lower.includes('audit') || lower.includes('blue flag') || lower.includes('mavi bayrak') || lower.includes('sea water') || lower.includes('deniz suyu') || lower.includes('analiz') || lower.includes('analysis') || lower.includes('clean') || lower.includes('temiz')) {
+            return { target: 'FACILITY', confidence: 0.9, reasoning: 'Facility/Env/Blue Flag keywords detected.' };
         }
-        if (lower.includes('repair') || lower.includes('service') || lower.includes('technic') || lower.includes('haul') || lower.includes('job')) {
-            return { target: 'TECHNIC', confidence: 0.9, reasoning: 'Technical service keywords detected.' };
+
+        if (lower.includes('congress') || lower.includes('kongre') || lower.includes('event') || lower.includes('etkinlik') || lower.includes('delegate') || lower.includes('delegasyon')) {
+            return { target: 'CONGRESS', confidence: 0.9, reasoning: 'Congress/Event keywords detected.' };
+        }
+
+        if (lower.includes('vurdu') || lower.includes('çarptı') || lower.includes('collision') || lower.includes('hit') || lower.includes('damage') || lower.includes('hasar') || lower.includes('inkar')) {
+            return { target: 'SECURITY', confidence: 0.99, reasoning: 'Collision/Incident keywords detected.' };
+        }
+
+        if (lower.includes('invoice') || lower.includes('pay') || lower.includes('debt') || lower.includes('balance') || lower.includes('sigorta') || lower.includes('insurance') || lower.includes('policy') || lower.includes('kasko') || lower.includes('poliçe') || lower.includes('komisyon') || lower.includes('commission') || lower.includes('hediye') || lower.includes('gift')) {
+            return { target: 'FINANCE', confidence: 0.9, reasoning: 'Financial/Insurance/Commission keywords detected.' };
+        }
+        if (lower.includes('repair') || lower.includes('service') || lower.includes('technic') || lower.includes('haul') || lower.includes('job') || lower.includes('pis su') || lower.includes('atık') || lower.includes('blue card') || lower.includes('mavi kart')) {
+            return { target: 'TECHNIC', confidence: 0.9, reasoning: 'Technical service/Waste keywords detected.' };
         }
         if (lower.includes('contract') || lower.includes('legal') || lower.includes('rule') || lower.includes('regulation') || lower.includes('kvkk')) {
             return { target: 'LEGAL', confidence: 0.9, reasoning: 'Legal/Regulatory keywords detected.' };
         }
-        if (lower.includes('wifi') || lower.includes('restaurant') || lower.includes('taxi') || lower.includes('market') || lower.includes('plan')) {
-            return { target: 'CUSTOMER', confidence: 0.8, reasoning: 'General inquiry/Customer service keywords.' };
+        if (lower.includes('acil dön') || lower.includes('urgent return') || lower.includes('emergency exit') || lower.includes('hemen dön') || lower.includes('uçak') || lower.includes('flight') || lower.includes('transfer') || lower.includes('bilet') || lower.includes('ticket') || lower.includes('hotel') || lower.includes('otel') || lower.includes('tatil')) {
+            return { target: 'TRAVEL', confidence: 0.95, reasoning: 'Travel/Urgent Exit keywords detected.' };
+        }
+        if (lower.includes('wifi') || lower.includes('restaurant') || lower.includes('taxi') || lower.includes('market') || lower.includes('plan') || lower.includes('poem') || lower.includes('fersah') || lower.includes('eat') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('reserve') || lower.includes('booking') || lower.includes('otopark') || lower.includes('parking') || lower.includes('ispark') || lower.includes('fiş') || lower.includes('ticket') || lower.includes('yarış') || lower.includes('race') || lower.includes('party')) {
+            return { target: 'CUSTOMER', confidence: 0.8, reasoning: 'General inquiry/Customer/Dining/Parking service keywords.' };
         }
         
         return { target: 'MARINA', confidence: 0.5, reasoning: 'Defaulting to Marina Operations.' };
     }
 }
 
-// --- ORCHESTRATOR SERVICE (The Body) ---
 export const orchestratorService = {
     async processRequest(prompt: string, user: UserProfile, tenders: Tender[]): Promise<OrchestratorResponse> {
         const traces: AgentTraceLog[] = [];
         const actions: AgentAction[] = [];
         let responseText = "";
 
-        // 1. LOG INCOMING SIGNAL
         traces.push(createLog('ada.marina', 'ROUTING', `Signal Received: "${prompt}"`));
 
-        // 2. HYBRID CHECK: Try to call Python Backend first (Sidecar Pattern)
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms timeout for backend check
-            
-            const backendRes = await fetch('http://localhost:8000/api/v1/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt, user_role: user.role }),
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-
-            if (backendRes.ok) {
-                const data = await backendRes.json();
-                traces.push(createLog('ada.marina', 'ROUTING', 'Handed off to Python Backend (Core Engine).', 'ORCHESTRATOR'));
-                // If backend works, we use its response. 
-                // NOTE: In this demo, we just log it and proceed to local fallback for safety unless data is perfect.
-                // To fully switch, we would return data here.
-            }
-        } catch (e) {
-            // Backend not running? No problem. We use local TypeScript logic.
-            // Silent fail.
-        }
-
-        // 3. LOCAL ROUTING (The "Big 3" TS Implementation)
         const intent = Router.route(prompt, user);
         traces.push(createLog('ada.marina', 'ROUTING', `Routing to ${intent.target} Expert (Confidence: ${intent.confidence})`, 'ORCHESTRATOR'));
 
-        // Helper to find vessel
         const findVesselInPrompt = (p: string) => VESSEL_KEYWORDS.find(v => p.toLowerCase().includes(v));
-        const vesselName = findVesselInPrompt(prompt) || 's/y phisedelia'; // Default context
-
-        // --- DISPATCH TO EXPERTS ---
+        const vesselName = findVesselInPrompt(prompt) || (user.role === 'CAPTAIN' ? 'S/Y Phisedelia' : 's/y phisedelia');
 
         switch (intent.target) {
+            case 'FACILITY':
+                if (prompt.toLowerCase().includes('waste') || prompt.toLowerCase().includes('atık') || prompt.toLowerCase().includes('denetim') || prompt.toLowerCase().includes('audit')) {
+                    const report = await facilityExpert.generateZeroWasteReport(t => traces.push(t));
+                    responseText = report.message;
+                } else if (prompt.toLowerCase().includes('blue flag') || prompt.toLowerCase().includes('mavi bayrak') || prompt.toLowerCase().includes('water') || prompt.toLowerCase().includes('deniz') || prompt.toLowerCase().includes('clean') || prompt.toLowerCase().includes('temiz')) {
+                    const report = await facilityExpert.checkSeaWaterQuality(t => traces.push(t));
+                    responseText = report.message;
+                } else {
+                    const status = await facilityExpert.checkInfrastructureStatus(t => traces.push(t));
+                    responseText = `**FACILITY STATUS**\nSystem: ${status.status}\nAlerts: ${status.alerts.length > 0 ? status.alerts.join(', ') : 'None'}`;
+                }
+                break;
+
+            case 'CONGRESS':
+                const event = await congressExpert.getEventDetails();
+                responseText = `**ACTIVE EVENT: ${event.name}**\nStatus: ${event.status}\nDelegates: ${event.delegateCount}`;
+                break;
+
+            case 'TRAVEL':
+                if (prompt.toLowerCase().includes('acil') || prompt.toLowerCase().includes('urgent')) {
+                    const extraction = await kitesExpert.arrangeEmergencyExit({ lat: 36.6, lng: 28.9 }, 'Istanbul', t => traces.push(t));
+                    responseText = extraction.message;
+                } else {
+                    responseText = "Kites Travel (TÜRSAB A-2648) at your service. How can I assist with your travel plans?";
+                }
+                break;
+
+            case 'SECURITY':
+                const offendingVesselMatch = prompt.match(/'([^']+)'/) || prompt.match(/"([^"]+)"/);
+                const offendingVessel = offendingVesselMatch ? offendingVesselMatch[1] : "Unknown Vessel";
+                const cctvResult = await securityExpert.reviewCCTV("Pontoon A", "Last 5 mins", t => traces.push(t));
+                
+                if (cctvResult.confirmed) {
+                    const banAction = await securityExpert.flagVessel(offendingVessel, "Collision & Dispute", t => traces.push(t));
+                    actions.push(...banAction);
+                    const dispatchAction = await securityExpert.dispatchGuard("Pontoon A-05", "URGENT", t => traces.push(t));
+                    actions.push(...dispatchAction);
+                    actions.push({
+                        id: `incident_log_${Date.now()}`,
+                        kind: 'internal',
+                        name: 'ada.marina.log_operation',
+                        params: {
+                            message: `[INCIDENT] COLLISION CONFIRMED | VICTIM:${vesselName.toUpperCase()} | OFFENDER:${offendingVessel.toUpperCase()} | STS:RED_FLAG`,
+                            type: 'critical'
+                        }
+                    });
+                    responseText = `**KRİTİK OLAY PROTOKOLÜ DEVREDE**\n\nSayın Kaptan, endişe etmeyiniz. Durum kontrolümüz altındadır.\n\n1. **Güvenlik Teyidi:** Ponton A CCTV kayıtları incelendi. Temas ve hasar görsel olarak teyit edilmiştir.\n2. **Yasal İşlem:** '${offendingVessel.toUpperCase()}' için **KIRMIZI BAYRAK** (Red Flag) açıldı. Seyirden Men (Departure Ban) prosedürü başlatıldı.\n3. **Saha Müdahalesi:** Güvenlik Botu ve olay yeri inceleme ekibi yanınıza intikal ediyor.`;
+                } else {
+                    responseText = "Kamera kayıtları inceleniyor, lütfen bekleyiniz...";
+                }
+                break;
+
             case 'FINANCE':
-                // RBAC
                 if (user.role === 'GUEST') {
                     responseText = `**ACCESS DENIED**\n\nFinancial operations require authorized clearance.`;
-                    traces.push(createLog('ada.finance', 'ERROR', 'Unauthorized access attempt.', 'EXPERT'));
                 } else {
-                    // Finance Workflow
-                    if (prompt.toLowerCase().includes('debt') || prompt.toLowerCase().includes('balance')) {
-                        const status = await financeExpert.checkDebt(vesselName);
-                        responseText = status.status === 'DEBT' 
-                            ? `**FINANCE ALERT:** ${vesselName} has an outstanding balance of **€${status.amount}**.` 
-                            : `**ACCOUNT CLEAR:** ${vesselName} is in good standing.`;
-                        traces.push(createLog('ada.finance', 'OUTPUT', `Debt check complete.`, 'EXPERT'));
-                    } else if (prompt.toLowerCase().includes('pay') || prompt.toLowerCase().includes('invoice') || prompt.toLowerCase().includes('confirm')) {
-                        let payAmount = 1500;
-                        // If confirm payment intent
-                        if (prompt.toLowerCase().includes('confirm') || prompt.toLowerCase().includes('received')) {
-                             // Trigger processPayment directly via a mock loop
-                             const res = await financeExpert.processPayment(vesselName, "MANUAL-OVERRIDE", 850, t => traces.push(t));
-                             actions.push(...res);
-                             responseText = `**PAYMENT CONFIRMED**\n\nAccount for ${vesselName} is now settled. Loyalty score updated.`;
+                    if (prompt.toLowerCase().includes('sigorta') || prompt.toLowerCase().includes('insurance')) {
+                        const quoteRes = await financeExpert.generateInsuranceQuote(vesselName, 1500000, t => traces.push(t));
+                        responseText = quoteRes.success ? quoteRes.message : "Unable to generate insurance quotes.";
+                    } 
+                    else if (prompt.toLowerCase().includes('komisyon') || prompt.toLowerCase().includes('commission')) {
+                        if (user.role === 'GENERAL_MANAGER') {
+                            let partner = "Poem Restaurant";
+                            if (prompt.toLowerCase().includes('hediye') || prompt.toLowerCase().includes('gift')) {
+                                const beneficiary = "Ahmet Bey";
+                                const res = await financeExpert.process({ intent: 'gift_commission', partnerName: partner, beneficiary }, user, t => traces.push(t));
+                                actions.push(...res);
+                                responseText = `**LOYALTY GIFT PROCESSED**\n\nAccrued commissions from **${partner}** converted into Voucher for **${beneficiary}**.`;
+                            } else {
+                                const res = await financeExpert.process({ intent: 'invoice_partner', partnerName: partner }, user, t => traces.push(t));
+                                actions.push(...res);
+                                responseText = `**B2B INVOICE GENERATED**\n\nMonthly Commission Invoice created for **${partner}**.\nAmount: **€450.00**.\n\n*Status: Sent to Paraşüt.*`;
+                            }
                         } else {
-                             // Create Invoice
-                             const res = await financeExpert.process({ intent: 'create_invoice', vesselName, amount: payAmount, serviceType: 'GENERAL' }, user, t => traces.push(t));
-                             actions.push(...res);
-                             const link = res.find(a => a.name.includes('paymentLink'))?.params?.link?.url;
-                             responseText = `**INVOICE GENERATED**\n\n[Pay Securely via Iyzico](${link})`;
-                             responseText += `\n\n${generateComplianceSystemMessage('CREDIT_CARD_DISCLAIMER')}`;
+                            responseText = "Commission data is restricted to General Manager.";
                         }
+                    }
+                    else if (prompt.toLowerCase().includes('debt') || prompt.toLowerCase().includes('balance')) {
+                        const status = await financeExpert.checkDebt(vesselName);
+                        responseText = status.status === 'DEBT' ? `**FINANCE ALERT:** ${vesselName} has an outstanding balance of **€${status.amount}**.` : `**ACCOUNT CLEAR:** ${vesselName} is in good standing.`;
+                    } else if (prompt.toLowerCase().includes('pay') || prompt.toLowerCase().includes('invoice')) {
+                        const res = await financeExpert.process({ intent: 'create_invoice', vesselName, amount: 1500, serviceType: 'GENERAL' }, user, t => traces.push(t));
+                        actions.push(...res);
+                        const link = res.find(a => a.name.includes('paymentLink'))?.params?.link?.url;
+                        responseText = `**INVOICE GENERATED**\n\n[Pay Securely via Iyzico](${link})`;
                     }
                 }
                 break;
 
             case 'TECHNIC':
-                // Technic Workflow
                 if (prompt.toLowerCase().includes('schedule') || prompt.toLowerCase().includes('book')) {
-                     if (user.role === 'GUEST') {
-                        responseText = `**ACCESS DENIED**\n\nTechnical scheduling restricted to Captains/GM.`;
-                     } else {
-                        const date = new Date().toISOString().split('T')[0];
-                        const res = await technicExpert.scheduleService(vesselName, 'HAUL_OUT', date, t => traces.push(t));
-                        responseText = res.message;
-                     }
-                } else if (prompt.toLowerCase().includes('status')) {
+                     const date = new Date().toISOString().split('T')[0];
+                     const res = await technicExpert.scheduleService(vesselName, 'HAUL_OUT', date, t => traces.push(t));
+                     responseText = res.message;
+                } else if (prompt.toLowerCase().includes('pis su') || prompt.toLowerCase().includes('atık') || prompt.toLowerCase().includes('blue card') || prompt.toLowerCase().includes('mavi kart')) {
+                    const blueCardVessel = user.role === 'CAPTAIN' ? 'S/Y Phisedelia' : vesselName;
+                    const res = await technicExpert.processBlueCard(blueCardVessel, "Pontoon C-12", 150, t => traces.push(t));
+                    actions.push(...res.actions);
+                    responseText = res.message;
+                } else {
                     responseText = await technicExpert.checkStatus(vesselName, t => traces.push(t));
                 }
                 break;
 
             case 'LEGAL':
-                // Legal Workflow
                 const resLegal = await legalExpert.process({ query: prompt }, user, t => traces.push(t));
                 actions.push(...resLegal);
                 const advice = resLegal.find(a => a.name === 'ada.legal.consultation')?.params?.advice;
@@ -161,15 +200,32 @@ export const orchestratorService = {
                 break;
 
             case 'CUSTOMER':
-                // Customer Workflow
                 if (prompt.toLowerCase().includes('payment plan')) {
                      const intel = await marinaExpert.getVesselIntelligence(vesselName);
                      if (intel) {
                          const res = await customerExpert.proposePaymentPlan(intel, t => traces.push(t));
                          actions.push(...res);
-                         responseText = `**PAYMENT PLAN PROPOSAL**\n\nSubmitted to GM for review based on loyalty tier: **${intel.loyaltyTier}**.`;
+                         responseText = `**PAYMENT PLAN PROPOSAL**\n\nSubmitted to GM for review.`;
                      }
-                } else {
+                } 
+                else if (prompt.toLowerCase().includes('poem') || prompt.toLowerCase().includes('fersah') || prompt.toLowerCase().includes('restaurant')) {
+                    let venue = 'Poem Restaurant';
+                    let preOrder = null;
+                    if (prompt.toLowerCase().includes('levrek')) preOrder = "Grilled Sea Bass (Levrek Izgara) x 2";
+                    const res = await customerExpert.manageDiningReservation(venue, 4, "19:30", preOrder, t => traces.push(t));
+                    if (res.success) actions.push({ id: `dining_${Date.now()}`, kind: 'internal', name: 'ada.customer.diningReservation', params: { venue } });
+                    responseText = res.message;
+                }
+                else if (prompt.toLowerCase().includes('otopark') || prompt.toLowerCase().includes('ispark')) {
+                    const res = await customerExpert.issueParkingValidation("34 XX 99", t => traces.push(t));
+                    actions.push(...res.actions);
+                    responseText = res.message;
+                }
+                else if (prompt.toLowerCase().includes('yarış') || prompt.toLowerCase().includes('event')) {
+                    const events = await customerExpert.getUpcomingEvents(t => traces.push(t));
+                    responseText = `**MARINA EVENT CALENDAR**\n\n` + events.map(e => `📅 **${e.date}**: ${e.name}`).join('\n');
+                }
+                else {
                     const res = await customerExpert.handleGeneralInquiry(prompt, t => traces.push(t));
                     responseText = res.text;
                 }
@@ -177,110 +233,62 @@ export const orchestratorService = {
 
             case 'MARINA':
             default:
-                // Fallback / Marina Ops / Navigation / AIS
                 if (prompt.toLowerCase().includes('scan') || prompt.toLowerCase().includes('radar')) {
-                     // Proximity Logic
                      const nearby = await marinaExpert.findVesselsNear(wimMasterData.identity.location.coordinates.lat, wimMasterData.identity.location.coordinates.lng, 20, t => traces.push(t));
                      responseText = `**RADAR SCAN (20nm Sector):**\nFound ${nearby.length} contacts.`;
                      
-                     // WELCOME HOME PROTOCOL CHECK
-                     const inboundVessel = nearby.find(v => v.name.toLowerCase().includes('phisedelia') || v.name.toLowerCase().includes('blue horizon'));
-                     
+                     const inboundVessel = nearby.find(v => v.name.toLowerCase().includes('phisedelia'));
                      if (inboundVessel) {
-                         responseText += `\n\n**AUTO-IDENTIFICATION MATCH:** ${inboundVessel.name.toUpperCase()} (WIM FLEET)`;
-                         
+                         responseText += `\n\n**AUTO-IDENTIFICATION:** ${inboundVessel.name.toUpperCase()} (WIM FLEET)`;
                          const hailMessage = await marinaExpert.generateProactiveHail(inboundVessel.name);
                          responseText += `\n\n${hailMessage}`;
-                         
-                         // AUTOMATIC LOGGING FOR LOGBOOK
                          actions.push({
                              id: `log_hail_${Date.now()}`,
                              kind: 'internal',
                              name: 'ada.marina.log_operation',
-                             params: {
-                                 message: `[OP] PROACTIVE HAIL | VS:${inboundVessel.name.toUpperCase()} | LOC:${inboundVessel.distance}nm | STS:WELCOME`,
-                                 type: 'info'
-                             }
+                             params: { message: `[OP] PROACTIVE HAIL | VS:${inboundVessel.name.toUpperCase()}`, type: 'info' }
                          });
-                         traces.push(createLog('ada.marina', 'TOOL_EXECUTION', 'Welcome Home Protocol Executed. Hail Logged.', 'ORCHESTRATOR'));
                      }
                 } 
-                else if (prompt.toLowerCase().includes('intel') && vesselName) {
-                     const intel = await marinaExpert.getVesselIntelligence(vesselName);
-                     if (intel) {
-                         responseText = `**INTELLIGENCE: ${intel.name}**\nIMO: ${intel.imo} | Flag: ${intel.flag} | Status: ${intel.status}`;
-                         traces.push(createLog('ada.marina', 'OUTPUT', 'Profile loaded.', 'WORKER'));
-                     }
-                }
-                // --- DEPARTURE PROCEDURE (ATC PROTOCOL) ---
-                else if (prompt.toLowerCase().includes('depart') || prompt.toLowerCase().includes('leaving') || prompt.toLowerCase().includes('exit')) {
+                else if (prompt.toLowerCase().includes('depart') || prompt.toLowerCase().includes('leaving')) {
                      if (user.role === 'GUEST') {
-                         responseText = "**ACCESS DENIED.** Departure requests restricted to Vessel Command.";
+                         responseText = "**ACCESS DENIED.** Restricted to Vessel Command.";
                      } else {
-                         // 1. Finance Check
                          const debt = await financeExpert.checkDebt(vesselName);
-                         
                          if (debt.status === 'DEBT' && user.role !== 'GENERAL_MANAGER') {
-                             // Block departure if debt exists
-                             responseText = `**DEPARTURE DENIED**\n\n**Financial Hold Active:** ${vesselName} has an outstanding balance of **€${debt.amount}**.\nPlease settle accounts at the Finance Office before requesting pilotage.`;
-                             traces.push(createLog('ada.marina', 'ERROR', 'Departure blocked by Finance.', 'EXPERT'));
+                             responseText = `**DEPARTURE DENIED**\n\nFinancial Hold Active. Outstanding: **€${debt.amount}**.`;
                          } else {
-                             // 2. Tender Allocation & Clearance (Pass tenders array)
                              const departureResult = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
-                             
                              if (departureResult.success) {
                                  actions.push(...departureResult.actions);
-                                 const tenderName = departureResult.tender?.name || "Marina Tender";
-                                 const squawk = departureResult.squawk || "1200";
-                                 
-                                 // ATC Style Response (Strict Phraseology)
-                                 responseText = `**CLEARED FOR DEPARTURE**\n\n`;
-                                 responseText += `> **[ATC - GND]:** ${vesselName.toUpperCase()}, CLRD PUSH-BACK GATE C-12. ${tenderName.toUpperCase()} ASSIGNED. TAXI VIA FAIRWAY ALPHA.\n`;
-                                 responseText += `> **[ATC - TWR]:** ${vesselName.toUpperCase()}, CONTACT DEPARTURE CH 14. SQUAWK ${squawk}. WIND NW 12. GOOD DAY.`;
-                                 
+                                 responseText = `**CLEARED FOR DEPARTURE**\n\n> **[ATC]:** ${vesselName.toUpperCase()}, CLRD PUSH-BACK GATE C-12. ${departureResult.tender?.name.toUpperCase()} ASSIGNED.`;
                              } else {
                                  responseText = `**DEPARTURE DELAYED**\n\n${departureResult.message}`;
                              }
                          }
                      }
                 }
-                // --- ARRIVAL PROCEDURE (ATC PROTOCOL) ---
-                else if (prompt.toLowerCase().includes('arrival') || prompt.toLowerCase().includes('enter') || prompt.toLowerCase().includes('inbound') || prompt.toLowerCase().includes('docking')) {
-                     // Arrival logic
+                else if (prompt.toLowerCase().includes('arrival') || prompt.toLowerCase().includes('enter')) {
                      const arrivalResult = await marinaExpert.processArrival(vesselName, tenders, t => traces.push(t));
-                     
                      if (arrivalResult.success) {
                          actions.push(...arrivalResult.actions);
-                         const tenderName = arrivalResult.tender?.name || "Marina Tender";
-                         const squawk = arrivalResult.squawk || "1200";
-
-                         responseText = `**APPROACH CLEARED**\n\n`;
-                         responseText += `> **[ATC - TOWER]:** ${vesselName.toUpperCase()}, RADAR CONTACT. SQUAWK ${squawk}. PROCEED DIRECT BREAKWATER. MAINTAIN 3 KNOTS.\n`;
-                         responseText += `> **[ATC - GND]:** ${tenderName.toUpperCase()} SCRAMBLED FOR INTERCEPT. SWITCH TO **CHANNEL 14**. WELCOME HOME.`;
+                         responseText = `**APPROACH CLEARED**\n\n> **[ATC]:** ${vesselName.toUpperCase()}, RADAR CONTACT. SQUAWK ${arrivalResult.squawk}. PROCEED DIRECT BREAKWATER.`;
                      } else {
                          responseText = `**APPROACH DENIED**\n\n${arrivalResult.message}`;
                      }
                 }
                 else {
-                    // Use LLM for chat
                     return { text: "", actions: [], traces }; 
                 }
                 break;
         }
 
-        // --- ACTION POST-PROCESSING (Orchestration Layer) ---
-        // Check for specific chain reactions requested by Experts
+        // Orchestration Post-Process
         const passkitAction = actions.find(a => a.name === 'ada.passkit.issuePass');
         if (passkitAction) {
              const { vesselName, type } = passkitAction.params;
-             // Execute PassKit Logic
              const passResult = await passkitExpert.issuePass(vesselName, "Owner/Captain", type, t => traces.push(t));
-             actions.push({
-                 id: `passkit_res_${Date.now()}`,
-                 kind: 'external',
-                 name: 'ada.passkit.generated',
-                 params: passResult
-             });
+             actions.push({ id: `passkit_res_${Date.now()}`, kind: 'external', name: 'ada.passkit.generated', params: passResult });
              responseText += `\n\n**ACCESS GRANTED:** Digital Pass sent to wallet.`;
         }
 

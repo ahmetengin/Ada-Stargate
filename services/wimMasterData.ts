@@ -7,7 +7,7 @@ export const wimMasterData = {
     "code": "WIM",
     "alias": "Beylikdüzü Marina",
     "operator": "Enelka Taahhüt İmalat ve Ticaret A.Ş.",
-    "awards": ["5 Gold Anchors", "Blue Flag (10 Years Continuous)"],
+    "awards": ["5 Gold Anchors", "Blue Flag (10 Years Continuous)", "Zero Waste Certificate (Gold)"],
     "location": {
       "district": "Beylikdüzü",
       "neighborhood": "Yakuplu",
@@ -46,6 +46,103 @@ export const wimMasterData = {
       "phone": "+90 212 850 22 00"
     }
   },
+  "strategic_partners": {
+      "travel_agency": {
+          "name": "Kites Travel & Concierge",
+          "node": "ada.travel.kites",
+          "license": "TÜRSAB Group A - 2648",
+          "contract_type": "EXCLUSIVE SERVICE PROVIDER",
+          "scope": [
+              "Flight Ticketing (IATA)",
+              "Hotel Reservations",
+              "VIP Transfers (Land/Air)",
+              "Daily Tours & Excursions",
+              "Congress Logistics",
+              "Yacht Charter Sales (Brokerage)"
+          ],
+          "legal_note": "West Istanbul Marina acts solely as a Marina Operator. All travel, tour, and ticketing services are legally executed and invoiced by Kites Travel in compliance with Law No. 1618."
+      },
+      "city_services": {
+          "parking": {
+              "provider": "ISPARK",
+              "node": "ada.external.ispark",
+              "agreement": "Strategic Partnership",
+              "benefit": "Free/Discounted Exit for Marina Clients via Validation Code"
+          }
+      },
+      "sailing_clubs": [
+          { "name": "TAYK (Turkish Offshore Racing Club)", "role": "Race Organizer" },
+          { "name": "IYK (Istanbul Sailing Club)", "role": "Partner" }
+      ],
+      "dining_partners": [
+          { 
+              "name": "Poem Restaurant", 
+              "node": "ada.restaurant.poem", 
+              "type": "Fine Dining", 
+              "specialty": "Seafood & Mediterranean",
+              "capabilities": ["Real-time Reservation", "Pre-Order Integration", "Yacht Delivery"] 
+          },
+          { 
+              "name": "Fersah", 
+              "node": "ada.restaurant.fersah", 
+              "type": "Fish Restaurant", 
+              "capabilities": ["Reservation"] 
+          }
+      ],
+      "contract_perks": {
+          "free_transfers": "3 per year (Airport <-> Marina)",
+          "free_haul_out": "1 per year (max 7 days hardstanding)",
+          "discount_fuel": "5% at WIM Lukoil",
+          "free_parking": "Unlimited daily exit with Validation"
+      },
+      "partner_marinas": [
+          { "name": "Alesta Yachting", "location": "Fethiye", "node": "ada.marina.alesta" },
+          { "name": "D-Marin Göcek", "location": "Göcek", "node": "ada.marina.gocek" }
+      ],
+      "culinary_experience": {
+          "partner": "Migros Jet Yacht Service",
+          "capabilities": ["Provisioning List", "Delivery to Pontoon"]
+      }
+  },
+  "facility_management": {
+      "infrastructure": {
+          "pedestals": { "count": 350, "type": "Smart Metered", "maintenance_cycle": "Monthly" },
+          "fire_safety": { "hydrants": 45, "extinguishers": 120, "last_audit": "2025-10-01" },
+          "fuel_tanks": { "diesel_capacity": 50000, "petrol_capacity": 10000, "sensor_type": "IoT Level" }
+      },
+      "environmental_compliance": {
+          "zero_waste_certificate": "GOLD LEVEL",
+          "blue_flag": {
+              "status": "ACTIVE",
+              "season": "2025",
+              "sea_water_limits": {
+                  "e_coli": "< 250 cfu/100ml",
+                  "enterococci": "< 100 cfu/100ml"
+              },
+              "sampling_frequency": "15 Days (Ministry of Health)"
+          },
+          "waste_categories": [
+              { "code": "BLUE", "type": "Paper/Cardboard" },
+              { "code": "YELLOW", "type": "Plastic" },
+              { "code": "GREEN", "type": "Glass" },
+              { "code": "GREY", "type": "Metal" },
+              { "code": "BLACK", "type": "Non-Recyclable / Domestic" },
+              { "code": "ORANGE", "type": "Hazardous / Waste Oil / Batteries" }
+          ],
+          "reporting_authority": "Ministry of Environment & Urbanization (ECBS)",
+          "tracking_system": "MoTAT (Mobile Hazardous Waste Tracking System)"
+      },
+      "hse_protocols": {
+          "occupational_safety": "ISO 45001 Certified",
+          "ppe_requirements": "Mandatory in Boatyard (Helmet, Vest, Shoes)",
+          "emergency_response": "Drills conducted quarterly"
+      }
+  },
+  "event_calendar": [
+      { "id": "EVT-01", "name": "TAYK - Fahir Çelikbaş Cup", "date": "2025-05-15", "type": "Race", "organizer": "TAYK & WIM" },
+      { "id": "EVT-02", "name": "WIM Hello Summer Party", "date": "2025-06-01", "type": "Social", "location": "Yacht Club Terrace" },
+      { "id": "EVT-03", "name": "BoatFest 2025", "date": "2025-09-20", "type": "Fair", "location": "Main Breakwater" }
+  ],
   "security_policy": {
     "authority": "ada.passkit (IAM Node)",
     "data_sovereignty": {
@@ -57,6 +154,9 @@ export const wimMasterData = {
       "PUBLIC (Level 0)": ["Vessel Name", "Hail Port", "ETA (Approx)", "VHF Channel", "AIS Position"],
       "PRIVATE (Level 1 - Captain Only)": ["Exact Location (Pontoon)", "Crew List", "Battery Status", "Fuel Level", "Provisions"],
       "RESTRICTED (Level 5 - GM)": ["Financial Debt", "Legal Disputes", "Full Telemetry History", "Security Logs"]
+    },
+    "vehicle_policy": {
+        "dynamic_pool": "Members may register multiple vehicles. Only 1 active vehicle permitted inside per contract."
     },
     "protocols": {
       "kvkk_compliance": "Strictly enforce Article 20. No personal data on public channels (Ch 72).",
@@ -88,6 +188,11 @@ export const wimMasterData = {
       { "id": "T-02", "name": "ada.sea.wimBravo", "status": "Idle", "type": "Pilot/Tender" },
       { "id": "T-03", "name": "ada.sea.wimCharlie", "status": "Maintenance", "type": "Technical/Rescue" }
     ] as any[],
+    "charter_fleet": [
+        { "id": "CH-01", "name": "M/Y WIM Prestige", "type": "Motor Yacht", "length": "24m", "capacity": 10, "status": "Available", "operator": "WIM", "sales_agent": "Kites" },
+        { "id": "CH-02", "name": "S/Y Wind Chaser", "type": "Sailing Yacht", "length": "16m", "capacity": 6, "status": "Booked", "operator": "WIM", "sales_agent": "Kites" },
+        { "id": "CH-03", "name": "VIP Transfer Boat", "type": "Speedboat", "length": "10m", "capacity": 4, "status": "Available", "operator": "WIM", "sales_agent": "Kites" }
+    ],
     "capacities": {
         "total_area": "155.000 m2",
         "sea_berths": 600,
@@ -114,6 +219,13 @@ export const wimMasterData = {
         "mooring_daily": 1.5, // EUR per m2
         "electricity": 0.35, // EUR per kW
         "water": 3.50 // EUR per m3
+    },
+    "cross_border_protocols": {
+        "greece": {
+            "entry_ports": ["Chios", "Lesvos", "Samos", "Kos", "Rhodes", "Simi"],
+            "requirements": ["Schengen Visa", "DEKPA (Transit Log)", "TEPAI (Tax)"],
+            "flag_etiquette": "Greek courtesy flag on Starboard spreader."
+        }
     }
   },
   "traffic_control": {
@@ -152,16 +264,36 @@ export const wimMasterData = {
           }
       }
   },
+  "congress_management": {
+      "node": "ada.congress.kites",
+      "role": "Event Architect & Planner",
+      "logistics_partner": "ada.travel.kites", // Outsourced to Agency
+      "venues": [
+          { "id": "V-01", "name": "WIM Grand Ballroom", "capacity": 500 },
+          { "id": "V-02", "name": "Yacht Club Terrace", "capacity": 150 },
+          { "id": "V-03", "name": "Mask Beach Arena", "capacity": 1000 }
+      ],
+      "partner_hotels": [
+          { "name": "Kaya Ramada Plaza", "stars": 5, "dist": "2km" },
+          { "name": "Hilton Garden Inn", "stars": 4, "dist": "4km" }
+      ],
+      "capabilities": ["Delegate Registration", "Badge Printing (PassKit)", "B2B Matchmaking"]
+  },
   "maritime_authorities": {
       "KEGM": {
-          "name": "Directorate General of Coastal Safety",
+          "name": "Directorate General of Coastal Safety (TR)",
           "role": "VTS, Pilotage, Salvage, Towage",
           "comms": "VHF Ch 11/12/13 (VTS), Ch 16 (Emergency)"
       },
       "SG": {
-          "name": "Coast Guard",
+          "name": "Turkish Coast Guard",
           "role": "Security, Border Control, SAR, Pollution Control",
           "comms": "VHF Ch 08 / 16"
+      },
+      "HCG": {
+          "name": "Hellenic Coast Guard (GR)",
+          "role": "Border Control, SAR in Greek Waters",
+          "comms": "VHF Ch 12 (Olympia Radio) / 16"
       },
       "Liman_Baskanligi": {
           "name": "Ambarlı Harbour Master",
@@ -177,6 +309,11 @@ export const wimMasterData = {
       "pressure_wash": "Available",
       "bilgin_yachts": "Shipyard On-site"
     },
+    "insurance_partners": [
+        { "name": "Turk P&I", "type": "Local / Liability", "rating": "A+" },
+        { "name": "Pantaenius", "type": "International / Hull", "rating": "AAA" },
+        { "name": "Allianz Marine", "type": "General", "rating": "AA" }
+    ],
     "amenities": {
       "restaurants": [
         "Poem Restaurant", "Port Of Point", "The Roof Kingdom Kitchen & Bar", "FERSAH RESTAURANT",
@@ -199,7 +336,7 @@ export const wimMasterData = {
       "water": "Metered",
       "fuel": "Station Available (Duty-free subject to conditions)",
       "security": "24/7 Private Security + Helipad + Customs Gate",
-      "parking": "550 Car Capacity",
+      "parking": "ISPARK (Integrated) - 550 Car Capacity",
       "atm": "Garanti BBVA ATM"
     }
   },

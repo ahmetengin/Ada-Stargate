@@ -131,6 +131,32 @@ export const technicExpert = {
         return report;
     },
 
+    // Skill: Process Blue Card (Waste Management)
+    processBlueCard: async (vesselName: string, location: string, liters: number, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, actions: AgentAction[] }> => {
+        addTrace(createLog('ada.technic', 'THINKING', `Processing Blue Card waste discharge for ${vesselName} (${liters}L) at ${location}...`, 'EXPERT'));
+
+        const actions: AgentAction[] = [];
+        
+        // Log operation
+        actions.push({
+            id: `tech_bluecard_${Date.now()}`,
+            kind: 'internal',
+            name: 'ada.marina.log_operation',
+            params: {
+                message: `[ECO] BLUE CARD | VS:${vesselName} | QTY:${liters}L | LOC:${location}`,
+                type: 'info'
+            }
+        });
+        
+        addTrace(createLog('ada.technic', 'TOOL_EXECUTION', `Pump-out station activated. Digital Blue Card updated.`, 'WORKER'));
+
+        return {
+            success: true,
+            message: `**BLUE CARD PROCESSED**\n\nDischarge of **${liters}L** black water confirmed for **${vesselName}**.\nEnvironment Ministry Database updated.`,
+            actions: actions
+        };
+    },
+
     // Skill: Complete Job & Trigger Billing (FastRTC Mesh)
     completeJob: async (vesselName: string, jobId: string | undefined, user: UserProfile, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
         addTrace(createLog('ada.technic', 'THINKING', `Processing job completion for ${vesselName}...`, 'EXPERT'));

@@ -1,6 +1,8 @@
+
 // services/agents/customerAgent.ts
 
 import { AgentAction, AgentTraceLog, NodeName, VesselIntelligenceProfile } from '../../types';
+import { wimMasterData } from '../wimMasterData'; // Import for Event Data
 
 // Helper to create a log (copied from orchestratorService.ts for local use)
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -43,7 +45,8 @@ const WIM_INFO_DB: Record<string, string> = {
     'atm': 'ATMs: **Garanti BBVA**, Is Bank, Yapi Kredi (Entrance Plaza).',
     'lift': 'Technical: **700 Ton Travel Lift** (Mega Yachts) and **75 Ton Travel Lift** available. 60.000m2 hardstanding area.',
     'heli': 'Helipad available for VIP transfers. Coordinate with Security on Ch 72.',
-    'academy': 'Education: **Paris Saint-Germain Academy Beylikdüzü** for football. Sailing School (TYF/RYA) also available.'
+    'academy': 'Education: **Paris Saint-Germain Academy Beylikdüzü** for football. Sailing School (TYF/RYA) also available.',
+    'parking': 'Parking: Managed by **ISPARK** in strategic partnership with WIM. 550 vehicle capacity. Marina customers receive complimentary exit validation tokens.'
 };
 
 export const customerExpert = {
@@ -71,8 +74,10 @@ export const customerExpert = {
              response = WIM_INFO_DB['beach'];
         } else if (lowerQuery.includes('sport') || lowerQuery.includes('football')) {
              response = WIM_INFO_DB['academy'];
+        } else if (lowerQuery.includes('park') || lowerQuery.includes('car') || lowerQuery.includes('ispark')) {
+             response = WIM_INFO_DB['parking'];
         } else {
-             response = "Specific info not found. Please contact Front Office (09:00-18:00) or check the WIM App. Available topics: Wifi, Market, Gym, Taxi, Restaurants, Fuel, Lift, Beach.";
+             response = "Specific info not found. Please contact Front Office (09:00-18:00) or check the WIM App. Available topics: Wifi, Market, Gym, Taxi, Restaurants, Fuel, Lift, Beach, Parking.";
         }
         
         addTrace(createLog('ada.customer', 'OUTPUT', `Direct match processed or fallback used.`, 'WORKER'));
@@ -82,6 +87,75 @@ export const customerExpert = {
         text: `**ADA CUSTOMER (INFO DESK):**\n${response}`,
         actions: []
     };
+  },
+
+  // Skill: Issue Parking Validation (ISPARK Integration)
+  issueParkingValidation: async (plateNumber: string | null, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, actions: AgentAction[] }> => {
+      const plate = plateNumber || "34 XX 99";
+      addTrace(createLog('ada.customer', 'THINKING', `Processing ISPARK Validation request for Plate: ${plate}...`, 'EXPERT'));
+      
+      // Simulate API call to ISPARK B2B Gateway
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      
+      // Mock Validation Code
+      const validationCode = `ISP-${Math.floor(Math.random() * 10000)}-WIM`;
+      
+      addTrace(createLog('ada.customer', 'TOOL_EXECUTION', `Connecting to ISPARK Gateway... Validation Token Generated.`, 'WORKER'));
+
+      const actions: AgentAction[] = [];
+      actions.push({
+          id: `ispark_val_${Date.now()}`,
+          kind: 'external',
+          name: 'ada.external.ispark.validate',
+          params: { plate, code: validationCode, status: 'VALID' }
+      });
+
+      return {
+          success: true,
+          message: `**PARKING VALIDATED**\n\n` +
+                   `Your vehicle (**${plate}**) has been authorized for complimentary exit via our strategic partnership with **ISPARK**.\n\n` +
+                   `> **Validation Code:** \`${validationCode}\`\n` +
+                   `*Please show this code or scan the QR at the exit barrier.*`,
+          actions
+      };
+  },
+
+  // Skill: Get Upcoming Events (Yacht Club)
+  getUpcomingEvents: async (addTrace: (t: AgentTraceLog) => void): Promise<any[]> => {
+      addTrace(createLog('ada.customer', 'THINKING', `Retrieving Social Calendar from Yacht Club Database...`, 'EXPERT'));
+      return wimMasterData.event_calendar || [];
+  },
+
+  // Skill: Manage Dining Reservations (Poem Restaurant Integration)
+  manageDiningReservation: async (venueName: string, guests: number, time: string, preOrder: string | null, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string }> => {
+      addTrace(createLog('ada.customer', 'THINKING', `Connecting to ${venueName} Node (ada.restaurant.poem)... Checking availability for ${guests} pax at ${time}.`, 'EXPERT'));
+      
+      // Simulated Node Latency
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Mock Availability Check
+      const isAvailable = true; 
+
+      if (!isAvailable) {
+          addTrace(createLog('ada.customer', 'ERROR', `Restaurant Node replied: Fully Booked at ${time}.`, 'WORKER'));
+          return { success: false, message: `I'm sorry, **${venueName}** is fully booked at ${time}. Would you like me to try **Fersah** instead?` };
+      }
+
+      addTrace(createLog('ada.customer', 'TOOL_EXECUTION', `Reservation Confirmed. Booking ID: DIN-${Math.floor(Math.random() * 10000)}.`, 'WORKER'));
+
+      let message = `**DINING RESERVATION CONFIRMED**\n\n`;
+      message += `📍 **Venue:** ${venueName}\n`;
+      message += `👥 **Guests:** ${guests} Pax\n`;
+      message += `⏰ **Time:** ${time}\n`;
+      
+      if (preOrder) {
+          addTrace(createLog('ada.customer', 'PLANNING', `Transmitting Pre-Order to Kitchen Node: "${preOrder}"...`, 'EXPERT'));
+          addTrace(createLog('ada.customer', 'OUTPUT', `Kitchen Node confirmed receipt. Preparation synchronized with ETA.`, 'WORKER'));
+          message += `🍽 **Pre-Order:** ${preOrder}\n`;
+          message += `> **Status:** Kitchen Notified. Food preparation will synchronize with your arrival.`;
+      }
+
+      return { success: true, message };
   },
 
   // Skill: Calculate Loyalty Score

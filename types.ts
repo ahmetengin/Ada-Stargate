@@ -210,7 +210,7 @@ export interface AgentContext {
 
 // --- NEW: Agent Orchestration Types ---
 // FIX: Add missing node types ('ada.vhf', 'ada.security', 'ada.weather') identified from components/Sidebar.tsx
-export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather' | 'ada.technic' | 'ada.atc' | 'ada.intelligence';
+export type NodeName = 'ada.marina' | 'ada.finance' | 'ada.legal' | 'ada.sea' | 'ada.customer' | 'ada.passkit' | 'ada.vhf' | 'ada.security' | 'ada.weather' | 'ada.technic' | 'ada.atc' | 'ada.intelligence' | 'ada.travel';
 
 export type AgentPersona = 'ORCHESTRATOR' | 'EXPERT' | 'WORKER';
 
@@ -297,4 +297,48 @@ export interface VesselSystemsStatus {
             camerasActive: boolean;
         };
     };
+}
+
+// --- NEW: TRAVEL TYPES ---
+export interface FlightBooking {
+    id: string;
+    airline: string;
+    flightNumber: string;
+    departure: { airport: string, time: string };
+    arrival: { airport: string, time: string };
+    status: 'CONFIRMED' | 'TICKETED' | 'PENDING';
+    provider?: string; // e.g. 'ada.travel.adriyatik'
+}
+
+export interface HotelBooking {
+    id: string;
+    hotelName: string;
+    location: string;
+    checkIn: string;
+    checkOut: string;
+    roomType: string;
+    status: 'CONFIRMED' | 'PENDING';
+    provider?: string; // e.g. 'ada.travel.tinkon'
+}
+
+export interface VipTransfer {
+    id: string;
+    type: 'CAR' | 'HELICOPTER' | 'BOAT';
+    vehicle: string;
+    pickup: { location: string, time: string };
+    dropoff: { location: string };
+    driverName?: string;
+    status: 'SCHEDULED' | 'EN_ROUTE' | 'COMPLETED';
+    provider?: string;
+}
+
+export interface TravelItinerary {
+    id: string;
+    passengerName: string;
+    tripName: string;
+    flights: FlightBooking[];
+    hotels: HotelBooking[];
+    transfers: VipTransfer[];
+    status: 'ACTIVE' | 'DRAFT' | 'COMPLETED';
+    totalCost?: number;
 }
