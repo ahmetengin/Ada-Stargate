@@ -13,7 +13,7 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
 });
 
 export const passkitExpert = {
-    // Skill: Issue Digital Pass
+    // Skill: Issue Digital Pass (Marina Access)
     issuePass: async (vesselName: string, ownerName: string, type: 'GUEST' | 'OWNER' | 'CREW', addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, passUrl?: string, qrCode?: string, message: string }> => {
         
         addTrace(createLog('ada.passkit', 'THINKING', `Request to issue ${type} PASS for ${vesselName} (${ownerName}). Verifying credentials...`, 'EXPERT'));
@@ -49,5 +49,35 @@ export const passkitExpert = {
             qrCode: "QR_DATA_SIMULATION",
             message: `${type} Pass (${passId}) issued for ${ownerName}. Valid until ${passData.validUntil}.`
         };
+    },
+
+    // NEW SKILL: Issue Travel Confirmation Pass (Kites Travel Integration)
+    issueTravelPass: async (details: { passenger: string, type: 'FLIGHT' | 'HOTEL' | 'TRANSFER', summary: string, date: string }, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, passUrl: string }> => {
+        addTrace(createLog('ada.passkit', 'THINKING', `Generating Digital Travel Document for KITES TRAVEL...`, 'EXPERT'));
+
+        const passId = `KITES-${Math.floor(Math.random() * 100000)}`;
+        
+        // Simulate PKPass generation structure
+        const pkPass = {
+            organizationName: "Kites Travel & Concierge",
+            description: details.summary,
+            logoText: "Ada.Travel",
+            foregroundColor: "rgb(255, 255, 255)",
+            backgroundColor: "rgb(79, 70, 229)", // Indigo
+            serialNumber: passId,
+            barcode: {
+                message: passId,
+                format: "PKBarcodeFormatQR",
+                messageEncoding: "iso-8859-1"
+            }
+        };
+
+        addTrace(createLog('ada.passkit', 'TOOL_EXECUTION', `Signing PKPass bundle (${pkPass.serialNumber})...`, 'WORKER'));
+        
+        const passUrl = `https://wallet.kites.travel/pass/${passId}`;
+        
+        addTrace(createLog('ada.passkit', 'OUTPUT', `Travel Pass ready. Delivered to client wallet.`, 'EXPERT'));
+
+        return { success: true, passUrl };
     }
 };

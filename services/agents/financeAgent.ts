@@ -1,12 +1,16 @@
 
+// services/agents/financeAgent.ts
+
 import { AgentAction, UserProfile, AgentTraceLog, VesselIntelligenceProfile, NodeName } from '../../types';
 import { wimMasterData } from '../wimMasterData';
 import { persistenceService, STORAGE_KEYS } from '../persistence'; // Enterprise Persistence
+import { getCurrentMaritimeTime } from '../utils';
+import { checkBackendHealth, invokeAgentSkill } from '../api'; // Import API helpers
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
     id: `trace_${Date.now()}_${Math.random()}`,
-    timestamp: new Date().toLocaleTimeString(),
+    timestamp: getCurrentMaritimeTime(),
     node,
     step,
     content,
@@ -132,6 +136,22 @@ const GARANTI_BBVA_API_MOCK = {
 export const financeExpert = {
   // Helper for Orchestrator Fast-Path
   checkDebt: async (vesselName: string): Promise<{ status: 'CLEAR' | 'DEBT', amount: number, paymentHistoryStatus: PaymentHistoryStatus }> => {
+      
+      // 1. Hybrid Check: Try Python Backend first
+      const isBackendUp = await checkBackendHealth();
+      if (isBackendUp) {
+          const remoteStatus = await invokeAgentSkill('finance', 'check_debt', { vessel_name: vesselName });
+          if (remoteStatus) {
+              console.log(`[Finance] Retrieved authoritative debt record from Backend for ${vesselName}.`);
+              return {
+                  status: remoteStatus.balance > 0 ? 'DEBT' : 'CLEAR',
+                  amount: remoteStatus.balance,
+                  paymentHistoryStatus: remoteStatus.payment_history_status || 'REGULAR'
+              };
+          }
+      }
+
+      // 2. Local Simulation Fallback
       const data = PARASUT_API_MOCK.getBalance(vesselName);
       return { 
           status: data.balance > 0 ? 'DEBT' : 'CLEAR', 

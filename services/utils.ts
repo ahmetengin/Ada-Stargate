@@ -1,3 +1,4 @@
+
 // services/utils.ts
 
 // Masks a full name, e.g., "Ahmet Engin" -> "AH*** ***IN"
@@ -95,4 +96,15 @@ export const formatCoordinate = (coord: number, type: 'lat' | 'lng'): string => 
     const minutes = Math.floor(minutesFloat);
     const seconds = Math.round((minutesFloat - minutes) * 60);
     return `${degrees}°${minutes}'${seconds}'' ${direction}`;
+};
+
+/**
+ * Returns the current time in Maritime Standard Format (UTC/Zulu).
+ * Format: HH:mm:ss Z
+ */
+export const getCurrentMaritimeTime = (): string => {
+    const now = new Date();
+    // ISO String is UTC by default (e.g., 2023-10-27T10:00:00.000Z)
+    // We extract the time part and append 'Z' explicitly.
+    return now.toISOString().split('T')[1].split('.')[0] + ' Z';
 };

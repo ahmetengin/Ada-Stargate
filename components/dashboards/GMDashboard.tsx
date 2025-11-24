@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { RegistryEntry, Tender, UserProfile, CongressEvent, Delegate } from '../../types';
+import { RegistryEntry, Tender, UserProfile, CongressEvent, Delegate, AgentTraceLog } from '../../types';
 import { facilityExpert } from '../../services/agents/facilityAgent';
 import { congressExpert } from '../../services/agents/congressAgent';
 import { hrExpert } from '../../services/agents/hrAgent';
@@ -9,13 +9,13 @@ import { analyticsExpert } from '../../services/agents/analyticsAgent';
 import { berthExpert } from '../../services/agents/berthAgent';
 import { reservationsExpert } from '../../services/agents/reservationsAgent';
 
-// Import decomposed tabs
 import { OpsTab } from './gm/OpsTab';
 import { FleetTab } from './gm/FleetTab';
 import { FacilityTab } from './gm/FacilityTab';
 import { CongressTab } from './gm/CongressTab';
 import { BerthsTab } from './gm/BerthsTab';
 import { HRTab, CommercialTab, AnalyticsTab, BookingsTab } from './gm/ManagementTabs';
+import { ObserverTab } from './gm/ObserverTab';
 
 interface GMDashboardProps {
   userProfile: UserProfile;
@@ -23,6 +23,7 @@ interface GMDashboardProps {
   registry: RegistryEntry[];
   tenders: Tender[];
   vesselsInPort: number;
+  agentTraces: AgentTraceLog[];
 }
 
 export const GMDashboard: React.FC<GMDashboardProps> = ({
@@ -30,12 +31,12 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
   logs,
   registry,
   tenders,
-  vesselsInPort
+  vesselsInPort,
+  agentTraces
 }) => {
   const criticalLogs = logs.filter(log => log.type === 'critical' || log.type === 'alert');
-  const [activeGmTab, setActiveGmTab] = useState<'ops' | 'fleet' | 'facility' | 'congress' | 'hr' | 'commercial' | 'analytics' | 'berths' | 'bookings'>('ops');
+  const [activeGmTab, setActiveGmTab] = useState<'ops' | 'fleet' | 'facility' | 'congress' | 'hr' | 'commercial' | 'analytics' | 'berths' | 'bookings' | 'observer'>('ops');
   
-  // State for sub-tabs
   const [zeroWasteStats, setZeroWasteStats] = useState<any>(null);
   const [blueFlagStatus, setBlueFlagStatus] = useState<any>(null);
   const [eventDetails, setEventDetails] = useState<CongressEvent | null>(null);
@@ -46,7 +47,6 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
   const [berthAllocation, setBerthAllocation] = useState<any>(null);
   const [bookings, setBookings] = useState<any[]>([]);
 
-  // Data fetching effects based on active tab
   useEffect(() => {
     if (activeGmTab === 'facility') {
       facilityExpert.generateZeroWasteReport(() => { }).then(res => setZeroWasteStats(res));
@@ -66,18 +66,15 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
       analyticsExpert.predictOccupancy('3M', () => { }).then(setAnalyticsData);
     }
     if (activeGmTab === 'berths') {
-      // Simulation for Phisedelia
       berthExpert.findOptimalBerth({ loa: 20.4, beam: 5.6, draft: 4.7, type: 'VO65 Racing Yacht' }, () => { }).then(setBerthAllocation);
     }
     if (activeGmTab === 'bookings') {
-      // Simulation for new Booking
       reservationsExpert.processBooking({ name: "S/Y Wind Chaser", type: "Sailing Yacht", loa: 16, beam: 4.5 }, { start: "2025-06-10", end: "2025-06-15" }, () => { }).then(res => setBookings([res.proposal]));
     }
   }, [activeGmTab]);
 
   return (
     <div className="space-y-6 text-zinc-800 dark:text-zinc-200 font-sans h-full flex flex-col p-4">
-      {/* Executive Header */}
       <div className="flex items-center justify-between border-b-2 border-zinc-900 dark:border-zinc-100 pb-4 flex-shrink-0">
         <div>
           <h2 className="text-xl font-black uppercase tracking-tighter">Executive Operations</h2>
@@ -88,9 +85,8 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
         </div>
       </div>
 
-      {/* GM Sub-Tabs Navigation */}
       <div className="flex gap-2 border-b border-zinc-200 dark:border-zinc-800 pb-1 flex-shrink-0 overflow-x-auto custom-scrollbar">
-        {['ops', 'fleet', 'facility', 'congress', 'hr', 'commercial', 'analytics', 'berths', 'bookings'].map(tab => (
+        {['ops', 'fleet', 'facility', 'congress', 'hr', 'commercial', 'analytics', 'berths', 'bookings', 'observer'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveGmTab(tab as any)}
@@ -101,43 +97,17 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
         ))}
       </div>
 
-      {/* Tab Content Area */}
       <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
-        {activeGmTab === 'ops' && (
-          <OpsTab vesselsInPort={vesselsInPort} registry={registry} criticalLogs={criticalLogs} />
-        )}
-
-        {activeGmTab === 'fleet' && (
-          <FleetTab tenders={tenders} />
-        )}
-
-        {activeGmTab === 'facility' && (
-          <FacilityTab blueFlagStatus={blueFlagStatus} zeroWasteStats={zeroWasteStats} />
-        )}
-
-        {activeGmTab === 'congress' && (
-          <CongressTab eventDetails={eventDetails} delegates={delegates} />
-        )}
-
-        {activeGmTab === 'hr' && (
-          <HRTab hrData={hrData} />
-        )}
-
-        {activeGmTab === 'commercial' && (
-          <CommercialTab commercialData={commercialData} />
-        )}
-
-        {activeGmTab === 'analytics' && (
-          <AnalyticsTab analyticsData={analyticsData} />
-        )}
-
-        {activeGmTab === 'berths' && (
-          <BerthsTab berthAllocation={berthAllocation} />
-        )}
-
-        {activeGmTab === 'bookings' && (
-          <BookingsTab bookings={bookings} />
-        )}
+        {activeGmTab === 'ops' && <OpsTab vesselsInPort={vesselsInPort} registry={registry} criticalLogs={criticalLogs} />}
+        {activeGmTab === 'fleet' && <FleetTab tenders={tenders} />}
+        {activeGmTab === 'facility' && <FacilityTab blueFlagStatus={blueFlagStatus} zeroWasteStats={zeroWasteStats} />}
+        {activeGmTab === 'congress' && <CongressTab eventDetails={eventDetails} delegates={delegates} />}
+        {activeGmTab === 'hr' && <HRTab hrData={hrData} />}
+        {activeGmTab === 'commercial' && <CommercialTab commercialData={commercialData} />}
+        {activeGmTab === 'analytics' && <AnalyticsTab analyticsData={analyticsData} />}
+        {activeGmTab === 'berths' && <BerthsTab berthAllocation={berthAllocation} />}
+        {activeGmTab === 'bookings' && <BookingsTab bookings={bookings} />}
+        {activeGmTab === 'observer' && <ObserverTab traces={agentTraces} />}
       </div>
     </div>
   );

@@ -1,21 +1,40 @@
 
 import React, { useState, useEffect } from 'react';
-import { Wifi, Thermometer, Zap, ShieldCheck, Droplets, Recycle } from 'lucide-react';
+import { Wifi, Thermometer, Zap, ShieldCheck, Droplets, Recycle, Clock } from 'lucide-react';
 import { marinaExpert } from '../../services/agents/marinaAgent';
+import { getCurrentMaritimeTime } from '../../services/utils';
 
 export const CaptainDashboard: React.FC = () => {
-  const [telemetry, setTelemetry] = useState<any>(null);
   const [activeCaptainTab, setActiveCaptainTab] = useState<'overview' | 'engineering' | 'finance' | 'bluecard'>('overview');
+  const [zuluTime, setZuluTime] = useState(getCurrentMaritimeTime());
 
   useEffect(() => {
-      marinaExpert.getVesselTelemetry("S/Y Phisedelia").then(setTelemetry);
+      // Live Clock Ticker
+      const timer = setInterval(() => {
+          setZuluTime(getCurrentMaritimeTime());
+      }, 1000);
+
+      // Simulated telemetry fetch
+      marinaExpert.getVesselTelemetry("S/Y Phisedelia").then(() => {});
+
+      return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className="space-y-4 font-mono text-zinc-800 dark:text-zinc-300 p-4">
+    <div className="space-y-4 font-mono text-zinc-800 dark:text-zinc-300 p-4 animate-in fade-in slide-in-from-right-4 duration-500">
         
+        {/* Live Clock Header */}
+        <div className="flex justify-between items-center bg-zinc-900/50 p-2 rounded-lg border border-zinc-800 mb-2">
+            <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                <Clock size={12} /> MARITIME TIME
+            </div>
+            <div className="font-mono text-sm font-bold text-indigo-400 tracking-wider">
+                {zuluTime}
+            </div>
+        </div>
+
         {/* Captain Tabs */}
-        <div className="flex gap-1 border-b border-zinc-800 pb-2 overflow-x-auto">
+        <div className="flex gap-1 border-b border-zinc-800 pb-2 overflow-x-auto custom-scrollbar">
             {['overview', 'engineering', 'finance', 'bluecard'].map(tab => (
                 <button 
                     key={tab}
@@ -28,7 +47,7 @@ export const CaptainDashboard: React.FC = () => {
         </div>
 
         {activeCaptainTab === 'overview' && (
-            <>
+            <div className="space-y-4 animate-in fade-in zoom-in duration-300">
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
                     <div className="flex justify-between items-center mb-4">
                         <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Vessel Status</div>
@@ -75,11 +94,11 @@ export const CaptainDashboard: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </>
+            </div>
         )}
 
         {activeCaptainTab === 'engineering' && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in fade-in zoom-in duration-300">
                 {/* Battery Gauge */}
                 <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
                     <div className="flex justify-between mb-2">
@@ -131,8 +150,7 @@ export const CaptainDashboard: React.FC = () => {
         )}
 
         {activeCaptainTab === 'finance' && (
-            <div className="space-y-4">
-                {/* Finance content would go here */}
+            <div className="space-y-4 animate-in fade-in zoom-in duration-300">
                 <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                         <ShieldCheck size={64} />
@@ -160,7 +178,7 @@ export const CaptainDashboard: React.FC = () => {
         )}
 
         {activeCaptainTab === 'bluecard' && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 animate-in fade-in zoom-in duration-300">
                 <div className="flex justify-between items-start mb-4">
                     <div className="text-[10px] font-bold text-sky-500 uppercase tracking-widest flex items-center gap-2">
                         <Droplets size={12} /> DIGITAL BLUE KART (MAVİ KART)

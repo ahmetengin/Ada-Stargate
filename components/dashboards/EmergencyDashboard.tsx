@@ -4,7 +4,7 @@ import { Siren, Map as MapIcon, Wind, Anchor } from 'lucide-react';
 
 export const EmergencyDashboard: React.FC = () => {
   return (
-      <div className="h-full flex flex-col bg-zinc-950 border-l-4 border-red-600 p-6 animate-pulse-slow">
+      <div className="h-full flex flex-col bg-zinc-950 border-l-4 border-red-600 p-6 animate-pulse-slow overflow-y-auto">
           <div className="flex items-center justify-between border-b border-red-900/50 pb-6 mb-6">
               <div className="flex items-center gap-4">
                   <div className="p-3 bg-red-600 rounded-lg animate-pulse">
@@ -21,7 +21,7 @@ export const EmergencyDashboard: React.FC = () => {
               </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 flex-1">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1">
               <div className="space-y-6">
                   <div className="bg-red-900/10 border border-red-900/30 p-4 rounded-xl">
                       <h3 className="text-xs font-bold text-red-500 uppercase tracking-widest mb-4 flex items-center gap-2">

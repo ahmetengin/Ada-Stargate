@@ -12,7 +12,6 @@ interface OpsTabProps {
 export const OpsTab: React.FC<OpsTabProps> = ({ vesselsInPort, registry, criticalLogs }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* KPI Cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="p-4 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
           <div className="flex items-center gap-2 text-zinc-500 mb-1">
@@ -40,7 +39,6 @@ export const OpsTab: React.FC<OpsTabProps> = ({ vesselsInPort, registry, critica
         </div>
       </div>
 
-      {/* Critical Issues */}
       <div>
         <h3 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-widest mb-3">Critical Incidents</h3>
         <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-lg overflow-hidden">

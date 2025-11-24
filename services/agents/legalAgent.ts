@@ -1,7 +1,9 @@
 
-
 import { AgentAction, UserProfile, AgentTraceLog } from '../../types';
 import { LEGAL_DOCUMENTS } from '../legalData';
+import { financeExpert } from './financeAgent';
+import { marinaExpert } from './marinaAgent';
+import { customerExpert } from './customerAgent'; // Import Customer Expert for Blacklist Check
 
 // Regex to find article numbers like E.1.1, D.9, F.13, or Rule 15
 const ARTICLE_REGEX = /(?:^|\n)(?:##\s*)?(?:MADD|MADDE|Madde|Article|Kural|Rule|Section|Part)\s+([A-Z]?\.?\d+(?:\.\d+)*|B\.\d+|A\.\d+)\.?\s*[:\-\s]/i;
@@ -16,7 +18,7 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
     
     addTrace({
         id: `trace_rag_match_${Date.now()}`,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleTimeString(),
         node: 'ada.legal',
         step: 'THINKING',
         content: `Searching "${documentId}" for keywords related to: "${query}"...`,
@@ -32,7 +34,6 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
         if (sectionBuffer.length > 0) {
             const text = sectionBuffer.join('\n').trim();
             let score = 0;
-            // Simple keyword scoring
             if (text.toLowerCase().includes(lowerQuery)) {
                 score = 2;
             }
@@ -59,9 +60,7 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
         return `No direct article related to "${query}" was found in the **${documentId}** document.`;
     }
 
-    // Sort by score
     allSections.sort((a, b) => b.score - a.score);
-
     const topSnippets = allSections.slice(0, 3);
     let formattedResponse = "";
 
@@ -75,10 +74,6 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
         formattedResponse += `--- **Article ${snippet.article}:** ---\n${snippet.text}\n\n`;
     });
 
-    if (documentId.includes('colregs')) {
-        formattedResponse += "\nRemember, safety at sea comes before all else.";
-    }
-
     return formattedResponse;
 }
 
@@ -86,10 +81,10 @@ export const legalExpert = {
   process: async (params: any, user: UserProfile, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
     
     // RBAC Check
-    if (user.role !== 'GENERAL_MANAGER') {
+    if (user.role !== 'GENERAL_MANAGER' && user.role !== 'CAPTAIN') {
         addTrace({
             id: `trace_legal_deny_${Date.now()}`,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toLocaleTimeString(),
             node: 'ada.legal',
             step: 'ERROR',
             content: `SECURITY ALERT: Unauthorized access attempt by ${user.name}.`
@@ -98,7 +93,7 @@ export const legalExpert = {
             id: `legal_deny_${Date.now()}`,
             kind: 'internal',
             name: 'ada.legal.accessDenied',
-            params: { reason: 'Requires GENERAL_MANAGER role.' }
+            params: { reason: 'Requires authorized role.' }
         }];
     }
 
@@ -107,11 +102,74 @@ export const legalExpert = {
     let documentToQuery: string | null = null;
     let queryContext: string = "";
 
+    // --- SPECIAL SCENARIO: SALE / TRANSFER OF VESSEL ---
+    if (lowerQuery.includes('satış') || lowerQuery.includes('satabilir') || lowerQuery.includes('sell') || lowerQuery.includes('sale') || lowerQuery.includes('transfer') || lowerQuery.includes('devir')) {
+        
+        addTrace({
+            id: `trace_legal_sale_${Date.now()}`,
+            timestamp: new Date().toLocaleTimeString(),
+            node: 'ada.legal',
+            step: 'PLANNING',
+            content: `Detected "Vessel Sale/Transfer" intent. Initiating protocol: Debt Check (Muvafakat) + Contract Review (Article E.2.19) + CRM Blacklist Check.`,
+            persona: 'EXPERT'
+        });
+
+        // 1. Check Debt (Simulation using Finance Expert logic directly)
+        const vesselName = "S/Y Phisedelia"; // Context-aware in production
+        const debtStatus = await financeExpert.checkDebt(vesselName);
+        const hasDebt = debtStatus.status === 'DEBT';
+        
+        // 2. Check Blacklist / Right of Refusal (Simulate buyer name check from prompt or context)
+        // If user asks: "Can I sell to Mr. Problem?", we check "Mr. Problem"
+        let buyerStatus: { status: string, reason?: string } = { status: 'ACTIVE', reason: '' };
+        const potentialBuyer = query.match(/(?:to|alıcı)\s+([A-Z][a-z]+)/i)?.[1]; // Simple extraction
+        if (potentialBuyer) {
+             buyerStatus = await customerExpert.checkBlacklistStatus(potentialBuyer, addTrace);
+        }
+        
+        let advice = `**VESSEL SALE & CONTRACT TRANSFER PROTOCOL**\n\n`;
+        advice += `Captain, selling a vessel while under contract (e.g., at Month 5 of 12) triggers specific legal procedures under **WIM Operation Regulations**.\n\n`;
+        
+        advice += `**1. The "Muvafakat" Requirement (Consent):**\n`;
+        if (hasDebt) {
+            advice += `⚠️ **ALERT:** Financial records show an outstanding balance of **€${debtStatus.amount}** for ${vesselName}.\n`;
+            advice += `Pursuant to **Article H.2 (Right of Retention)**, the Marina **WILL NOT** issue the "No Debt Letter" (Borcu Yoktur Yazısı) required by the Harbor Master (Liman Başkanlığı) for the official sale until this debt is cleared.\n`;
+        } else {
+            advice += `✅ **CLEAR:** Financial records are clean. The Marina can issue the "No Debt Letter" required for the Port Authority transfer upon request.\n`;
+        }
+
+        advice += `\n**2. Contract Status (Article E.2.19):**\n`;
+        advice += `Contracts are **personal** and **non-transferable**. If you sell the vessel:\n`;
+        advice += `- Your current contract **terminates** automatically.\n`;
+        advice += `- You are **not entitled to a refund** for the remaining period (e.g., the remaining 7 months).\n`;
+        advice += `- The new owner must sign a **new contract** within 7 days to keep the vessel in the marina.\n`;
+
+        advice += `\n**3. Right of Refusal (Freedom of Contract):**\n`;
+        if (buyerStatus.status === 'BLACKLISTED') {
+             advice += `⛔ **CRITICAL WARNING:** The potential buyer **"${potentialBuyer}"** is flagged in our CRM as **BLACKLISTED**.\n`;
+             advice += `**Reason:** ${buyerStatus.reason}\n`;
+             advice += `The Marina exercises its Right of Refusal. We **WILL NOT** sign a contract with this individual. If the sale proceeds, the vessel must **vacate the marina immediately** upon transfer of title.\n`;
+        } else {
+             advice += `The Marina is **not obligated** to sign a contract with the new owner. We reserve the right to accept or reject customers based on our operational principles and CRM history. If the new owner is deemed suitable, a new contract will be drawn up at current market rates.\n`;
+        }
+
+        return [{
+            id: `legal_sale_advice_${Date.now()}`,
+            kind: 'internal',
+            name: 'ada.legal.consultation',
+            params: { 
+                advice: advice,
+                context: "Vessel Sale & Transfer",
+                references: ["Article E.2.19", "Article H.2", "Article H.6"]
+            }
+        }];
+    }
+
     // SETUR Policy Check
     if (lowerQuery.includes('setur')) { 
         addTrace({
             id: `trace_legal_setur_${Date.now()}`,
-            timestamp: new Date().toISOString(),
+            timestamp: new Date().toLocaleTimeString(),
             node: 'ada.legal',
             step: 'OUTPUT',
             content: `Policy: Competitor inquiry detected. Providing generic legal response.`,

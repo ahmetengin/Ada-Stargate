@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Car, CheckCircle2, Zap, Utensils, Calendar, Wind, PartyPopper } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { wimMasterData } from '../../services/wimMasterData';
@@ -9,11 +9,10 @@ interface GuestDashboardProps {
 }
 
 export const GuestDashboard: React.FC<GuestDashboardProps> = ({ userProfile }) => {
-  const [activeVehicle, setActiveVehicle] = useState("34 XX 99 (Porsche)");
   const upcomingEvents = wimMasterData.event_calendar || [];
 
   return (
-    <div className="space-y-6 font-sans text-zinc-800 dark:text-zinc-200 p-4">
+    <div className="space-y-6 font-sans text-zinc-800 dark:text-zinc-200 p-4 animate-in fade-in slide-in-from-right-4 duration-500">
         {/* Welcome & Status */}
         <div className="flex items-center justify-between">
             <div>
@@ -55,14 +54,14 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ userProfile }) =
                 </div>
             </div>
 
-            <button className="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+            <button className="w-full mt-3 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
                 <Zap size={12} /> Validate Exit (Free)
             </button>
         </div>
 
         {/* Active Dining Reservation */}
-        <div className="bg-zinc-900 text-white p-4 rounded-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-2 opacity-10">
+        <div className="bg-zinc-900 text-white p-4 rounded-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Utensils size={64} />
             </div>
             <div className="relative z-10">
@@ -94,7 +93,7 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ userProfile }) =
             </h3>
             <div className="space-y-2">
                 {upcomingEvents.map((evt: any) => (
-                    <div key={evt.id} className="flex gap-3 p-3 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                    <div key={evt.id} className="flex gap-3 p-3 bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-indigo-500/50 transition-colors cursor-pointer">
                         <div className="flex flex-col items-center justify-center bg-zinc-100 dark:bg-zinc-700 rounded p-2 min-w-[50px]">
                             <span className="text-xs font-bold text-zinc-500 uppercase">{new Date(evt.date).toLocaleString('default', { month: 'short' })}</span>
                             <span className="text-lg font-bold text-zinc-800 dark:text-zinc-200">{new Date(evt.date).getDate()}</span>

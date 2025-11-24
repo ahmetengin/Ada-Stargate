@@ -98,16 +98,54 @@ export interface TrafficEntry {
   distanceMiles?: number; // Added for proximity search results
 }
 
-// NEW: Comprehensive vessel profile based on Kpler MCP capabilities
+// --- CRM & ASSET MANAGEMENT TYPES (UPDATED) ---
+
+// 1. The Customer (Cari Hesap / Gerçek veya Tüzel Kişi)
+export interface CustomerProfile {
+    id: string; // "CUST_001"
+    name: string;
+    type: 'INDIVIDUAL' | 'COMPANY';
+    contact: { phone: string; email: string };
+    loyaltyScore: number;
+    status: 'ACTIVE' | 'BLACKLISTED';
+}
+
+// 2. The Contract (Hukuki Bağ)
+export interface Contract {
+    id: string; // "CNT-2025-001"
+    type: 'MOORING' | 'LIFTING' | 'COMMERCIAL_LEASE';
+    status: 'ACTIVE' | 'EXPIRED' | 'TERMINATED' | 'CANCELLED';
+    dateRange: { start: string; end: string }; // e.g., 12 months
+    vesselImo: string; // Links to Asset
+    
+    // Many-to-Many Ownership / Signatories
+    signatories: {
+        customerId: string;
+        role: 'OWNER' | 'PARTNER' | 'CAPTAIN' | 'PAYER';
+        sharePercentage?: number; // e.g., 50%
+    }[];
+
+    financialStatus: 'PAID' | 'PARTIAL' | 'DEBT';
+    notes?: string;
+}
+
+// 3. The Asset (Vessel Intelligence - Expanded)
 export interface VesselIntelligenceProfile {
     name: string;
     imo: string;
     type: string;
     flag: string;
-    ownerName?: string;
+    
+    // Ownership Structure (Reflects CRM links)
+    partners?: { name: string; share: number }[]; 
+    primaryContactId?: string; 
+
+    // Legacy fields kept for compatibility
+    ownerName?: string; 
     ownerId?: string;
     ownerEmail?: string;
     ownerPhone?: string;
+
     dwt?: number; // Deadweight Tonnage
     loa?: number; // Length Overall
     beam?: number;
@@ -119,10 +157,15 @@ export interface VesselIntelligenceProfile {
         nextPort: string;
         eta: string;
     };
+    
     outstandingDebt?: number; // Added to store financial status
     paymentHistoryStatus?: 'REGULAR' | 'RECENTLY_LATE' | 'CHRONICALLY_LATE';
     loyaltyScore?: number;
     loyaltyTier?: 'STANDARD' | 'SILVER' | 'GOLD' | 'PROBLEM';
+    
+    // Active Contract Reference
+    activeContractId?: string; 
+
     // NEW: Ada Sea ONE Subscription Status
     adaSeaOneStatus?: 'ACTIVE' | 'INACTIVE' | 'TRIAL';
     // NEW: Smart Energy Management Data

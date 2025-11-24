@@ -3,13 +3,14 @@
 import { TaskHandlerFn } from '../decomposition/types';
 import { AgentAction, AgentTraceLog, VesselIntelligenceProfile, NodeName, Tender, VesselSystemsStatus } from '../../types';
 import { wimMasterData } from '../wimMasterData';
-import { haversineDistance } from '../utils';
+import { haversineDistance, getCurrentMaritimeTime } from '../utils';
 import { persistenceService, STORAGE_KEYS } from '../persistence'; 
+import { checkBackendHealth, invokeAgentSkill } from '../api'; // Import API helpers
 
 // Helper to create a log
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
     id: `trace_${Date.now()}_${Math.random()}`,
-    timestamp: new Date().toLocaleTimeString(),
+    timestamp: getCurrentMaritimeTime(),
     node,
     step,
     content,
@@ -25,7 +26,7 @@ const DEFAULT_FLEET: VesselIntelligenceProfile[] = [
         coordinates: { lat: 40.8500, lng: 28.6200 }, // 10nm out
         voyage: { lastPort: 'Alicante', nextPort: 'WIM', eta: 'Today 14:00' },
         paymentHistoryStatus: 'REGULAR',
-        adaSeaOneStatus: 'INACTIVE', // Set to INACTIVE to demonstrate the marketing/upsell UI
+        adaSeaOneStatus: 'INACTIVE', 
         utilities: { electricityKwh: 450.2, waterM3: 12.5, lastReading: 'Today 08:00', status: 'ACTIVE' }
     },
     { 
@@ -96,15 +97,22 @@ export const marinaExpert = {
         return FLEET_DB.find(v => v.name.toLowerCase().includes(vesselName.toLowerCase()));
     },
 
-    // Simulated Telemetry Access (Protected by Data Sovereignty)
+    // --- HYBRID TELEMETRY FETCH (PYTHON FIRST, MOCK FALLBACK) ---
     getVesselTelemetry: async (vesselName: string): Promise<VesselSystemsStatus | null> => {
-        // Check if vessel has Ada Sea ONE active
-        const vessel = await marinaExpert.getVesselIntelligence(vesselName);
         
-        // In simulation, we return data if the user is CAPTAIN (Owner) OR if Ada Sea ONE is active (which implies owner consent)
-        // But logically, getVesselTelemetry is called by the Canvas when the Captain logs in.
+        // 1. Try Python Backend (Real IoT/Database)
+        const isBackendUp = await checkBackendHealth();
+        if (isBackendUp) {
+            const remoteData = await invokeAgentSkill('marina', 'get_telemetry', { vessel_name: vesselName });
+            if (remoteData) {
+                console.log(`[Telemetry] Received live data for ${vesselName} from Python backend.`);
+                return remoteData as VesselSystemsStatus;
+            }
+        }
+
+        // 2. Local Simulation Fallback
+        console.warn(`[Telemetry] Backend offline. Using local simulation for ${vesselName}.`);
         
-        // Simulation Data
         return {
             battery: { serviceBank: 25.4, engineBank: 26.1, status: 'DISCHARGING' },
             tanks: { fuel: 45, freshWater: 80, blackWater: 15 },

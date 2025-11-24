@@ -1,8 +1,8 @@
 
-
-import { AgentAction, AgentTraceLog, FlightBooking, HotelBooking, NodeName, TravelItinerary, VipTransfer } from '../../types';
-import { marinaExpert } from './marinaAgent'; // Import to check fleet
-import { TaskHandlerFn } from '../decomposition/types'; // Import for handlers
+import { AgentAction, AgentTraceLog, NodeName, TravelItinerary } from '../../types';
+import { marinaExpert } from './marinaAgent'; 
+import { passkitExpert } from './passkitAgent'; // Integrate PassKit
+import { TaskHandlerFn } from '../decomposition/types'; 
 import { wimMasterData } from '../wimMasterData';
 
 // Helper to create a log
@@ -15,7 +15,10 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     persona
 });
 
-// --- MOCK SUB-AGENTS / PROVIDERS ---
+// --- TENANT CONFIG ---
+const TENANT = "KITES"; // Hardcoded Tenant Identity
+const AGENCY_ID = "TÜRSAB A-2648";
+
 const PROVIDERS = {
     AVIATION: 'Ada.Travel.Adriyatik (IATA)',
     HOTELS: 'Ada.Travel.Tinkon (Global)',
@@ -40,167 +43,208 @@ const MOCK_ITINERARIES: TravelItinerary[] = [
                 departure: { airport: 'IST', time: '2025-11-25 08:30' },
                 arrival: { airport: 'CDG', time: '2025-11-25 11:10' },
                 status: 'TICKETED',
-                provider: PROVIDERS.AVIATION // Sourced via Adriyatik
-            },
-            {
-                id: 'FL-02',
-                airline: 'Turkish Airlines',
-                flightNumber: 'TK1828',
-                departure: { airport: 'CDG', time: '2025-11-28 18:30' },
-                arrival: { airport: 'IST', time: '2025-11-28 23:10' },
-                status: 'TICKETED',
                 provider: PROVIDERS.AVIATION
             }
         ],
-        hotels: [
-            {
-                id: 'HT-01',
-                hotelName: 'Mandarin Oriental Paris',
-                location: '251 Rue Saint-Honoré',
-                checkIn: '2025-11-25',
-                checkOut: '2025-11-28',
-                roomType: 'Deluxe Suite',
-                status: 'CONFIRMED',
-                provider: PROVIDERS.HOTELS // Sourced via Tinkon
-            }
-        ],
-        transfers: [
-            {
-                id: 'TRF-01',
-                type: 'CAR',
-                vehicle: 'Mercedes-Maybach S580',
-                pickup: { location: 'WIM VIP Gate', time: '2025-11-25 06:00' },
-                dropoff: { location: 'Istanbul Airport (IST) - CIP Terminal' },
-                driverName: 'Murat K.',
-                status: 'SCHEDULED',
-                provider: PROVIDERS.GROUND
-            }
-        ]
+        hotels: [],
+        transfers: []
     }
 ];
 
 export const kitesExpert = {
     
-    // Skill: Get Active Itineraries for UI
-    getActiveItineraries: async (passengerName: string = "Ahmet Engin"): Promise<TravelItinerary[]> => {
-        return MOCK_ITINERARIES;
-    },
-
-    // Skill: Search Flights (Amadeus / Adriyatik Integration)
-    searchFlights: async (origin: string, dest: string, date: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, results: any[] }> => {
-        addTrace(createLog('ada.travel', 'THINKING', `KITES: Requesting flight options from sub-agent '${PROVIDERS.AVIATION}' for ${origin}-${dest}...`, 'EXPERT'));
+    // Skill: Search Flights 
+    searchFlights: async (origin: string, dest: string, date: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, results: any[], message: string }> => {
+        addTrace(createLog('ada.travel', 'THINKING', `[TENANT: ${TENANT}] Requesting flight options from sub-agent '${PROVIDERS.AVIATION}' for ${origin}-${dest}...`, 'EXPERT'));
         
-        // Simulate sub-agent interaction
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         addTrace(createLog('ada.travel', 'TOOL_EXECUTION', `ADRIYATIK: Querying Amadeus GDS... Found 3 routes.`, 'WORKER'));
         addTrace(createLog('ada.travel', 'OUTPUT', `KITES: Filtered results. Presenting best options.`, 'EXPERT'));
 
+        const isLondon = dest === 'LHR' || dest === 'LGW';
+        
+        const results = [
+            { 
+                id: 'OPT-1', 
+                airline: isLondon ? 'British Airways' : 'THY', 
+                flight: isLondon ? 'BA675' : 'TK1951', 
+                price: isLondon ? 1450 : 1200, 
+                class: 'Business', 
+                provider: PROVIDERS.AVIATION, 
+                time: '08:30' 
+            },
+            { 
+                id: 'OPT-2', 
+                airline: 'Turkish Airlines', 
+                flight: isLondon ? 'TK1985' : 'TK1827', 
+                price: isLondon ? 350 : 450, 
+                class: 'Economy', 
+                provider: PROVIDERS.AVIATION, 
+                time: '13:15' 
+            },
+            { 
+                id: 'OPT-3', 
+                airline: 'Private Jet', 
+                flight: 'C560XL', 
+                price: 12500, 
+                class: 'Private', 
+                provider: PROVIDERS.AVIATION, 
+                time: 'Any' 
+            }
+        ];
+
         return {
             success: true,
-            results: [
-                { airline: 'THY', flight: 'TK1951', price: 1200, class: 'Business', provider: PROVIDERS.AVIATION },
-                { airline: 'Private Jet', flight: 'C560XL', price: 12500, class: 'Private', provider: PROVIDERS.AVIATION }
-            ]
+            results,
+            message: `**FLIGHT OPTIONS**\n` +
+                     `*(operated by "ada.travel.kites")*\n\n` +
+                     `I have found the following connections for **${origin} -> ${dest}** on **${date}**:\n\n` +
+                     results.map(r => `✈️ **${r.airline} (${r.flight})** - ${r.time}\n   Class: ${r.class} | Price: **€${r.price}**`).join('\n\n') +
+                     `\n\n*Reply "Book Option 1" to confirm immediately.*`
         };
     },
 
-    // Skill: Book Yacht Charter (Cross-Domain with Marina)
-    bookYachtCharter: async (date: string, type: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, options: any[], message: string }> => {
-        addTrace(createLog('ada.travel', 'THINKING', `KITES: Client requested Yacht Charter for ${date}. Querying WIM Charter Fleet...`, 'EXPERT'));
+    // Skill: Finalize Booking & Issue PassKit (The "Ch72 Confirm" Logic)
+    finalizeBooking: async (details: string, passengerName: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, actions: AgentAction[] }> => {
+        addTrace(createLog('ada.travel', 'THINKING', `[TENANT: ${TENANT}] Initiating Booking Protocol for: "${details}". Passenger: ${passengerName}`, 'EXPERT'));
+
+        // 1. Create PNR (Simulation)
+        const pnr = `PNR-${Math.random().toString(36).substring(7).toUpperCase()}`;
+        addTrace(createLog('ada.travel', 'TOOL_EXECUTION', `Creating PNR on Amadeus... Confirmed: ${pnr}`, 'WORKER'));
+
+        // 2. Issue Digital Pass (PassKit Integration)
+        const passResult = await passkitExpert.issueTravelPass({
+            passenger: passengerName,
+            type: 'FLIGHT',
+            summary: `Flight Booking: ${details}`,
+            date: new Date().toISOString().split('T')[0]
+        }, addTrace);
+
+        const actions: AgentAction[] = [];
         
-        // 1. Call Marina Agent to find assets (Cross-Agent Call)
+        // 3. Log Operational Confirmation (The "Ch72" Metaphor)
+        actions.push({
+            id: `op_log_travel_${Date.now()}`,
+            kind: 'internal',
+            name: 'ada.marina.log_operation',
+            params: {
+                message: `[OP] KITES TRAVEL CONFIRMED | PAX:${passengerName.toUpperCase()} | REF:${pnr} | STS:ISSUED`,
+                type: 'info'
+            }
+        });
+
+        // 4. Trigger PassKit Action for UI
+        actions.push({
+            id: `passkit_travel_${Date.now()}`,
+            kind: 'external',
+            name: 'ada.passkit.generated',
+            params: { passUrl: passResult.passUrl }
+        });
+
+        return {
+            success: true,
+            message: `**BOOKING CONFIRMED**\n` +
+                     `*(operated by "ada.travel.kites")*\n\n` +
+                     `Your itinerary has been finalized.\n\n` +
+                     `> **Reference:** \`${pnr}\`\n` +
+                     `> **Details:** ${details}\n` +
+                     `> **Status:** TICKETED\n\n` +
+                     `*A Digital Boarding Pass has been sent to your wallet.*`,
+            actions: actions
+        };
+    },
+
+    // Skill: Book Yacht Charter
+    bookYachtCharter: async (date: string, type: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, options: any[], message: string }> => {
+        addTrace(createLog('ada.travel', 'THINKING', `[TENANT: ${TENANT}] Client requested Yacht Charter for ${date}. Querying WIM Charter Fleet...`, 'EXPERT'));
+        
         const availableBoats = await marinaExpert.checkCharterFleetAvailability(type, date, addTrace);
         
         if (availableBoats.length === 0) {
-            addTrace(createLog('ada.travel', 'ERROR', `No WIM fleet assets available for ${date}.`, 'WORKER'));
             return { success: false, options: [], message: "No charter vessels available for the selected date." };
         }
 
-        // 2. Package as a Travel Product
         const offers = availableBoats.map(boat => ({
             ...boat,
             price_daily: boat.length === '24m' ? 5000 : 2500,
             provider: PROVIDERS.MARINE
         }));
 
-        addTrace(createLog('ada.travel', 'OUTPUT', `KITES: Generated ${offers.length} charter proposals.`, 'EXPERT'));
-
-        const message = `**YACHT CHARTER PROPOSAL**\n\n` +
-                        `I have located the following vessels from the **West Istanbul Marina Charter Fleet** available for rental on ${date}:\n\n` +
+        const message = `**YACHT CHARTER PROPOSAL**\n` +
+                        `*(operated by "ada.travel.kites")*\n\n` +
+                        `Available vessels from our exclusive fleet:\n\n` +
                         offers.map((o: any) => `1. **${o.name}** (${o.type}, ${o.length})\n   *Capacity: ${o.capacity} Pax*\n   *Rate: €${o.price_daily}/day + VAT*`).join('\n') +
-                        `\n\n*All charters are operated by WIM and ticketed by Kites Travel (TÜRSAB A-2648).*`;
+                        `\n\n*Reply "Confirm Charter [Name]" to book.*`;
 
         return { success: true, options: offers, message };
     },
 
-    // Skill: Emergency Extraction Protocol (The "Alesta Scenario")
+    // Skill: Emergency Extraction 
     arrangeEmergencyExit: async (currentLocation: {lat: number, lng: number}, destinationCity: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, plan: any, message: string }> => {
-        addTrace(createLog('ada.travel', 'THINKING', `🚨 EMERGENCY EXTRACTION: Calculating fastest route to ${destinationCity} from current coordinates...`, 'EXPERT'));
+        addTrace(createLog('ada.travel', 'THINKING', `🚨 [TENANT: ${TENANT}] EMERGENCY EXTRACTION PROTOCOL INITIATED.`, 'EXPERT'));
 
-        // 1. Determine Nearest Port (Geo-calc simulation)
-        // Assume boat is near Gocek/Fethiye
         const nearestPort = "D-Marin Göcek (Tender Dock)";
-        const etaToDock = "45 mins";
-        
-        addTrace(createLog('ada.travel', 'PLANNING', `Optimal Extraction Point: ${nearestPort}. Directing Vessel Node to divert course.`, 'ORCHESTRATOR'));
-
-        // 2. Find Next Flight
-        addTrace(createLog('ada.travel', 'TOOL_EXECUTION', `Scanning flights DLM -> ${destinationCity === 'Istanbul' ? 'IST' : 'SAW'} departing > 90 mins from now...`, 'WORKER'));
         const flight = { airline: "Turkish Airlines", number: "TK2559", time: "21:40", airport: "Dalaman (DLM)" };
 
-        // 3. Arrange Ground Transfer
-        addTrace(createLog('ada.travel', 'TOOL_EXECUTION', `Dispatching VIP Mercedes Vito to ${nearestPort}. Driver: Hakan (0532...)`, 'WORKER'));
+        addTrace(createLog('ada.travel', 'PLANNING', `Extraction Route: Sea(${nearestPort}) -> Land(Transfer) -> Air(${flight.number})`, 'ORCHESTRATOR'));
 
-        const message = `**🚨 EXTRACTION PLAN CONFIRMED**\n\n` +
-                        `I have arranged your immediate return to ${destinationCity}.\n\n` +
-                        `1. **Course Change:** Captain advised. Diverting to **${nearestPort}**. ETA: ${etaToDock}.\n` +
-                        `2. **Ground Transfer:** VIP Transfer (Plate 34 AA 001) will meet you at the pier. Travel time to DLM: 25 mins.\n` +
-                        `3. **Flight:** Ticketed on **${flight.airline} ${flight.number}** departing **${flight.time}**.\n\n` +
-                        `*Everything is taken care of. Please prepare for disembarkation.*`;
+        // Auto-generate pass for this emergency
+        const passResult = await passkitExpert.issueTravelPass({
+            passenger: "Emergency PAX",
+            type: 'TRANSFER',
+            summary: `URGENT TRANSFER: ${nearestPort} -> DLM`,
+            date: "TODAY"
+        }, addTrace);
+
+        const message = `**🚨 EXTRACTION PLAN CONFIRMED**\n` +
+                        `*(operated by "ada.travel.kites")*\n\n` +
+                        `We have arranged your immediate return to ${destinationCity}.\n\n` +
+                        `1. **Divert:** Proceed to **${nearestPort}**.\n` +
+                        `2. **Transfer:** VIP Vito (34 AA 001) dispatched to pier.\n` +
+                        `3. **Flight:** Ticketed on **${flight.airline} ${flight.number}**.\n\n` +
+                        `*Digital Itinerary sent to wallet.*`;
 
         return { success: true, plan: { flight, nearestPort }, message };
     },
 
-    // Skill: Manage Cross-Border Dining (Symi - Manos/Pantelis)
+    // Skill: Cross-Border Dining
     manageCrossBorderDining: async (venue: string, guests: number, time: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, action?: AgentAction }> => {
-        addTrace(createLog('ada.travel', 'THINKING', `Processing Cross-Border Reservation for **${venue}** (Greece). Checking Partner Network...`, 'EXPERT'));
+        addTrace(createLog('ada.travel', 'THINKING', `[TENANT: ${TENANT}] Processing Cross-Border Reservation for **${venue}** (Greece).`, 'EXPERT'));
 
         const partner = wimMasterData.strategic_partners.cross_border_partners?.find(p => p.name.toLowerCase().includes(venue.toLowerCase()));
 
         if (!partner) {
-             addTrace(createLog('ada.travel', 'ERROR', `Venue '${venue}' not found in Cross-Border Partner Network.`, 'WORKER'));
              return { success: false, message: `I'm sorry, I don't have a direct partnership link with **${venue}**. I can only book confirmed tables at **Manos** or **Pantelis** in Symi.` };
         }
 
-        addTrace(createLog('ada.travel', 'TOOL_EXECUTION', `Connecting to ${partner.node} (Symi)... Checking availability for ${guests} pax.`, 'WORKER'));
-        
-        // Simulate network latency to Greece
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Generate a Pass for the Restaurant Reservation
+        const passResult = await passkitExpert.issueTravelPass({
+            passenger: "VIP Guest",
+            type: 'HOTEL', // Reusing type for venue
+            summary: `Dinner: ${partner.name} (Symi)`,
+            date: "TONIGHT"
+        }, addTrace);
 
-        addTrace(createLog('ada.travel', 'OUTPUT', `Response from ${partner.node}: Confirmed. Table assigned on the Quay.`, 'EXPERT'));
-
-        const message = `**🇬🇷 CROSS-BORDER RESERVATION CONFIRMED**\n\n` +
+        const message = `**🇬🇷 CROSS-BORDER RESERVATION CONFIRMED**\n` +
+                        `*(operated by "ada.travel.kites")*\n\n` +
                         `**Venue:** ${partner.name} (${partner.location})\n` +
-                        `**Specialty:** ${partner.specialty}\n` +
                         `**Time:** ${time} (${guests} Guests)\n\n` +
-                        `> **Docking Info:** ${partner.docking}. The restaurant team has been notified of your vessel's arrival.\n` +
-                        `> **Logistics:** Managed by Kites Travel. Enjoy your evening in Symi.`;
+                        `> **Docking:** ${partner.docking}. \n\n` +
+                        `*Reservation Pass sent to wallet.*`;
 
         const action: AgentAction = {
-            id: `travel_dining_${Date.now()}`,
-            kind: 'internal',
-            name: 'ada.travel.itineraryUpdate',
-            params: { type: 'DINING', location: 'Symi', venue: partner.name, time }
+            id: `passkit_dining_${Date.now()}`,
+            kind: 'external',
+            name: 'ada.passkit.generated',
+            params: { passUrl: passResult.passUrl }
         };
 
         return { success: true, message, action };
     },
 
-    // Skill: Check TÜRSAB Compliance
     checkCompliance: async (addTrace: (t: AgentTraceLog) => void): Promise<boolean> => {
-        addTrace(createLog('ada.travel', 'THINKING', `Verifying TÜRSAB License (No. A-2648) and Travel Insurance status...`, 'EXPERT'));
-        // Logic to check compulsory insurance
+        addTrace(createLog('ada.travel', 'THINKING', `Verifying TÜRSAB License (No. A-2648)... Valid.`, 'EXPERT'));
         return true;
     }
 };
@@ -216,9 +260,5 @@ export const travelHandlers: Record<string, TaskHandlerFn> = {
             name: 'travel.flightResults',
             params: result
         }];
-    },
-    'travel.dateDestinationCheck': async (ctx: any, obs: any) => [],
-    'travel.generateFlights': async (ctx: any, obs: any) => [],
-    'travel.matchHotelTransfer': async (ctx: any, obs: any) => [],
-    'travel.buildReservation': async (ctx: any, obs: any) => []
+    }
 };

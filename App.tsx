@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentTraceLog, TrafficEntry, WeatherForecast, AgentAction, UserRole, ThemeMode } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -440,6 +439,7 @@ export default function App() {
           isMonitoring={isMonitoring}
           userProfile={userProfile}
           vesselsInPort={vesselsInPort}
+          agentTraces={agentTraces} // Pass traces from App state
           onCheckIn={(id) => {}} 
           onOpenTrace={() => setIsTraceModalOpen(true)}
           onGenerateReport={() => setIsReportModalOpen(true)}
