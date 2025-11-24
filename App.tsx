@@ -20,7 +20,7 @@ import { DailyReportModal } from './components/DailyReportModal';
 import { PassportScanner } from './components/PassportScanner';
 import { TENANT_CONFIG } from './services/config';
 import { formatCoordinate } from './services/utils';
-import { QuickActions } from './components/QuickActions'; // Import the new component
+import { QuickActions } from './components/QuickActions';
 
 // --- SIMULATED USER DATABASE ---
 const MOCK_USER_DATABASE: Record<UserRole, UserProfile> = {
@@ -110,9 +110,10 @@ const useMediaQuery = (query: string) => {
 export default function App() {
   const [messages, setMessages] = useState<Message[]>(() => persistenceService.load(STORAGE_KEYS.MESSAGES, [INITIAL_MESSAGE]));
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<ModelType>(ModelType.Pro);
+  // Default to Flash for stability, Thinking disabled by default to prevent 500 errors
+  const [selectedModel, setSelectedModel] = useState<ModelType>(ModelType.Flash);
   const [useSearch, setUseSearch] = useState(false);
-  const [useThinking, setUseThinking] = useState(true);
+  const [useThinking, setUseThinking] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
 
   const [theme, setTheme] = useState<ThemeMode>(() => persistenceService.load(STORAGE_KEYS.THEME, 'dark'));
@@ -279,9 +280,14 @@ export default function App() {
 
     try {
         const orchestratorResult = await orchestratorService.processRequest(text, userProfile, tenders);
-        setAgentTraces(orchestratorResult.traces);
         
-        orchestratorResult.actions.forEach(handleAgentAction);
+        if (orchestratorResult.traces) {
+            setAgentTraces(orchestratorResult.traces);
+        }
+        
+        if (orchestratorResult.actions) {
+            orchestratorResult.actions.forEach(handleAgentAction);
+        }
 
         if (orchestratorResult.text) {
              setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: MessageRole.Model, text: orchestratorResult.text, timestamp: Date.now() }]);
@@ -289,6 +295,7 @@ export default function App() {
              return;
         }
 
+        // Fallback to Gemini if Orchestrator returns empty text (Conversational Mode)
         if (text.trim() !== "") {
             streamChatResponse(
               [...messages, newMessage],
@@ -300,203 +307,4 @@ export default function App() {
               userProfile,
               vesselsInPort,
               (chunk, grounding) => {
-                setMessages(prev => {
-                  const last = prev[prev.length - 1];
-                  if (last.role === 'model' && last.isThinking) {
-                      return [...prev.slice(0, -1), { ...last, text: last.text + chunk, isThinking: false, groundingSources: grounding }];
-                  }
-                  if (last.role === 'model') {
-                    return [...prev.slice(0, -1), { ...last, text: last.text + chunk, groundingSources: grounding }];
-                  }
-                  return [...prev, { id: Date.now().toString(), role: MessageRole.Model, text: chunk, timestamp: Date.now(), groundingSources: grounding }];
-                });
-                setIsLoading(false);
-              }
-            );
-        } else {
-             setIsLoading(false);
-        }
-
-    } catch (error) {
-      console.error(error);
-      setIsLoading(false);
-    }
-  };
-
-  const toggleAuth = () => {
-    const roles: UserRole[] = ['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'];
-    const currentIndex = roles.indexOf(userProfile.role);
-    const nextRole = roles[(currentIndex + 1) % roles.length];
-    setUserProfile(MOCK_USER_DATABASE[nextRole]);
-    
-    addLog({
-      id: `auth_${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString(),
-      source: 'ada.passkit',
-      type: 'alert',
-      message: `Identity Switched: ${MOCK_USER_DATABASE[nextRole].name} (${nextRole})`
-    });
-  };
-
-  const handleScanComplete = (data: any) => {
-      setPrefillText(`[PASSPORT SCAN] Name: ${data.name}, ID: ${data.id}, Country: ${data.country}. Requesting visitor pass.`);
-  };
-
-  const handleNodeClick = (nodeId: string) => {
-      if (nodeId === 'ada.vhf') {
-          setIsVoiceOpen(true);
-      }
-  };
-
-  if (isBooting) return <BootScreen />;
-
-  return (
-    <div className={`flex flex-col h-screen bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-500 overflow-hidden ${theme}`}>
-      
-      <div className="flex flex-1 overflow-hidden relative">
-        
-        <Sidebar 
-          nodeStates={nodeStates}
-          activeChannel={activeChannel}
-          onChannelChange={setActiveChannel}
-          isMonitoring={isMonitoring}
-          onMonitoringToggle={() => setIsMonitoring(!isMonitoring)}
-          userProfile={userProfile}
-          onRoleChange={(role) => setUserProfile(MOCK_USER_DATABASE[role])}
-          onNodeClick={handleNodeClick}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
-          isPanel={isDesktop}
-        />
-
-        <main className="flex-1 flex flex-col relative min-w-0">
-          <div className="lg:hidden flex items-center justify-between p-4 border-b border-border-light dark:border-border-dark bg-panel-light dark:bg-panel-dark z-10">
-             <button onClick={() => setIsSidebarOpen(true)} className="text-zinc-500"><PanelLeft size={20} /></button>
-             <span className="font-mono font-bold text-zinc-800 dark:text-zinc-200">ADA.MARINA</span>
-             <button onClick={() => setIsCanvasOpen(true)} className="text-zinc-500"><PanelRight size={20} /></button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar">
-            <div className="max-w-3xl mx-auto space-y-6 pb-4">
-              {messages.map((msg) => (
-                <MessageBubble 
-                    key={msg.id} 
-                    message={msg} 
-                />
-              ))}
-              {isLoading && (
-                  <div className="flex w-full mb-8 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
-                      <div className="flex flex-col items-start max-w-3xl">
-                          <TypingIndicator />
-                      </div>
-                  </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-6 bg-gradient-to-t from-brand-bg-light via-brand-bg-light to-transparent dark:from-brand-bg-dark dark:via-brand-bg-dark z-10">
-            <div className="max-w-3xl mx-auto">
-              <InputArea 
-                onSend={handleSendMessage} 
-                isLoading={isLoading}
-                selectedModel={selectedModel}
-                onModelChange={setSelectedModel}
-                onInitiateVhfCall={() => setIsVoiceOpen(true)}
-                onInitiateScanner={() => setIsScannerOpen(true)}
-                onToggleRedAlert={handleToggleRedAlert}
-                isRedAlert={isRedAlert}
-                isMonitoring={isMonitoring}
-                useSearch={useSearch}
-                onToggleSearch={() => setUseSearch(!useSearch)}
-                useThinking={useThinking}
-                onToggleThinking={() => setUseThinking(!useThinking)}
-                prefillText={prefillText}
-                onPrefillConsumed={() => setPrefillText('')}
-              />
-              <QuickActions onAction={setPrefillText} userRole={userProfile.role} />
-            </div>
-            
-            <div className="mt-2 flex justify-between items-center px-4 text-[10px] text-zinc-400 dark:text-zinc-600 font-mono select-none max-w-3xl mx-auto">
-                <span>AI: {selectedModel.replace('gemini-', '')} {useSearch ? '+ SEARCH' : ''} {useThinking ? '+ THINKING' : ''}</span>
-                <div className="flex items-center gap-4">
-                    <button onClick={cycleTheme} className="hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
-                        {getThemeIcon()}
-                    </button>
-                    <span>SECURE CONNECTION</span>
-                </div>
-            </div>
-          </div>
-        </main>
-
-        <Canvas 
-          logs={logs}
-          registry={registry}
-          tenders={tenders}
-          trafficQueue={trafficQueue}
-          weatherData={weatherData}
-          activeChannel={activeChannel}
-          isMonitoring={isMonitoring}
-          userProfile={userProfile}
-          vesselsInPort={vesselsInPort}
-          agentTraces={agentTraces} // Pass traces from App state
-          onCheckIn={(id) => {}} 
-          onOpenTrace={() => setIsTraceModalOpen(true)}
-          onGenerateReport={() => setIsReportModalOpen(true)}
-          onNodeClick={handleNodeClick}
-          isOpen={isCanvasOpen}
-          onClose={() => setIsCanvasOpen(false)}
-          activeTab={activeCanvasTab}
-          onTabChange={setActiveCanvasTab}
-          isPanel={isDesktop}
-          isRedAlert={isRedAlert}
-        />
-
-      </div>
-
-      <StatusBar 
-        userProfile={userProfile}
-        onToggleAuth={toggleAuth}
-        nodeHealth="connected"
-        latency={12}
-        activeChannel={activeChannel}
-      />
-
-      <VoiceModal 
-        isOpen={isVoiceOpen} 
-        onClose={() => setIsVoiceOpen(false)} 
-        userProfile={userProfile}
-        onTranscriptReceived={(userText, modelText) => {
-            setMessages(prev => [
-                ...prev, 
-                { id: Date.now().toString(), role: MessageRole.User, text: `[VHF TRANSCRIPT] ${userText}`, timestamp: Date.now() },
-                { id: (Date.now()+1).toString(), role: MessageRole.Model, text: modelText, timestamp: Date.now() }
-            ]);
-        }}
-      />
-
-      <AgentTraceModal
-        isOpen={isTraceModalOpen}
-        onClose={() => setIsTraceModalOpen(false)}
-        traces={agentTraces}
-      />
-
-      <DailyReportModal
-        isOpen={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-        registry={registry}
-        logs={logs}
-        vesselsInPort={vesselsInPort}
-        userProfile={userProfile}
-        weatherData={weatherData}
-      />
-
-      <PassportScanner
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScanComplete={handleScanComplete}
-      />
-
-    </div>
-  );
-}
+                

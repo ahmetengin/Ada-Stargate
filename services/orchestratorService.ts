@@ -6,21 +6,12 @@ import { checkBackendHealth, sendToBackend } from './api';
 import { getCurrentMaritimeTime } from './utils';
 
 // --- LEGACY IMPORTS (FALLBACK MODE) ---
-// We keep these for the "Offline / Demo" mode if Python backend is down.
 import { financeExpert } from './agents/financeAgent';
 import { legalExpert } from './agents/legalAgent';
 import { marinaExpert } from './agents/marinaAgent';
 import { customerExpert } from './agents/customerAgent';
 import { technicExpert } from './agents/technicAgent';
 import { kitesExpert } from './agents/travelAgent'; 
-import { congressExpert } from './agents/congressAgent';
-import { facilityExpert } from './agents/facilityAgent'; 
-import { hrExpert } from './agents/hrAgent';
-import { commercialExpert } from './agents/commercialAgent';
-import { analyticsExpert } from './agents/analyticsAgent';
-import { berthExpert } from './agents/berthAgent';
-import { reservationsExpert } from './agents/reservationsAgent';
-import { securityExpert } from './agents/securityAgent';
 import { wimMasterData } from './wimMasterData';
 import { VESSEL_KEYWORDS } from './constants';
 
@@ -47,19 +38,10 @@ export const orchestratorService = {
             
             try {
                 const backendResponse = await sendToBackend(prompt, user);
-                
-                // Map backend response to frontend structure
                 if (backendResponse.text) {
-                    // Convert backend actions to frontend format if needed
                     const actions = backendResponse.actions || [];
-                    
                     traces.push(createLog('ada.marina', 'OUTPUT', `Received response from Backend Node.`, 'ORCHESTRATOR'));
-                    
-                    return {
-                        text: backendResponse.text,
-                        actions: actions,
-                        traces: traces
-                    };
+                    return { text: backendResponse.text, actions: actions, traces: traces };
                 }
             } catch (err) {
                 console.error("Backend Error, falling back to simulation:", err);
@@ -69,22 +51,15 @@ export const orchestratorService = {
             traces.push(createLog('ada.marina', 'ROUTING', `Backend Offline. Using Local Simulation Protocols (TypeScript).`, 'ORCHESTRATOR'));
         }
 
-        // --- FALLBACK: LOCAL SIMULATION (ORIGINAL LOGIC) ---
-        // This code only runs if Docker is down or unreachable.
-        
+        // --- FALLBACK: LOCAL SIMULATION ---
         const actions: AgentAction[] = [];
         let responseText = "";
         const lower = prompt.toLowerCase();
-
-        // ... (Existing Router Logic) ...
-        // Re-implementing a simplified version of the router for fallback to save space, 
-        // but functionally identical to the previous version for key demos.
 
         const findVesselInPrompt = (p: string) => VESSEL_KEYWORDS.find(v => p.toLowerCase().includes(v));
         const vesselName = findVesselInPrompt(prompt) || (user.role === 'CAPTAIN' ? 'S/Y Phisedelia' : 's/y phisedelia');
 
         if (lower.includes('invoice') || lower.includes('pay') || lower.includes('debt') || lower.includes('balance')) {
-             // Finance Fallback
              if (user.role === 'GUEST') {
                  responseText = "**ACCESS DENIED.**";
              } else {
@@ -94,7 +69,6 @@ export const orchestratorService = {
              }
         }
         else if (lower.includes('depart') || lower.includes('leaving')) {
-             // Marina Fallback
              const res = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
              responseText = res.message;
              if (res.actions) actions.push(...res.actions);
@@ -114,9 +88,8 @@ export const orchestratorService = {
              responseText = res.message;
         }
         
-        // If no local intent matches, responseText remains empty string.
-        // This signals App.tsx to fallback to the LLM (Gemini) for conversational response.
-
+        // IMPORANT: If no local keyword matched, responseText stays empty ("").
+        // This tells App.tsx to use Gemini for general conversation (e.g. "hi", "is anyone there?").
         return { text: responseText, actions, traces };
     }
 };

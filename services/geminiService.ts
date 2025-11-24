@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Message, ModelType, GroundingSource, RegistryEntry, Tender, UserProfile } from "../types";
 import { BASE_SYSTEM_INSTRUCTION, generateContextBlock } from "./prompts";
@@ -36,6 +37,7 @@ export const streamChatResponse = async (
         systemInstruction: dynamicSystemInstruction,
         temperature: 0.5,
         ...(useSearch && { tools: [{ googleSearch: {} }] }),
+        ...(useThinking && { thinkingConfig: { thinkingBudget: 2048 } }),
       },
     });
 

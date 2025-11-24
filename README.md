@@ -24,6 +24,11 @@
 
 ---
 
+## 🗺️ Development Roadmap
+**New:** Check out the [Architecture Roadmap (v4.0)](./ROADMAP.md) for the path to the Python/LangGraph Enterprise backend.
+
+---
+
 ## 🌊 What is Ada?
 
 Ada is not just a chatbot. It is a **living, breathing, distributed multi-agent ecosystem** designed for the maritime world. 
