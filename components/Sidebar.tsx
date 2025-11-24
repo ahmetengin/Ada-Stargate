@@ -1,127 +1,131 @@
-
 import React from 'react';
-import { Radio, Anchor, Globe, Shield, Zap, Briefcase, Users, FileText, Moon, ScanLine } from 'lucide-react';
-import { UserProfile, UserRole } from '../types';
+import { UserProfile } from '../types';
 import { TENANT_CONFIG } from '../services/config';
 
 interface SidebarProps {
   nodeStates: Record<string, 'connected' | 'working' | 'disconnected'>;
   activeChannel: string;
-  onChannelChange: (ch: string) => void;
   isMonitoring: boolean;
-  onMonitoringToggle: () => void;
   userProfile: UserProfile;
-  onRoleChange: (role: UserRole) => void;
-  onNodeClick: (nodeId: string) => void;
-  isOpen: boolean;
-  onClose: () => void;
-  isPanel: boolean; 
+  onRoleChange: (role: string) => void;
+  onVhfClick?: () => void;
+  onScannerClick?: () => void;
+  onPulseClick?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
   nodeStates, 
   activeChannel,
-  onChannelChange,
   isMonitoring,
-  onMonitoringToggle,
   userProfile,
   onRoleChange,
-  onNodeClick
+  onVhfClick,
+  onScannerClick,
+  onPulseClick
 }) => {
 
   const nodes = [
-    { id: 'ada.vhf', label: 'VHF', color: 'bg-emerald-500' },
-    { id: 'ada.sea', label: 'SEA (COLREGS)', color: 'bg-emerald-500' },
-    { id: 'ada.marina', label: 'MARINA (Orch)', color: 'bg-emerald-500' },
-    { id: 'ada.finance', label: 'FINANCE (Parasut)', color: 'bg-emerald-500' },
-    { id: 'ada.customer', label: 'CUSTOMER (CRM)', color: 'bg-emerald-500' },
-    { id: 'ada.passkit', label: 'PASSKIT (Wallet)', color: 'bg-emerald-500' },
-    { id: 'ada.legal', label: 'LEGAL (RAG)', color: 'bg-emerald-500' },
-    { id: 'ada.security', label: 'SECURITY', color: 'bg-emerald-500' },
-    { id: 'ada.weather', label: 'WX (Forecast)', color: 'bg-emerald-500' },
+    { id: 'ada.vhf', label: 'VHF' },
+    { id: 'ada.sea', label: 'SEA (COLREGs)' },
+    { id: 'ada.marina', label: 'MARINA (Orch)' },
+    { id: 'ada.finance', label: 'FINANCE (Parasut)' },
+    { id: 'ada.customer', label: 'CUSTOMER (CRM)' },
+    { id: 'ada.passkit', label: 'PASSKIT (Wallet)' },
+    { id: 'ada.legal', label: 'LEGAL (RAG)' },
+    { id: 'ada.security', label: 'SECURITY' },
+    { id: 'ada.weather', label: 'WX (Forecast)' },
   ];
 
+  const handleNodeClick = (nodeId: string) => {
+      if (nodeId === 'ada.passkit' || nodeId === 'ada.security') {
+          onScannerClick?.();
+      } else if (nodeId === 'ada.vhf') {
+          onVhfClick?.();
+      } else if (nodeId === 'ada.marina') {
+          onPulseClick?.();
+      }
+  };
+
   return (
-    <div className="flex flex-col h-full text-zinc-400 font-sans select-none">
+    <div className="h-full bg-[#050b14] flex flex-col">
       {/* Header */}
-      <div className="p-6 pb-2">
-        <div className="flex items-center justify-between mb-1">
-            <h2 className="text-xs font-bold text-zinc-200 uppercase tracking-[0.2em] flex items-center gap-2">
-               <Anchor size={14} className="text-zinc-500" /> ADA EXPLORER
-            </h2>
-            <Moon size={12} className="text-zinc-600" />
+      <div className="p-6 pb-4">
+        <div className="flex items-center gap-2 text-zinc-400 mb-1 cursor-pointer" onClick={onPulseClick}>
+            <div className="w-2 h-2 bg-zinc-600 rounded-sm"></div>
+            <h2 className="text-xs font-bold tracking-[0.2em] text-zinc-300">ADA EXPLORER</h2>
         </div>
-        <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
-            <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest">CONTEXT</div>
-            <div className="text-[9px] font-mono text-indigo-400 font-bold">{TENANT_CONFIG.network}</div>
+        <div className="flex items-center justify-between text-[9px] text-zinc-600 mt-4 font-bold">
+            <span className="uppercase tracking-wider">Context</span>
+            <span className="text-teal-500 underline decoration-teal-500/30 underline-offset-4">{TENANT_CONFIG.network}</span>
         </div>
       </div>
 
       {/* Node List */}
-      <div className="flex-1 overflow-y-auto px-6 space-y-4 pt-2">
-        {nodes.map(node => (
-            <div key={node.id} className="flex items-center gap-3 group cursor-pointer hover:text-zinc-200 transition-colors">
-                <div className={`w-1.5 h-1.5 rounded-full ${node.color} shadow-[0_0_5px_rgba(16,185,129,0.4)]`}></div>
-                <span className="text-[10px] font-bold uppercase tracking-widest">{node.label}</span>
-            </div>
+      <div className="flex-1 px-6 py-2 space-y-5 overflow-y-auto custom-scrollbar">
+        {nodes.map((node) => (
+          <div 
+            key={node.id} 
+            className="flex items-center gap-3 group cursor-pointer"
+            onClick={() => handleNodeClick(node.id)}
+          >
+            <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${nodeStates[node.id] === 'working' ? 'bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]' : 'bg-teal-500/50 group-hover:bg-teal-400'}`} />
+            <span className={`text-[10px] font-bold tracking-widest uppercase transition-colors ${nodeStates[node.id] === 'working' ? 'text-zinc-200' : 'text-zinc-600 group-hover:text-zinc-400'}`}>
+              {node.label}
+            </span>
+          </div>
         ))}
       </div>
 
-      {/* VHF Control */}
-      <div className="px-6 py-6 border-t border-zinc-800/50">
-          <div className="flex items-center justify-between mb-4">
-              <div className="text-[9px] font-bold text-emerald-500 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <span className="animate-pulse">((●))</span> VHF CONTROL
+      {/* VHF Control Module */}
+      <div className="px-6 py-8 mt-auto">
+          <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2 text-teal-500/80 cursor-pointer" onClick={onVhfClick}>
+                  <span className="animate-pulse">((●))</span>
+                  <span className="text-[9px] font-bold tracking-[0.2em]">VHF CONTROL</span>
               </div>
-              <button onClick={onMonitoringToggle}>
-                  <div className={`w-3 h-3 rounded-full border ${isMonitoring ? 'border-emerald-500 bg-emerald-500/20' : 'border-zinc-600'}`}></div>
-              </button>
+              <div className="w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_5px_#10b981]"></div>
           </div>
           
-          <div className="grid grid-cols-4 gap-2 mb-4">
+          <div className="flex justify-between text-zinc-600 text-xs font-bold mb-4">
               {['16', '72', '69', '06'].map(ch => (
                   <button 
-                    key={ch}
-                    onClick={() => onChannelChange(ch)}
-                    className={`h-8 rounded text-[10px] font-bold font-mono transition-all ${
-                        activeChannel === ch 
-                        ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' 
-                        : 'bg-zinc-900/50 text-zinc-600 border border-zinc-800 hover:border-zinc-700'
-                    }`}
+                    key={ch} 
+                    onClick={onVhfClick}
+                    className={`w-8 h-8 flex items-center justify-center rounded transition-all hover:bg-teal-500/20 ${activeChannel === ch ? 'bg-teal-500/10 text-teal-400 border border-teal-500/30 shadow-[0_0_10px_rgba(45,212,191,0.1)]' : 'bg-[#0a121e] border border-white/5'}`}
                   >
                       {ch}
                   </button>
               ))}
           </div>
           
-          <div className="grid grid-cols-4 gap-2">
-              <div className="col-span-1 h-8 flex items-center justify-center text-[10px] font-mono text-zinc-600">12</div>
-              <div className="col-span-1 h-8 flex items-center justify-center text-[10px] font-mono text-zinc-600">13</div>
-              <div className="col-span-1 h-8 flex items-center justify-center text-[10px] font-mono text-zinc-600">14</div>
-              <button className="col-span-1 h-8 rounded text-[10px] font-bold font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20">SCAN</button>
+          <div className="flex justify-between text-[9px] font-bold tracking-wider">
+              {['12', '13', '14'].map(ch => (
+                  <span key={ch} className="text-zinc-700 hover:text-zinc-500 cursor-not-allowed">{ch}</span>
+              ))}
+              <span className="text-amber-500 animate-pulse cursor-pointer" onClick={onScannerClick}>SCAN</span>
           </div>
       </div>
 
-      {/* RBAC */}
-      <div className="px-6 py-4 border-t border-zinc-800/50">
-          <div className="text-[9px] font-mono text-zinc-600 uppercase mb-2 flex gap-2">
-              <Users size={10} /> RBAC MODE
+      {/* RBAC Selector */}
+      <div className="px-6 py-6 border-t border-white/5">
+          <div className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest mb-3 flex gap-2 items-center">
+             <div className="w-1.5 h-1.5 border border-zinc-600 rounded-full"></div> RBAC MODE
           </div>
           <div className="space-y-1">
-              {(['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] as UserRole[]).map(role => (
-                  <button
+            {(['GUEST', 'CAPTAIN', 'GENERAL_MANAGER'] as const).map(role => (
+                <button
                     key={role}
                     onClick={() => onRoleChange(role)}
-                    className={`w-full text-left px-3 py-2 rounded text-[9px] font-bold uppercase tracking-widest transition-all flex justify-between ${
+                    className={`w-full text-left text-[9px] font-bold uppercase tracking-wider py-2 px-3 rounded transition-all flex justify-between items-center ${
                         userProfile.role === role 
-                        ? 'bg-indigo-900/20 text-indigo-300 border border-indigo-500/30' 
-                        : 'text-zinc-600 hover:text-zinc-400'
+                        ? 'bg-[#0a1525] text-teal-400 border-l-2 border-teal-500 shadow-[0_4px_10px_rgba(0,0,0,0.3)]' 
+                        : 'text-zinc-600 hover:text-zinc-400 hover:bg-white/5'
                     }`}
-                  >
-                      {role.replace('_', ' ')}
-                      {userProfile.role === role && <div className="w-1 h-1 bg-indigo-400 rounded-full mt-1"></div>}
-                  </button>
-              ))}
+                >
+                    {role.replace('_', ' ')}
+                    {userProfile.role === role && <div className="w-1 h-1 bg-teal-500 rounded-full shadow-[0_0_5px_#2dd4bf]"></div>}
+                </button>
+            ))}
           </div>
       </div>
     </div>

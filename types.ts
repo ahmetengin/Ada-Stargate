@@ -64,10 +64,10 @@ export interface RegistryEntry {
 export interface Tender {
   id: string;
   name: string;
+  callsign?: string; // Added for display
   status: 'Idle' | 'Busy' | 'Maintenance';
   assignment?: string;
-  serviceCount?: number; // Added to track how many boats this tender has served
-  callsign?: string;
+  serviceCount?: number; 
 }
 
 export interface KplerAisTarget {
@@ -92,11 +92,10 @@ export interface TrafficEntry {
   lng?: number;
   speedKnots?: number;
   course?: number;
-  // NEW: Richer data fields inspired by Kpler MCP
   imo?: string;
   flag?: string;
   nextPort?: string;
-  distanceMiles?: number; // Added for proximity search results
+  distanceMiles?: number; 
 }
 
 // --- CRM & ASSET MANAGEMENT TYPES (UPDATED) ---
@@ -260,7 +259,7 @@ export interface AgentTraceLog {
   id: string;
   timestamp: string;
   node: NodeName;
-  step: 'ROUTING' | 'THINKING' | 'TOOL_EXECUTION' | 'OUTPUT' | 'ERROR' | 'TOOL_CALL' | 'CODE_OUTPUT' | 'PLANNING' | 'FINAL_ANSWER' | 'WARNING';
+  step: 'ROUTING' | 'THINKING' | 'TOOL_EXECUTION' | 'OUTPUT' | 'ERROR' | 'TOOL_CALL' | 'CODE_OUTPUT' | 'PLANNING' | 'FINAL_ANSWER' | 'WARNING' | 'VOTING';
   content: string;
   metadata?: any;
   isError?: boolean;

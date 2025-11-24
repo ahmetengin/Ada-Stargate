@@ -3,7 +3,16 @@
 **Status:** Analysis Complete
 **Target Architecture:** [Big 3 Super Agent](https://github.com/disler/big-3-super-agent) (Python/FastAPI + LangGraph)
 
-## 🔴 Priority 1: The "Big 3" Backend Migration
+## 🔴 Priority 0: Critical Security & Infrastructure
+*Goal: Secure the foundation before scaling.*
+
+- [ ] **Secure API Key Storage**: 
+    - Current State: `API_KEY` is injected into the Frontend bundle via `docker-compose` or `.env`.
+    - **Action**: Move all Gemini API calls to a Python Proxy / Backend. The client should NEVER see the `API_KEY`.
+- [ ] **CI/CD Pipeline**: 
+    - **Action**: Add GitHub Actions for `npm run build` and `docker build` to prevent regression.
+
+## 🟠 Priority 1: The "Big 3" Backend Migration
 *Goal: Move logic from Browser (Fragile) to Server (Robust).*
 
 ### 1.1 Orchestrator Migration
@@ -36,8 +45,9 @@
 - [ ] **Event Bus**: Fully implement the Redis Pub/Sub system defined in `docs/architecture/OBSERVABILITY_HOOKS.md` to stream backend logs to the Frontend `AgentTraceModal`.
 - [ ] **Audit Logs**: Ensure every "Action" (e.g., `ada.finance.invoiceCreated`) is written to an immutable audit log for financial compliance.
 
-## 🟢 Priority 4: Feature Hardening
+## 🟢 Priority 4: Feature Hardening & UX
 
 - [ ] **Voice Protocol**: Optimize `LiveSession` in `liveService.ts` to handle interruptions better (VHF "Break Break" logic).
 - [ ] **Identity Verification**: Replace the simulated `PassportScanner.tsx` logic with a real server-side OCR implementation (Tesseract or Google Vision API).
+- [ ] **Performance**: Implement virtualization (e.g., `react-window`) for the `Canvas.tsx` Operations Feed to handle 1000+ log entries efficiently.
 - [ ] **Offline Sync**: Implement a Service Worker to allow basic "Read-Only" access to `wim_contract_regulations.md` when offline at sea.

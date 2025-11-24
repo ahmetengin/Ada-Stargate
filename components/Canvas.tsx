@@ -1,147 +1,123 @@
-
 import React from 'react';
-import { ExternalLink, RefreshCcw, List, Printer, Cloud, Globe, Map, Search, Ship } from 'lucide-react';
-import { RegistryEntry, Tender, TrafficEntry, UserProfile, WeatherForecast, AgentTraceLog } from '../types';
+import { RegistryEntry, Tender } from '../types';
+import { ExternalLink, Radar, List, Database, Cloud, Globe } from 'lucide-react';
 
 interface CanvasProps {
-  logs: any[];
+  vesselsInPort: number;
   registry: RegistryEntry[];
   tenders: Tender[];
-  trafficQueue: TrafficEntry[];
-  weatherData: WeatherForecast[];
-  activeChannel: string;
-  isMonitoring: boolean;
-  userProfile: UserProfile;
-  vesselsInPort: number;
-  agentTraces: AgentTraceLog[]; 
-  onCheckIn: (id: string) => void;
-  onOpenTrace: () => void;
-  onGenerateReport: () => void;
-  onNodeClick: (nodeId: string) => void;
-  isOpen: boolean;
-  onClose: () => void;
-  activeTab: 'feed' | 'fleet' | 'tech' | 'ais' | 'map' | 'weather';
-  onTabChange: (tab: 'feed' | 'fleet' | 'tech' | 'ais' | 'map' | 'weather') => void;
-  isPanel: boolean;
-  isRedAlert: boolean;
 }
 
 export const Canvas: React.FC<CanvasProps> = ({ 
-  tenders, 
-  vesselsInPort
+  vesselsInPort, 
+  registry,
+  tenders
 }) => {
 
   return (
-    <div className="flex flex-col h-full font-sans text-zinc-400">
+    <div className="h-full bg-[#050b14] text-zinc-300 flex flex-col p-6">
       {/* Header */}
-      <div className="h-14 flex items-center justify-between px-6 border-b border-zinc-800/50">
-          <div className="text-xs font-bold text-zinc-300 uppercase tracking-[0.2em]">OPERATIONS DECK</div>
+      <div className="flex items-center justify-between mb-8 pl-2">
+          <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em]">OPERATIONS DECK</h2>
           <div className="flex gap-3 text-zinc-600">
-              <ExternalLink size={12} className="hover:text-zinc-300 cursor-pointer" />
-              <RefreshCcw size={12} className="hover:text-zinc-300 cursor-pointer" />
-              <List size={12} className="hover:text-zinc-300 cursor-pointer" />
-              <Printer size={12} className="hover:text-indigo-400 cursor-pointer bg-indigo-500/10 rounded p-0.5" />
-              <Cloud size={12} className="hover:text-zinc-300 cursor-pointer" />
-              <Globe size={12} className="hover:text-zinc-300 cursor-pointer" />
-              <Map size={12} className="hover:text-zinc-300 cursor-pointer" />
+              <ExternalLink size={12} className="hover:text-teal-400 cursor-pointer transition-colors" />
+              <Radar size={12} className="text-teal-500 shadow-[0_0_8px_rgba(45,212,191,0.4)]" />
+              <List size={12} className="hover:text-teal-400 cursor-pointer transition-colors" />
+              <Database size={12} className="hover:text-teal-400 cursor-pointer transition-colors" />
+              <Cloud size={12} className="hover:text-teal-400 cursor-pointer transition-colors" />
+              <Globe size={12} className="hover:text-teal-400 cursor-pointer transition-colors" />
           </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
+      {/* Big Metrics */}
+      <div className="grid grid-cols-3 gap-4 mb-10">
+          <div className="text-center">
+              <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">VESSELS</div>
+              <div className="text-3xl font-bold text-indigo-400 tabular-nums tracking-tighter drop-shadow-lg">{vesselsInPort}</div>
+          </div>
+          <div className="text-center border-x border-white/5">
+              <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">MOVEMENTS</div>
+              <div className="text-3xl font-bold text-zinc-200 tabular-nums tracking-tighter">{registry.length}</div>
+          </div>
+          <div className="text-center">
+              <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mb-2">OCCUPANCY</div>
+              <div className="text-3xl font-bold text-emerald-500 tabular-nums tracking-tighter">92%</div>
+          </div>
+      </div>
+
+      {/* Tender Operations */}
+      <div className="mb-8 pl-1">
+          <h3 className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-4">TENDER OPERATIONS</h3>
+          <div className="space-y-4">
+              {tenders.map(tender => (
+                  <div key={tender.id} className="flex justify-between items-center group">
+                      <div>
+                          <div className="text-xs font-bold text-zinc-300 group-hover:text-white transition-colors">{tender.callsign || tender.name}</div>
+                          <div className="text-[9px] font-bold text-zinc-600 uppercase tracking-wide">{tender.assignment || 'Station'}</div>
+                      </div>
+                      <div className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded ${
+                          tender.status === 'Idle' ? 'text-emerald-500 bg-emerald-500/5 border border-emerald-500/20' : 
+                          tender.status === 'Busy' ? 'text-amber-500 bg-amber-500/5 border border-amber-500/20 animate-pulse' : 'text-red-500 bg-red-500/5 border border-red-500/20'
+                      }`}>
+                          {tender.status}
+                      </div>
+                  </div>
+              ))}
+          </div>
+      </div>
+
+      {/* Port Activity */}
+      <div className="mb-8 pl-1">
+          <h3 className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-4">PORT ACTIVITY (REGISTRY)</h3>
+          <div className="space-y-3">
+              {registry.length === 0 ? (
+                  <div className="text-[10px] text-zinc-700 italic">No recent movements log.</div>
+              ) : registry.map((entry) => (
+                  <div key={entry.id} className="flex justify-between items-center group">
+                      <div className="text-[10px] font-mono text-zinc-500">{entry.timestamp.split(' ')[0]}</div>
+                      <div className="font-bold text-[11px] text-teal-400/80 group-hover:text-teal-400 transition-colors">{entry.vessel}</div>
+                      <div className="text-[9px] font-bold text-zinc-600 text-right uppercase tracking-wide">{entry.location}</div>
+                  </div>
+              ))}
+          </div>
+      </div>
+
+      {/* Fleet Roster Search */}
+      <div className="flex-1 flex flex-col min-h-0 pl-1">
+          <h3 className="text-[9px] font-bold text-zinc-600 uppercase tracking-[0.2em] mb-4">FLEET ROSTER</h3>
           
-          {/* Metrics Row */}
-          <div className="grid grid-cols-3 gap-8">
-              <div className="text-center">
-                  <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-1">VESSELS</div>
-                  <div className="text-4xl font-bold text-indigo-400 font-mono">542</div>
-              </div>
-              <div className="text-center">
-                  <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-1">MOVEMENTS</div>
-                  <div className="text-4xl font-bold text-zinc-200 font-mono">2</div>
-              </div>
-              <div className="text-center">
-                  <div className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest mb-1">OCCUPANCY</div>
-                  <div className="text-4xl font-bold text-emerald-500 font-mono">92%</div>
+          <div className="relative mb-4 group">
+              <input 
+                type="text" 
+                placeholder="Search vessel by name, IMO, or flag..." 
+                className="w-full bg-[#0a121e] text-zinc-400 text-[10px] font-mono py-2.5 px-3 rounded border border-white/5 focus:border-teal-500/30 focus:outline-none transition-all placeholder:text-zinc-700"
+              />
+              <div className="absolute right-3 top-2.5 text-zinc-700 group-hover:text-zinc-500 transition-colors">
+                  <Radar size={12} />
               </div>
           </div>
 
-          {/* Tender Ops */}
-          <div>
-              <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-4">TENDER OPERATIONS</div>
-              <div className="space-y-4">
-                  {tenders.map(t => (
-                      <div key={t.id} className="flex justify-between items-center group">
-                          <div>
-                              <div className="text-xs font-bold text-zinc-200 group-hover:text-indigo-400 transition-colors">{t.callsign || t.name}</div>
-                              <div className="text-[9px] text-zinc-600">Station</div>
-                          </div>
-                          <div className={`text-[9px] font-bold ${t.status === 'Maintenance' ? 'text-red-500' : 'text-emerald-500'}`}>
-                              {t.status.toUpperCase()}
-                          </div>
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+              {[
+                  { name: 'S/Y Phisedelia', imo: '987654321', flag: 'MT', status: 'DOCKED' },
+                  { name: 'M/Y Blue Horizon', imo: '123456789', flag: 'KY', status: 'DOCKED' },
+                  { name: 'S/Y Mistral', imo: '555666777', flag: 'TR', status: 'AT_ANCHOR' },
+                  { name: 'M/Y Poseidon', imo: '888999000', flag: 'BS', status: 'DOCKED' },
+                  { name: 'Catamaran Lir', imo: '111222333', flag: 'FR', status: 'DOCKED' },
+                  { name: 'S/Y Aegeas', imo: '444555666', flag: 'GR', status: 'OUTBOUND' },
+                  { name: 'M/Y Grand Turk', imo: '777888999', flag: 'PA', status: 'DOCKED' },
+              ].map((vessel, i) => (
+                  <div key={i} className="flex justify-between items-start">
+                      <div>
+                          <div className="text-[11px] font-bold text-zinc-300">{vessel.name}</div>
+                          <div className="text-[9px] text-zinc-600 font-mono mt-0.5">IMO: {vessel.imo} | Flag: {vessel.flag}</div>
                       </div>
-                  ))}
-              </div>
-          </div>
-
-          {/* Port Activity */}
-          <div>
-              <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-4">PORT ACTIVITY (REGISTRY)</div>
-              <div className="space-y-3 font-mono text-[10px]">
-                  <div className="flex justify-between items-center">
-                      <div className="flex gap-3">
-                          <span className="text-zinc-500">13:16</span>
-                          <span className="text-emerald-400 font-bold">S/Y Vertigo</span>
-                      </div>
-                      <span className="text-zinc-500">Transit Quay</span>
+                      <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">{vessel.status}</div>
                   </div>
-                  <div className="flex justify-between items-center">
-                      <div className="flex gap-3">
-                          <span className="text-zinc-500">13:16</span>
-                          <span className="text-emerald-400 font-bold">M/Y Solaris</span>
-                      </div>
-                      <span className="text-zinc-500">Transit Quay</span>
-                  </div>
-              </div>
+              ))}
           </div>
-
-          {/* Fleet Roster */}
-          <div>
-              <div className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest mb-4">FLEET ROSTER</div>
-              
-              {/* Search */}
-              <div className="relative mb-4 group">
-                  <Search size={12} className="absolute left-3 top-2.5 text-zinc-600 group-focus-within:text-indigo-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Search vessel by name, IMO, or flag..." 
-                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg py-2 pl-8 pr-4 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500/50 transition-colors font-mono"
-                  />
-              </div>
-
-              <div className="space-y-4">
-                  {[
-                      { name: "S/Y Phisedelia", imo: "987654321", flag: "MT", status: "DOCKED" },
-                      { name: "M/Y Blue Horizon", imo: "123456789", flag: "KY", status: "DOCKED" },
-                      { name: "S/Y Mistral", imo: "555666777", flag: "TR", status: "AT_ANCHOR" },
-                      { name: "M/Y Poseidon", imo: "888999000", flag: "BS", status: "DOCKED" },
-                      { name: "Catamaran Lir", imo: "111222333", flag: "FR", status: "DOCKED" },
-                      { name: "S/Y Aegeas", imo: "444555666", flag: "GR", status: "OUTBOUND" },
-                      { name: "M/Y Grand Turk", imo: "777888999", flag: "PA", status: "DOCKED" },
-                  ].map((v, i) => (
-                      <div key={i} className="flex justify-between items-start pb-3 border-b border-zinc-800/30 last:border-0">
-                          <div>
-                              <div className="text-xs font-bold text-zinc-200 mb-0.5">{v.name}</div>
-                              <div className="text-[9px] font-mono text-zinc-600">IMO: {v.imo} | Flag: {v.flag}</div>
-                          </div>
-                          <div className={`text-[9px] font-mono mt-0.5 ${v.status === 'AT_ANCHOR' ? 'text-zinc-500' : v.status === 'OUTBOUND' ? 'text-amber-600' : 'text-zinc-600'}`}>
-                              {v.status}
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
-
       </div>
+
     </div>
   );
 };

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Brain, AlertCircle, Layers, Activity, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { X, Brain, AlertCircle, Layers, Activity, CheckCircle2, Circle, Clock, Scale } from 'lucide-react';
 import { AgentTraceLog } from '../types';
 
 interface AgentTraceModalProps {
@@ -99,6 +99,8 @@ export const AgentTraceModal: React.FC<AgentTraceModalProps> = ({ isOpen, onClos
       case 'FINAL_ANSWER': 
       case 'OUTPUT':
         return 'bg-green-900/20 border-l-2 border-green-500';
+      case 'VOTING':
+        return 'bg-purple-900/20 border-l-2 border-purple-500';
       default: return 'border-l-2 border-transparent';
     }
   };
@@ -106,6 +108,9 @@ export const AgentTraceModal: React.FC<AgentTraceModalProps> = ({ isOpen, onClos
   const getStepIcon = (trace: AgentTraceLog) => {
     if (trace.isError || trace.step === 'ERROR') {
       return <AlertCircle size={12} className="text-red-400 animate-pulse" />;
+    }
+    if (trace.step === 'VOTING') {
+        return <Scale size={12} className="text-purple-400" />;
     }
     return <div className="w-3 h-3" />;
   };

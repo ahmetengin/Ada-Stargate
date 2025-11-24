@@ -1,24 +1,16 @@
 
-import React, { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
-import { ArrowUp, Paperclip, Mic, Brain, Search } from 'lucide-react'; 
-import { ModelType } from '../types';
+import React, { useState, useRef, KeyboardEvent } from 'react';
+import { ArrowUp, Paperclip, Mic, AudioWaveform } from 'lucide-react'; 
+import { ModelType, UserRole } from '../types';
+import { QuickActions } from './QuickActions';
 
 interface InputAreaProps {
   onSend: (text: string, attachments: File[]) => void;
   isLoading: boolean;
   selectedModel: ModelType;
   onModelChange: (model: ModelType) => void;
-  onInitiateVhfCall: () => void; 
-  onInitiateScanner: () => void;
-  onToggleRedAlert: () => void;
-  isRedAlert: boolean;
-  isMonitoring: boolean;
-  useSearch: boolean;
-  onToggleSearch: () => void;
-  useThinking: boolean;
-  onToggleThinking: () => void;
-  prefillText?: string;
-  onPrefillConsumed?: () => void;
+  userRole?: UserRole;
+  onQuickAction?: (text: string) => void;
 }
 
 export const InputArea: React.FC<InputAreaProps> = ({ 
@@ -26,24 +18,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
   isLoading, 
   selectedModel, 
   onModelChange,
-  useThinking,
-  onToggleThinking,
-  prefillText,
-  onPrefillConsumed,
-  onInitiateVhfCall
+  userRole,
+  onQuickAction
 }) => {
   const [text, setText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-      if (prefillText) {
-          setText(prefillText);
-          onPrefillConsumed?.();
-      }
-  }, [prefillText]);
-
   const handleSend = () => {
-    if (!text.trim()) return;
+    if ((!text.trim()) || isLoading) return;
     onSend(text, []);
     setText('');
   };
@@ -56,57 +38,75 @@ export const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <div className="w-full font-sans">
+    <div className="w-full max-w-3xl mx-auto">
       
-      {/* Model Selectors */}
-      <div className="flex items-center gap-4 px-2 mb-2 text-[10px] font-bold tracking-widest text-zinc-600 uppercase">
-          <button onClick={() => onModelChange(ModelType.Flash)} className={`hover:text-zinc-300 ${selectedModel === ModelType.Flash ? 'text-zinc-400' : ''}`}>Flash</button>
-          <button onClick={() => onModelChange(ModelType.Pro)} className={`hover:text-red-500 ${selectedModel === ModelType.Pro ? 'text-red-500 bg-red-500/10 px-1 rounded' : ''}`}>PRO</button>
-          <button onClick={() => onModelChange(ModelType.Image)} className={`hover:text-zinc-300 ${selectedModel === ModelType.Image ? 'text-zinc-400' : ''}`}>Image</button>
+      <div className="flex items-center justify-between mb-3 ml-4">
+          {/* Model Selectors */}
+          <div className="flex gap-4 text-[9px] font-bold uppercase tracking-[0.2em]">
+              <button 
+                onClick={() => onModelChange(ModelType.Flash)}
+                className={`transition-colors ${selectedModel === ModelType.Flash ? "text-teal-400" : "text-zinc-600 hover:text-zinc-400"}`}
+              >
+                  FLASH
+              </button>
+              <button 
+                onClick={() => onModelChange(ModelType.Pro)}
+                className={`transition-colors ${selectedModel === ModelType.Pro ? "text-red-500" : "text-zinc-600 hover:text-zinc-400"}`}
+              >
+                  PRO
+              </button>
+              <button 
+                onClick={() => onModelChange(ModelType.Image)}
+                className={`transition-colors ${selectedModel === ModelType.Image ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-400"}`}
+              >
+                  IMAGE
+              </button>
+          </div>
       </div>
 
-      {/* Input Capsule */}
-      <div className="flex items-center bg-zinc-900/80 border border-zinc-800 rounded-full px-2 py-1.5 shadow-2xl transition-colors focus-within:border-zinc-700">
-        
-        <button className="p-2 text-zinc-600 hover:text-zinc-400 transition-colors">
-            <Paperclip size={16} />
-        </button>
+      {/* Quick Actions Overlay */}
+      {userRole && onQuickAction && (
+          <div className="mb-3">
+              <QuickActions userRole={userRole} onAction={onQuickAction} />
+          </div>
+      )}
 
-        <textarea
+      {/* Capsule Input */}
+      <div className="relative bg-[#0a121e] rounded-full border border-white/10 flex items-center px-2 py-2 shadow-2xl shadow-black/50 ring-1 ring-white/5 focus-within:ring-teal-500/30 transition-all">
+          <button className="p-3 text-zinc-600 hover:text-zinc-400 transition-colors">
+              <Paperclip size={16} />
+          </button>
+          
+          <textarea
             ref={textareaRef}
             rows={1}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Instructions..."
-            className="flex-1 bg-transparent border-none focus:outline-none text-sm text-zinc-300 placeholder:text-zinc-700 px-2 font-mono resize-none py-2"
+            className="flex-1 bg-transparent border-none focus:outline-none text-sm text-zinc-300 placeholder:text-zinc-700 resize-none py-3 px-2 font-mono"
             disabled={isLoading}
-        />
+          />
 
-        <div className="flex items-center gap-1 pr-1">
-             <button 
-               onClick={onInitiateVhfCall}
-               className="p-2 text-zinc-600 hover:text-zinc-400 transition-colors"
-             >
-               <Mic size={16} />
-             </button>
-
-             <button 
-               onClick={onToggleThinking}
-               className={`p-2 transition-colors ${useThinking ? 'text-indigo-400 bg-indigo-500/10 rounded-full' : 'text-zinc-600 hover:text-red-500'}`}
-             >
-               <Brain size={16} />
-             </button>
-
-            <button
+          <div className="flex items-center gap-2 pr-1">
+              <button className="p-2 text-zinc-600 hover:text-zinc-400 transition-colors"><Mic size={16}/></button>
+              <button className="p-2 text-red-900/50 hover:text-red-500 transition-colors"><AudioWaveform size={16}/></button>
+              
+              <button 
                 onClick={handleSend}
-                disabled={!text.trim() || isLoading}
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${text.trim() ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-800/50 text-zinc-600'}`}
-            >
-                <ArrowUp size={16} />
-            </button>
-        </div>
+                className="w-10 h-10 bg-[#151f2e] hover:bg-[#1c2a3d] border border-white/5 text-zinc-400 hover:text-teal-400 rounded-full flex items-center justify-center transition-all shadow-inner"
+              >
+                  <ArrowUp size={16} />
+              </button>
+          </div>
       </div>
+
+      {/* Warning Footer */}
+      <div className="flex justify-center items-center gap-2 mt-4 text-[8px] font-bold text-zinc-700 uppercase tracking-[0.2em]">
+          <div className="w-1 h-1 bg-red-900 rounded-full animate-pulse"></div>
+          THIS CONVERSATION IS BEING RECORDED / RECORDED LINE
+      </div>
+
     </div>
   );
 };

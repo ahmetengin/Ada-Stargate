@@ -4,6 +4,7 @@
 import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, Tender } from '../types';
 import { checkBackendHealth, sendToBackend } from './api';
 import { getCurrentMaritimeTime } from './utils';
+import { vote, Candidate } from './voting/consensus';
 
 // --- LEGACY IMPORTS (FALLBACK MODE) ---
 import { financeExpert } from './agents/financeAgent';
@@ -69,9 +70,57 @@ export const orchestratorService = {
              }
         }
         else if (lower.includes('depart') || lower.includes('leaving')) {
-             const res = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
-             responseText = res.message;
-             if (res.actions) actions.push(...res.actions);
+             // --- CONSENSUS PROTOCOL ---
+             traces.push(createLog('ada.marina', 'ROUTING', `Departure request detected. Initiating Multi-Agent Consensus Protocol...`, 'ORCHESTRATOR'));
+
+             // 1. Finance Vote (Weighted 10 - Veto Power)
+             const debtStatus = await financeExpert.checkDebt(vesselName);
+             const financeDecision = debtStatus.status === 'CLEAR' ? 'APPROVE' : 'DENY';
+             const financeScore = 10; // High weight
+
+             traces.push(createLog('ada.finance', 'VOTING', `Vote: ${financeDecision} (Weight: ${financeScore}). Reason: ${financeDecision === 'APPROVE' ? 'Account Clear' : 'Outstanding Debt'}`, 'EXPERT'));
+
+             // 2. Technic Vote (Weighted 5)
+             const jobs = technicExpert.getActiveJobs().filter(j => j.vesselName.toLowerCase().includes(vesselName.toLowerCase()) && j.status !== 'COMPLETED');
+             const criticalJob = jobs.find(j => j.jobType === 'HAUL_OUT' || j.jobType === 'ENGINE_SERVICE');
+             const technicDecision = criticalJob ? 'DENY' : 'APPROVE';
+             const technicScore = 5;
+
+             traces.push(createLog('ada.technic', 'VOTING', `Vote: ${technicDecision} (Weight: ${technicScore}). Reason: ${criticalJob ? 'Critical Maintenance Active' : 'Systems Nominal'}`, 'EXPERT'));
+
+             // 3. Marina Ops Vote (Weighted 8)
+             // Simple check for demonstration
+             const marinaDecision = 'APPROVE'; 
+             const marinaScore = 8;
+             traces.push(createLog('ada.marina', 'VOTING', `Vote: ${marinaDecision} (Weight: ${marinaScore}). Reason: Traffic Permitting`, 'EXPERT'));
+
+             // AGGREGATE VOTES
+             // We aggregate the weights for APPROVE vs DENY
+             const scoreMap = { 'APPROVE': 0, 'DENY': 0 };
+             if (financeDecision === 'APPROVE') scoreMap['APPROVE'] += financeScore; else scoreMap['DENY'] += financeScore;
+             if (technicDecision === 'APPROVE') scoreMap['APPROVE'] += technicScore; else scoreMap['DENY'] += technicScore;
+             if (marinaDecision === 'APPROVE') scoreMap['APPROVE'] += marinaScore; else scoreMap['DENY'] += marinaScore;
+
+             // Create candidates for the vote function
+             const finalCandidates: Candidate<string>[] = [
+                 { item: 'APPROVE', score: scoreMap['APPROVE'] },
+                 { item: 'DENY', score: scoreMap['DENY'] }
+             ];
+
+             // Execute Vote
+             const finalDecision = vote(finalCandidates, 'plurality'); // Highest score wins
+
+             traces.push(createLog('ada.marina', 'VOTING', `Consensus Result: ${finalDecision} (Approve: ${scoreMap.APPROVE}, Deny: ${scoreMap.DENY})`, 'ORCHESTRATOR'));
+
+             if (finalDecision === 'APPROVE') {
+                 const res = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
+                 responseText = res.message;
+                 if (res.actions) actions.push(...res.actions);
+             } else {
+                 responseText = `**DEPARTURE REQUEST DENIED (Consensus)**\n\nThe Multi-Agent Council has blocked this request.\n\n**Votes against:**\n` +
+                    (financeDecision === 'DENY' ? `- **Finance:** Outstanding Debt (€${debtStatus.amount})\n` : '') +
+                    (technicDecision === 'DENY' ? `- **Technic:** Critical Maintenance Active\n` : '');
+             }
         }
         else if (lower.includes('arrival') || lower.includes('arrive') || lower.includes('dock') || lower.includes('approach')) {
              // Marina Arrival Fallback

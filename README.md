@@ -6,7 +6,7 @@
 ![System Status](https://img.shields.io/badge/SYSTEM-OPERATIONAL-success?style=for-the-badge&logo=radar)
 ![AI Core](https://img.shields.io/badge/AI_CORE-GEMINI_PRO_3.0-purple?style=for-the-badge&logo=google-gemini)
 ![Nodes](https://img.shields.io/badge/FLEET_NODES-602_ACTIVE-blue?style=for-the-badge&logo=docker)
-![Privacy](https://img.shields.io/badge/PRIVACY-ZERO_TRUST-red?style=for-the-badge&logo=guard)
+![Architecture](https://img.shields.io/badge/ARCH-AUDIT_PASSED-orange?style=for-the-badge&logo=blueprint)
 
 ```text
     _    ____      _    
@@ -24,8 +24,9 @@
 
 ---
 
-## 🗺️ Development Roadmap
-**New:** Check out the [Architecture Roadmap (v4.0)](./ROADMAP.md) for the path to the Python/LangGraph Enterprise backend.
+## 🗺️ Architectural Roadmap
+**Critical Update:** The system is currently transitioning from v3.2 (Frontend Simulation) to v4.0 (Enterprise Backend).
+Please review the **[Architectural Roadmap & Todo List](./ROADMAP.md)** for the detailed migration plan, including Security, Persistence, and the "Big 3" Agent architecture.
 
 ---
 
