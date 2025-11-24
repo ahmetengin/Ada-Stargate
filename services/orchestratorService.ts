@@ -99,6 +99,12 @@ export const orchestratorService = {
              responseText = res.message;
              if (res.actions) actions.push(...res.actions);
         }
+        else if (lower.includes('arrival') || lower.includes('arrive') || lower.includes('dock') || lower.includes('approach')) {
+             // Marina Arrival Fallback
+             const res = await marinaExpert.processArrival(vesselName, tenders, t => traces.push(t));
+             responseText = res.message;
+             if (res.actions) actions.push(...res.actions);
+        }
         else if (lower.includes('scan') || lower.includes('radar')) {
              const nearby = await marinaExpert.findVesselsNear(wimMasterData.identity.location.coordinates.lat, wimMasterData.identity.location.coordinates.lng, 20, t => traces.push(t));
              responseText = `**RADAR SCAN (Local Sim):** Found ${nearby.length} targets.`;
@@ -107,10 +113,9 @@ export const orchestratorService = {
              const res = await kitesExpert.searchFlights("IST", "LHR", "Tomorrow", t => traces.push(t));
              responseText = res.message;
         }
-        else {
-             // Default Fallback
-             responseText = "**OFFLINE MODE:** Ada Core is unreachable. Limited local commands available (Depart, Scan, Debt).";
-        }
+        
+        // If no local intent matches, responseText remains empty string.
+        // This signals App.tsx to fallback to the LLM (Gemini) for conversational response.
 
         return { text: responseText, actions, traces };
     }
