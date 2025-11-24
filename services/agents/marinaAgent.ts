@@ -1,5 +1,4 @@
 
-// services/agents/marinaAgent.ts
 import { TaskHandlerFn } from '../decomposition/types';
 import { AgentAction, AgentTraceLog, VesselIntelligenceProfile, NodeName, Tender, VesselSystemsStatus } from '../../types';
 import { wimMasterData } from '../wimMasterData';
@@ -111,7 +110,7 @@ export const marinaExpert = {
         }
 
         // 2. Local Simulation Fallback
-        console.warn(`[Telemetry] Backend offline. Using local simulation for ${vesselName}.`);
+        console.info(`[Telemetry] Backend offline. Using local simulation for ${vesselName}.`);
         
         return {
             battery: { serviceBank: 25.4, engineBank: 26.1, status: 'DISCHARGING' },
@@ -194,7 +193,7 @@ export const marinaExpert = {
         return `**PROACTIVE HAIL [CH 72]:**
 > **"West Istanbul Marina calling ${vesselName}. Welcome home, Captain."**
 > "We have visual on AIS at 20nm. Your berth at **${berth}** is prepped, shore power is ready, and your linesmen are standing by."
-> "Tender **ada.sea.wimBravo** has been dispatched to escort you in for a seamless entry. Do you require a golf cart at the pontoon? Over."`;
+> "Tender **ada.sea.wimBravo** has been dispatched to escort you in for a seamless entry. Do you require a golf cart at the pontoon. Over."`;
     },
 
     // ATC Priority Calculator

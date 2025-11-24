@@ -87,6 +87,32 @@ export const orchestratorService = {
              const res = await kitesExpert.searchFlights("IST", "LHR", "Tomorrow", t => traces.push(t));
              responseText = res.message;
         }
+        else if (lower.includes('identity verified') || lower.includes('process check-in')) {
+             // Handle Passport Scanner Input
+             responseText = `**IDENTITY CONFIRMED**\n\n**User:** AHMET ENGIN\n**ID:** U12345678\n**Clearance:** LEVEL 5 (OWNER)\n**Status:** CHECK-IN COMPLETE.\n\nAccess granted to facility nodes.`;
+             actions.push({
+                id: `sec_checkin_${Date.now()}`,
+                kind: 'internal',
+                name: 'ada.marina.log_operation',
+                params: {
+                    message: `[SEC] BIO-SCAN: AHMET ENGIN | ID: U12345678 | GATE: A`,
+                    type: 'info'
+                }
+             });
+        }
+        else if (lower.includes('payment method verified')) {
+             // Handle Credit Card Scanner Input - HOTEL PROVISION STYLE
+             responseText = `**PROVISION SECURED**\n\n**Method:** VISA **** **** **** 1234\n**Holder:** AHMET ENGIN\n**Block Amount:** €1,000.00 (Incidentals)\n**Status:** PRE-AUTH SUCCESS.\n\nCheck-in financial requirements met.`;
+             actions.push({
+                id: `fin_prov_scan_${Date.now()}`,
+                kind: 'internal',
+                name: 'ada.marina.log_operation',
+                params: {
+                    message: `[FIN] PROVISION: VISA **** 1234 | AMT: €1000 | CODE: AUTH-9921`,
+                    type: 'info'
+                }
+             });
+        }
         
         // IMPORANT: If no local keyword matched, responseText stays empty ("").
         // This tells App.tsx to use Gemini for general conversation (e.g. "hi", "is anyone there?").

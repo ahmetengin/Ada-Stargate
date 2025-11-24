@@ -67,6 +67,7 @@ export interface Tender {
   status: 'Idle' | 'Busy' | 'Maintenance';
   assignment?: string;
   serviceCount?: number; // Added to track how many boats this tender has served
+  callsign?: string;
 }
 
 export interface KplerAisTarget {

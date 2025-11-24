@@ -1,5 +1,6 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,17 +12,35 @@
         theme: {
           extend: {
             colors: {
-              zinc: {
-                950: '#09090b',
+              // Deep Gunmetal Palette
+              gunmetal: {
+                950: '#0a0f18', // Main Deep Background
+                900: '#111827', // Panel Backgrounds
+                800: '#1f2937', // Lighter Panels
+                700: '#374151', // Borders/Inputs
               },
-               // New colors for the professional theme
-              'brand-bg-dark': '#0D1117',
-              'brand-bg-light': '#F6F8FA',
-              'panel-dark': '#010409',
-              'panel-light': '#FFFFFF',
-              'border-dark': '#30363D',
-              'border-light': '#D0D7DE',
-              'accent-amber': '#FFC700',
+              // Electric Teal Accent
+              teal: {
+                400: '#2dd4bf',
+                500: '#14b8a6',
+                600: '#0d9488',
+                900: '#134e4a', // Dark Teal Backgrounds
+              },
+              // Map legacy names to new palette to prevent breaking old components instantly
+              'ocean-900': '#0a0f18', 
+              'ocean-800': '#111827',
+              'hologram-blue': '#2dd4bf', // Now Teal
+              'glass-dark': 'rgba(17, 24, 39, 0.7)',
+            },
+            animation: {
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'scan': 'scan 3s linear infinite',
+            },
+            keyframes: {
+              scan: {
+                '0%': { transform: 'translateY(-100%)' },
+                '100%': { transform: 'translateY(100%)' }
+              }
             }
           }
         }
@@ -33,17 +52,15 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #F6F8FA; 
-        color: #1F2328; 
-      }
-      .dark body {
-        background-color: #0D1117; 
-        color: #E6EDF3;
+        background-color: #0a0f18; 
+        color: #e2e8f0;
+        overflow: hidden;
       }
       code, .font-mono {
         font-family: 'JetBrains Mono', monospace;
       }
-      /* Custom scrollbar */
+      
+      /* Clean Scrollbar */
       ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
@@ -52,26 +69,29 @@
         background: transparent; 
       }
       ::-webkit-scrollbar-thumb {
-        background: #D0D7DE; 
+        background: rgba(45, 212, 191, 0.2); 
         border-radius: 3px;
       }
-      .dark ::-webkit-scrollbar-thumb {
-        background: #30363D;
-      }
       ::-webkit-scrollbar-thumb:hover {
-        background: #AFB8C1; 
+        background: rgba(45, 212, 191, 0.4); 
       }
-      .dark ::-webkit-scrollbar-thumb:hover {
-        background: #484F58;
-      }
+
       .typing-dot {
         animation: typing 1.4s infinite ease-in-out both;
       }
       .typing-dot:nth-child(1) { animation-delay: -0.32s; }
       .typing-dot:nth-child(2) { animation-delay: -0.16s; }
       @keyframes typing {
-        0%, 80%, 100% { transform: scale(0); }
-        40% { transform: scale(1); }
+        0%, 80%, 100% { transform: scale(0); opacity: 0.5;}
+        40% { transform: scale(1); opacity: 1;}
+      }
+
+      .glass-panel {
+        background: rgba(31, 41, 55, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
       }
     </style>
   <script type="importmap">

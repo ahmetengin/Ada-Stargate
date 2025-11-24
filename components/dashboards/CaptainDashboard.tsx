@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Wifi, Thermometer, Zap, ShieldCheck, Droplets, Recycle, Clock } from 'lucide-react';
 import { marinaExpert } from '../../services/agents/marinaAgent';
 import { getCurrentMaritimeTime } from '../../services/utils';
+import { VesselSystemsStatus } from '../../types';
 
 export const CaptainDashboard: React.FC = () => {
   const [activeCaptainTab, setActiveCaptainTab] = useState<'overview' | 'engineering' | 'finance' | 'bluecard'>('overview');
   const [zuluTime, setZuluTime] = useState(getCurrentMaritimeTime());
+  const [telemetry, setTelemetry] = useState<VesselSystemsStatus | null>(null);
 
   useEffect(() => {
       // Live Clock Ticker
@@ -15,7 +17,9 @@ export const CaptainDashboard: React.FC = () => {
       }, 1000);
 
       // Simulated telemetry fetch
-      marinaExpert.getVesselTelemetry("S/Y Phisedelia").then(() => {});
+      marinaExpert.getVesselTelemetry("S/Y Phisedelia").then((data) => {
+          setTelemetry(data);
+      });
 
       return () => clearInterval(timer);
   }, []);
@@ -63,7 +67,9 @@ export const CaptainDashboard: React.FC = () => {
                         </div>
                         <div>
                             <div className="text-[10px] text-zinc-500">Shore Power</div>
-                            <div className="text-sm font-bold text-emerald-400">CONNECTED</div>
+                            <div className={`text-sm font-bold ${telemetry?.shorePower.connected ? 'text-emerald-400' : 'text-amber-500'}`}>
+                                {telemetry?.shorePower.connected ? 'CONNECTED' : 'DISCONNECTED'}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -85,7 +91,7 @@ export const CaptainDashboard: React.FC = () => {
                         <div className="grid grid-cols-2 gap-2">
                             <button className="bg-black/40 hover:bg-indigo-600/20 border border-zinc-700 hover:border-indigo-500/50 p-2 rounded flex flex-col items-center gap-1 transition-all">
                                 <Thermometer size={16} className="text-zinc-400" />
-                                <span className="text-[9px] uppercase text-zinc-500">AC: 24°C</span>
+                                <span className="text-[9px] uppercase text-zinc-500">AC: {telemetry?.comfort?.climate.currentTemp || '--'}°C</span>
                             </button>
                             <button className="bg-black/40 hover:bg-indigo-600/20 border border-zinc-700 hover:border-indigo-500/50 p-2 rounded flex flex-col items-center gap-1 transition-all">
                                 <Zap size={16} className="text-yellow-500/70" />
@@ -103,10 +109,10 @@ export const CaptainDashboard: React.FC = () => {
                 <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
                     <div className="flex justify-between mb-2">
                         <span className="text-[10px] text-zinc-500 uppercase">Service Bank</span>
-                        <span className="text-xs font-bold text-white">25.4 V</span>
+                        <span className="text-xs font-bold text-white">{telemetry?.battery.serviceBank || '--'} V</span>
                     </div>
                     <div className="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-emerald-500 h-full w-[85%]"></div>
+                        <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: '85%' }}></div>
                     </div>
                 </div>
                 
@@ -117,32 +123,34 @@ export const CaptainDashboard: React.FC = () => {
                         <div>
                             <div className="flex justify-between text-[10px] mb-1">
                                 <span className="text-zinc-400">Fuel</span>
-                                <span className="text-white">45%</span>
+                                <span className="text-white">{telemetry?.tanks.fuel || '--'}%</span>
                             </div>
                             <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                                <div className="bg-amber-500 h-full w-[45%]"></div>
+                                <div className="bg-amber-500 h-full transition-all duration-500" style={{ width: `${telemetry?.tanks.fuel || 0}%` }}></div>
                             </div>
                         </div>
                         <div>
                             <div className="flex justify-between text-[10px] mb-1">
                                 <span className="text-zinc-400">Fresh Water</span>
-                                <span className="text-white">80%</span>
+                                <span className="text-white">{telemetry?.tanks.freshWater || '--'}%</span>
                             </div>
                             <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                                <div className="bg-blue-500 h-full w-[80%]"></div>
+                                <div className="bg-blue-500 h-full transition-all duration-500" style={{ width: `${telemetry?.tanks.freshWater || 0}%` }}></div>
                             </div>
                         </div>
                         <div>
                             <div className="flex justify-between text-[10px] mb-1">
                                 <span className="text-zinc-400">Black Water</span>
-                                <span className="text-red-400">95%</span>
+                                <span className="text-red-400">{telemetry?.tanks.blackWater || '--'}%</span>
                             </div>
                             <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
-                                <div className="bg-red-500 h-full w-[95%] animate-pulse"></div>
+                                <div className="bg-red-500 h-full transition-all duration-500" style={{ width: `${telemetry?.tanks.blackWater || 0}%` }}></div>
                             </div>
-                            <div className="mt-2 text-right">
-                                <span className="text-[9px] text-red-500 font-bold uppercase">PUMP-OUT REQUIRED</span>
-                            </div>
+                            {(telemetry?.tanks.blackWater || 0) > 90 && (
+                                <div className="mt-2 text-right">
+                                    <span className="text-[9px] text-red-500 font-bold uppercase animate-pulse">PUMP-OUT REQUIRED</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

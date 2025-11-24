@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { BASE_SYSTEM_INSTRUCTION } from "./prompts";
 import { UserProfile } from "../types";
@@ -163,9 +164,10 @@ RULE:
   private async sendWelcomeTrigger() {
       try {
           // Small delay to ensure socket is stable
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          if (this.session) {
+          // Safety check: Ensure session exists and has a 'send' method
+          if (this.session && typeof this.session.send === 'function') {
               await this.session.send({
                   clientContent: {
                       turns: [{
@@ -176,6 +178,8 @@ RULE:
                       turnComplete: true
                   }
               });
+          } else {
+              console.log("Session ready, waiting for voice input.");
           }
       } catch (err) {
           console.warn("Error sending welcome trigger (non-fatal):", err);
@@ -263,12 +267,15 @@ RULE:
             // Use the sessionPromise to access the session securely inside the callback
             sessionPromise.then(session => {
                 try {
-                    session.sendRealtimeInput({ 
-                        media: {
-                            mimeType: 'audio/pcm;rate=16000', 
-                            data: b64Data 
-                        }
-                    });
+                    // CRITICAL FIX: Check if session exists and has sendRealtimeInput
+                    if (session && typeof session.sendRealtimeInput === 'function') {
+                        session.sendRealtimeInput({ 
+                            media: {
+                                mimeType: 'audio/pcm;rate=16000', 
+                                data: b64Data 
+                            }
+                        });
+                    }
                 } catch (err) {
                     // Suppress generic send errors to avoid log spam if connection closes
                 }
@@ -299,7 +306,9 @@ RULE:
   async disconnect() {
     if (this.session) {
         try { 
-            this.session.close(); 
+            if (typeof this.session.close === 'function') {
+                this.session.close(); 
+            }
         } catch(e) {
             console.warn("Session close error", e);
         }
