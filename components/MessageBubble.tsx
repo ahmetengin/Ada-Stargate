@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole, VesselIntelligenceProfile } from '../types';
 import { marinaExpert } from '../services/agents/marinaAgent';
-import { VESSEL_KEYWORDS } from '../services/constants';
 import { VesselCard } from './VesselCard';
 import { Anchor } from 'lucide-react';
 
@@ -18,15 +17,30 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   useEffect(() => {
     if (message.role === MessageRole.Model && message.text) {
       const lowerText = message.text.toLowerCase();
-      const matchedVesselKeyword = VESSEL_KEYWORDS.find(keyword => lowerText.includes(keyword));
+      
+      // Dynamic Fleet Lookup instead of hardcoded keywords
+      const allVessels = marinaExpert.getAllFleetVessels();
+      const foundProfiles: Record<string, VesselIntelligenceProfile> = {};
 
-      if (matchedVesselKeyword && !vesselProfiles[matchedVesselKeyword]) {
-        marinaExpert.getVesselIntelligence(matchedVesselKeyword).then(profile => {
-            if (profile) setVesselProfiles(prev => ({ ...prev, [matchedVesselKeyword]: profile }));
-        });
+      allVessels.forEach(vessel => {
+          const fullName = vessel.name.toLowerCase();
+          // Extract core name (e.g., "Phisedelia" from "S/Y Phisedelia")
+          // This handles cases where the user/AI refers to the boat just by name
+          const nameParts = fullName.split(' ');
+          const coreName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : fullName;
+
+          // Match if full name or core name appears in text
+          // Core name check avoids short words if name is too simple, but here names are distinct enough
+          if (lowerText.includes(fullName) || (coreName.length >= 4 && lowerText.includes(coreName))) {
+              foundProfiles[vessel.name] = vessel;
+          }
+      });
+
+      if (Object.keys(foundProfiles).length > 0) {
+          setVesselProfiles(foundProfiles);
       }
     }
-  }, [message]);
+  }, [message.text, message.role]);
 
   if (message.role === MessageRole.System) {
       return (
@@ -76,9 +90,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                     </ReactMarkdown>
                     
                     {/* Injected Vessel Intelligence Cards */}
-                    {Object.values(vesselProfiles).map((profile, idx) => (
-                        <VesselCard key={idx} profile={profile} />
-                    ))}
+                    <div className="space-y-4">
+                        {Object.values(vesselProfiles).map((profile, idx) => (
+                            <VesselCard key={idx} profile={profile} />
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction, VhfLog } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
@@ -14,6 +15,7 @@ import { orchestratorService } from './services/orchestratorService';
 import { marinaExpert } from './services/agents/marinaAgent';
 import { wimMasterData } from './services/wimMasterData';
 import { persistenceService, STORAGE_KEYS } from './services/persistence';
+import { Menu, Radio, Activity, MessageSquare } from 'lucide-react';
 
 // --- SIMULATED USER DATABASE ---
 const MOCK_USER_DATABASE: Record<string, UserProfile> = {
@@ -29,6 +31,15 @@ const INITIAL_MESSAGE: Message = {
   timestamp: Date.now()
 };
 
+// Initial Fake Logs for Observer
+const BOOT_TRACES: any[] = [
+    { id: 'boot_1', timestamp: '08:00:01', node: 'ada.stargate', step: 'THINKING', content: 'Initializing Distributed Node Mesh...', persona: 'ORCHESTRATOR' },
+    { id: 'boot_2', timestamp: '08:00:02', node: 'ada.marina', step: 'TOOL_EXECUTION', content: 'Connecting to Kpler AIS Stream (Region: WIM)...', persona: 'WORKER' },
+    { id: 'boot_3', timestamp: '08:00:03', node: 'ada.marina', step: 'OUTPUT', content: 'AIS Stream Active. 12 Vessels tracked in sector.', persona: 'EXPERT' },
+    { id: 'boot_4', timestamp: '08:00:04', node: 'ada.finance', step: 'TOOL_EXECUTION', content: 'Syncing with Garanti BBVA API...', persona: 'WORKER' },
+    { id: 'boot_5', timestamp: '08:00:05', node: 'ada.vhf', step: 'OUTPUT', content: 'Listening on Ch 72 / 16. Audio Stream Ready.', persona: 'WORKER' },
+];
+
 export default function App() {
   // --- STATE ---
   const [isBooting, setIsBooting] = useState(true);
@@ -36,6 +47,15 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState<ModelType>(ModelType.Flash);
   
+  // Layout State (Resizable)
+  const [sidebarWidth, setSidebarWidth] = useState(260);
+  const [opsWidth, setOpsWidth] = useState(400);
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [isResizingOps, setIsResizingOps] = useState(false);
+  
+  // Mobile Navigation State
+  const [activeMobileTab, setActiveMobileTab] = useState<'nav' | 'comms' | 'ops'>('comms');
+
   // Modals & UI Flags
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -47,7 +67,10 @@ export default function App() {
   const [tenders, setTenders] = useState<Tender[]>(() => persistenceService.load(STORAGE_KEYS.TENDERS, wimMasterData.assets.tenders as Tender[]));
   const [registry, setRegistry] = useState<RegistryEntry[]>(() => persistenceService.load(STORAGE_KEYS.REGISTRY, []));
   const [vesselsInPort, setVesselsInPort] = useState(542);
-  const [agentTraces, setAgentTraces] = useState<any[]>([]); // For Trace Modal
+  const [agentTraces, setAgentTraces] = useState<any[]>(BOOT_TRACES);
+  
+  // NEW: VHF Traffic Logs
+  const [vhfLogs, setVhfLogs] = useState<VhfLog[]>([]); 
   
   // UI State
   const [activeChannel, setActiveChannel] = useState('72');
@@ -65,9 +88,40 @@ export default function App() {
   // Auto-Scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, activeMobileTab]);
 
-  // Node Heartbeat Simulation (Blinking Lights)
+  // Resizing Handlers
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingSidebar) {
+        const newWidth = Math.max(200, Math.min(400, e.clientX));
+        setSidebarWidth(newWidth);
+      }
+      if (isResizingOps) {
+        const newWidth = Math.max(300, Math.min(600, window.innerWidth - e.clientX));
+        setOpsWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+      setIsResizingOps(false);
+      document.body.style.cursor = 'default';
+    };
+
+    if (isResizingSidebar || isResizingOps) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingSidebar, isResizingOps]);
+
+  // Node Heartbeat Simulation
   useEffect(() => {
     const interval = setInterval(() => {
       const nodes = ['ada.vhf', 'ada.sea', 'ada.marina', 'ada.finance', 'ada.customer', 'ada.passkit', 'ada.legal'];
@@ -91,7 +145,6 @@ export default function App() {
   // --- LOGIC HANDLERS ---
 
   const handleAgentAction = useCallback((action: AgentAction) => {
-    // This connects the "Brain" (Orchestrator) to the "Body" (UI State)
     console.log("Executing Agent Action:", action);
 
     if (action.name === 'ada.marina.tenderReserved') {
@@ -117,67 +170,102 @@ export default function App() {
         if (status === 'INBOUND') setVesselsInPort(p => p + 1);
         if (status === 'TAXIING' || status === 'OUTBOUND') setVesselsInPort(p => p - 1);
     }
-    
-    if (action.name === 'ada.passkit.generated') {
-        // Handle PassKit generation visualization if needed
-    }
-
-    // Log operations to the chat or console could go here
   }, []);
 
-  const handleSendMessage = async (text: string, attachments: File[]) => {
-    const newMessage: Message = { id: Date.now().toString(), role: MessageRole.User, text, timestamp: Date.now() };
-    setMessages(prev => [...prev, newMessage]);
-    setIsLoading(true);
+  // Core function to process text (from Input or Voice)
+  const processCommand = async (text: string, addToChat: boolean = true) => {
+      setIsLoading(true);
+      
+      // Optimistic Chat Update
+      const tempMsgId = Date.now().toString();
+      if (addToChat) {
+          const newMessage: Message = { id: tempMsgId, role: MessageRole.User, text, timestamp: Date.now() };
+          setMessages(prev => [...prev, newMessage]);
+      }
 
-    try {
-        // 1. Run Orchestrator (Local Logic Layer)
+      try {
+        // 1. Run Orchestrator (The Brain)
         const orchestratorResult = await orchestratorService.processRequest(text, userProfile, tenders);
         
-        // Capture traces
         if (orchestratorResult.traces) {
             setAgentTraces(prev => [...orchestratorResult.traces, ...prev]);
         }
 
-        // 2. Execute Actions (Side Effects)
         if (orchestratorResult.actions) {
             orchestratorResult.actions.forEach(handleAgentAction);
         }
 
-        // 3. Decide Response Strategy
+        // 3. Response Strategy
         if (orchestratorResult.text) {
-             // Immediate Local Response (No LLM Cost)
-             setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: MessageRole.Model, text: orchestratorResult.text, timestamp: Date.now() }]);
+             if (addToChat) {
+                 setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: MessageRole.Model, text: orchestratorResult.text, timestamp: Date.now() }]);
+             }
              setIsLoading(false);
+             return orchestratorResult.text; // Return for Voice handling
         } else {
-            // Fallback to Gemini LLM
-            await streamChatResponse(
-              [...messages, newMessage],
-              selectedModel,
-              false,
-              false,
-              registry,
-              tenders,
-              userProfile,
-              vesselsInPort,
-              (chunk) => {
-                setMessages(prev => {
-                  const last = prev[prev.length - 1];
-                  if (last.role === MessageRole.Model && last.id !== newMessage.id) { // Ensure we append to a model message
-                    return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
+            // Fallback to LLM Streaming if no deterministic answer
+            if (addToChat) {
+                await streamChatResponse(
+                  [...messages, { id: tempMsgId, role: MessageRole.User, text, timestamp: Date.now() }],
+                  selectedModel,
+                  false,
+                  false,
+                  registry,
+                  tenders,
+                  userProfile,
+                  vesselsInPort,
+                  (chunk) => {
+                    setMessages(prev => {
+                      const last = prev[prev.length - 1];
+                      if (last.role === MessageRole.Model && last.id !== tempMsgId) {
+                        return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
+                      }
+                      return [...prev, { id: Date.now().toString(), role: MessageRole.Model, text: chunk, timestamp: Date.now() }];
+                    });
+                    setIsLoading(false);
                   }
-                  return [...prev, { id: Date.now().toString(), role: MessageRole.Model, text: chunk, timestamp: Date.now() }];
-                });
-                setIsLoading(false);
-              }
-            );
+                );
+            }
         }
 
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: MessageRole.Model, text: "**SYSTEM ERROR:** Connection lost. Please retry.", timestamp: Date.now() }]);
+      if (addToChat) setMessages(prev => [...prev, { id: Date.now().toString(), role: MessageRole.Model, text: "**SYSTEM ERROR:** Connection lost.", timestamp: Date.now() }]);
       setIsLoading(false);
     }
+  };
+
+  const handleSendMessage = (text: string, attachments: File[]) => {
+      processCommand(text, true);
+  };
+
+  const handleVoiceTranscript = (userText: string, modelText: string) => {
+      const timestamp = new Date().toLocaleTimeString();
+      
+      // 1. Add to VHF Log (Operations Deck)
+      const newLogs: VhfLog[] = [
+          { id: `vhf-${Date.now()}-u`, timestamp, channel: activeChannel, speaker: 'VESSEL', message: userText },
+          { id: `vhf-${Date.now()}-m`, timestamp, channel: activeChannel, speaker: 'CONTROL', message: modelText }
+      ];
+      setVhfLogs(prev => [...newLogs, ...prev]);
+
+      // 2. Also add to Main Chat for history (Optional, but good for context)
+      setMessages(prev => [
+          ...prev, 
+          { id: Date.now().toString(), role: MessageRole.User, text: `[VHF CH${activeChannel}] ${userText}`, timestamp: Date.now() },
+          { id: (Date.now()+1).toString(), role: MessageRole.Model, text: modelText, timestamp: Date.now() }
+      ]);
+
+      // 3. CRITICAL: Send user voice command to Orchestrator to trigger ACTIONS (e.g., Dispatch Tender)
+      // We don't need to add to chat again, just execute logic.
+      orchestratorService.processRequest(userText, userProfile, tenders).then(result => {
+          if (result.actions) {
+              result.actions.forEach(handleAgentAction);
+          }
+          if (result.traces) {
+              setAgentTraces(prev => [...result.traces, ...prev]);
+          }
+      });
   };
 
   const handleScanResult = (result: any) => {
@@ -190,83 +278,179 @@ export default function App() {
 
   if (isBooting) return <BootSequence />;
 
+  // --- LAYOUT COMPONENTS ---
+
+  const ChatInterface = () => (
+    <div className="flex flex-col h-full relative bg-[#050b14] w-full">
+        {/* Header */}
+        <div className="h-14 flex items-center justify-between px-4 sm:px-6 border-b border-white/5 bg-[#050b14]/50 backdrop-blur-sm z-10 flex-shrink-0">
+            <div className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase cursor-pointer hover:text-teal-500 transition-colors" onClick={() => setIsTraceOpen(true)}>
+                ADA.MARINA <span className="text-zinc-700 mx-2">|</span> <span className="text-teal-500 animate-pulse">READY</span>
+            </div>
+            <div className="text-[9px] font-bold text-red-500 flex items-center gap-2 sm:gap-4">
+                <span className="hidden sm:inline">N 40°57’46’’ E 28°39’49’’</span>
+                <span className="text-zinc-600 bg-zinc-900 px-2 py-1 rounded border border-white/5">VHF {activeChannel}</span>
+            </div>
+        </div>
+
+        {/* Messages Feed */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 custom-scrollbar space-y-6">
+            {messages.map((msg) => (
+                <MessageBubble key={msg.id} message={msg} />
+            ))}
+            <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input Area */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#050b14] via-[#050b14] to-transparent pt-10 pb-4 sm:pb-6 px-4 sm:px-6 z-20">
+            <InputArea 
+                onSend={handleSendMessage}
+                isLoading={isLoading}
+                selectedModel={selectedModel}
+                onModelChange={setSelectedModel}
+                userRole={userProfile.role}
+                onQuickAction={(text) => handleSendMessage(text, [])}
+                onScanClick={() => setIsScannerOpen(true)}
+                onRadioClick={() => setIsVoiceOpen(true)}
+            />
+        </div>
+    </div>
+  );
+
   return (
-    <div className="h-screen w-screen bg-black text-zinc-300 overflow-hidden grid grid-cols-[260px_1fr_400px] font-mono gap-1">
+    <div className="h-[100dvh] w-screen bg-black text-zinc-300 overflow-hidden font-mono flex flex-col lg:flex-row">
         
-        {/* COL 1: SIDEBAR (ADA EXPLORER) */}
-        <Sidebar 
-            nodeStates={nodeStates}
-            activeChannel={activeChannel}
-            isMonitoring={true}
-            userProfile={userProfile}
-            onRoleChange={(r) => setUserProfile(prev => ({ ...prev, role: r as any }))}
-            onVhfClick={() => setIsVoiceOpen(true)}
-            onScannerClick={() => setIsScannerOpen(true)}
-            onPulseClick={() => setIsReportOpen(true)}
-        />
-
-        {/* COL 2: MAIN CHAT (COMMAND CAPSULE) */}
-        <div className="flex flex-col h-full relative bg-[#050b14]">
-            {/* Header */}
-            <div className="h-14 flex items-center justify-between px-6 border-b border-white/5 bg-[#050b14]/50 backdrop-blur-sm z-10">
-                <div className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase cursor-pointer hover:text-teal-500 transition-colors" onClick={() => setIsTraceOpen(true)}>
-                    ADA.MARINA <span className="text-zinc-700 mx-2">|</span> <span className="text-teal-500 animate-pulse">READY</span>
+        {/* --- MOBILE LAYOUT (TABS) --- */}
+        <div className="lg:hidden flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden relative">
+                {/* TAB: NAV */}
+                <div className={`absolute inset-0 bg-[#050b14] transition-transform duration-300 ${activeMobileTab === 'nav' ? 'translate-x-0' : '-translate-x-full'}`}>
+                    <Sidebar 
+                        nodeStates={nodeStates}
+                        activeChannel={activeChannel}
+                        isMonitoring={true}
+                        userProfile={userProfile}
+                        onRoleChange={(r) => setUserProfile(prev => ({ ...prev, role: r as any }))}
+                        onVhfClick={() => setIsVoiceOpen(true)}
+                        onScannerClick={() => setIsScannerOpen(true)}
+                        onPulseClick={() => setIsReportOpen(true)}
+                    />
                 </div>
-                <div className="text-[9px] font-bold text-red-500 flex items-center gap-4">
-                    <span>N 40°57’46’’ E 28°39’49’’</span>
-                    <span className="text-zinc-600">VHF CH {activeChannel} [AI ACTIVE]</span>
+
+                {/* TAB: COMMS (Chat) */}
+                <div className={`absolute inset-0 bg-[#050b14] transition-transform duration-300 ${activeMobileTab === 'comms' ? 'translate-x-0' : activeMobileTab === 'nav' ? 'translate-x-full' : '-translate-x-full'}`}>
+                    <ChatInterface />
+                </div>
+
+                {/* TAB: OPS */}
+                <div className={`absolute inset-0 bg-[#050b14] transition-transform duration-300 ${activeMobileTab === 'ops' ? 'translate-x-0' : 'translate-x-full'}`}>
+                    <Canvas 
+                        vesselsInPort={vesselsInPort}
+                        registry={registry}
+                        tenders={tenders}
+                        vhfLogs={vhfLogs}
+                        userProfile={userProfile}
+                        onOpenReport={() => setIsReportOpen(true)}
+                        onOpenTrace={() => setIsTraceOpen(true)}
+                        agentTraces={agentTraces}
+                    />
                 </div>
             </div>
 
-            {/* Messages Feed */}
-            <div className="flex-1 overflow-y-auto p-6 pb-32 custom-scrollbar space-y-6">
-                {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} />
-                ))}
-                <div ref={messagesEndRef} />
+            {/* BOTTOM NAV BAR */}
+            <div className="h-16 bg-[#0a121e] border-t border-white/5 flex items-center justify-around px-2 z-30 pb-safe">
+                <button 
+                    onClick={() => setActiveMobileTab('nav')}
+                    className={`flex flex-col items-center gap-1 p-2 w-16 ${activeMobileTab === 'nav' ? 'text-teal-400' : 'text-zinc-600'}`}
+                >
+                    <Menu size={20} />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">NAV</span>
+                </button>
+                <button 
+                    onClick={() => setActiveMobileTab('comms')}
+                    className={`flex flex-col items-center gap-1 p-2 w-16 ${activeMobileTab === 'comms' ? 'text-teal-400' : 'text-zinc-600'}`}
+                >
+                    <MessageSquare size={20} />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">COMMS</span>
+                </button>
+                
+                {/* Only show OPS for Authorized Roles */}
+                {userProfile.role !== 'GUEST' && (
+                    <button 
+                        onClick={() => setActiveMobileTab('ops')}
+                        className={`flex flex-col items-center gap-1 p-2 w-16 ${activeMobileTab === 'ops' ? 'text-teal-400' : 'text-zinc-600'}`}
+                    >
+                        <Activity size={20} />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">OPS</span>
+                    </button>
+                )}
+            </div>
+        </div>
+
+        {/* --- DESKTOP LAYOUT (GRID) --- */}
+        <div className="hidden lg:flex h-full w-full">
+            
+            {/* SIDEBAR PANE */}
+            <div style={{ width: sidebarWidth }} className="flex-shrink-0 h-full overflow-hidden relative">
+                <Sidebar 
+                    nodeStates={nodeStates}
+                    activeChannel={activeChannel}
+                    isMonitoring={true}
+                    userProfile={userProfile}
+                    onRoleChange={(r) => setUserProfile(prev => ({ ...prev, role: r as any }))}
+                    onVhfClick={() => setIsVoiceOpen(true)}
+                    onScannerClick={() => setIsScannerOpen(true)}
+                    onPulseClick={() => setIsReportOpen(true)}
+                />
             </div>
 
-            {/* Input Area */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#050b14] via-[#050b14] to-transparent pt-10 pb-6 px-6">
-                <InputArea 
-                    onSend={handleSendMessage}
-                    isLoading={isLoading}
-                    selectedModel={selectedModel}
-                    onModelChange={setSelectedModel}
-                    userRole={userProfile.role}
-                    onQuickAction={(text) => handleSendMessage(text, [])}
+            {/* RESIZE HANDLE 1 */}
+            <div 
+                className="w-1 h-full bg-[#0a121e] hover:bg-teal-500/50 cursor-col-resize transition-colors z-50"
+                onMouseDown={() => setIsResizingSidebar(true)}
+            />
+
+            {/* CENTER PANE (Chat) */}
+            <div className="flex-1 h-full overflow-hidden min-w-[300px]">
+                <ChatInterface />
+            </div>
+
+            {/* RESIZE HANDLE 2 */}
+            <div 
+                className="w-1 h-full bg-[#0a121e] hover:bg-teal-500/50 cursor-col-resize transition-colors z-50"
+                onMouseDown={() => setIsResizingOps(true)}
+            />
+
+            {/* OPS PANE */}
+            <div style={{ width: opsWidth }} className="flex-shrink-0 h-full overflow-hidden">
+                <Canvas 
+                    vesselsInPort={vesselsInPort}
+                    registry={registry}
+                    tenders={tenders}
+                    vhfLogs={vhfLogs}
+                    userProfile={userProfile}
+                    onOpenReport={() => setIsReportOpen(true)}
+                    onOpenTrace={() => setIsTraceOpen(true)}
+                    agentTraces={agentTraces}
                 />
             </div>
         </div>
 
-        {/* COL 3: OPERATIONS DECK */}
-        <Canvas 
-            vesselsInPort={vesselsInPort}
-            registry={registry}
-            tenders={tenders}
-        />
-
-        {/* MODALS */}
+        {/* --- MODALS --- */}
         <VoiceModal 
             isOpen={isVoiceOpen} 
             onClose={() => setIsVoiceOpen(false)} 
             userProfile={userProfile}
-            onTranscriptReceived={(user, model) => {
-                setMessages(prev => [
-                    ...prev, 
-                    { id: Date.now().toString(), role: MessageRole.User, text: user, timestamp: Date.now() },
-                    { id: (Date.now()+1).toString(), role: MessageRole.Model, text: model, timestamp: Date.now() }
-                ]);
-            }}
+            onTranscriptReceived={handleVoiceTranscript}
         />
-
+        
         <PassportScanner 
             isOpen={isScannerOpen} 
             onClose={() => setIsScannerOpen(false)} 
-            onScanComplete={handleScanResult} 
+            onScanComplete={handleScanResult}
         />
 
-        <AgentTraceModal
+        <AgentTraceModal 
             isOpen={isTraceOpen}
             onClose={() => setIsTraceOpen(false)}
             traces={agentTraces}
@@ -276,7 +460,7 @@ export default function App() {
             isOpen={isReportOpen}
             onClose={() => setIsReportOpen(false)}
             registry={registry}
-            logs={[]}
+            logs={agentTraces} // Using traces as logs for now
             vesselsInPort={vesselsInPort}
             userProfile={userProfile}
             weatherData={[{ day: 'Today', temp: 24, condition: 'Sunny', windSpeed: 12, windDir: 'NW' }]}

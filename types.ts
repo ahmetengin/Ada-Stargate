@@ -61,6 +61,15 @@ export interface RegistryEntry {
   status: 'AUTHORIZED' | 'PENDING' | 'DENIED';
 }
 
+// NEW: Dedicated VHF Log Type
+export interface VhfLog {
+    id: string;
+    timestamp: string;
+    channel: string;
+    speaker: 'VESSEL' | 'CONTROL';
+    message: string;
+}
+
 export interface Tender {
   id: string;
   name: string;
@@ -400,4 +409,24 @@ export interface Delegate {
     company: string;
     status: 'REGISTERED' | 'CHECKED_IN' | 'IN_TRANSIT' | 'NO_SHOW';
     location: string;
+}
+
+// --- NEW: GUEST IDENTITY TYPES (LAW 1774) ---
+export interface GuestProfile {
+    id: string; // Passport or TCKN
+    fullName: string;
+    nationality: string;
+    dob: string;
+    vesselName: string; // The host vessel
+    status: 'CHECKED_IN' | 'CHECKED_OUT';
+    entryDate: string;
+    kbsNotificationId?: string; // KBS: Kimlik Bildirim Sistemi ID
+}
+
+export interface CheckInRecord {
+    id: string;
+    guest: GuestProfile;
+    timestamp: string;
+    gate: string;
+    passKitUrl?: string;
 }
