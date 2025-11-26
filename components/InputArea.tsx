@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
-import { ArrowUp, Paperclip, Mic, AudioWaveform, ScanLine, Radio } from 'lucide-react'; 
+import { ArrowUp, Paperclip, AudioWaveform, ScanLine, Radio } from 'lucide-react'; 
 import { ModelType, UserRole } from '../types';
 import { QuickActions } from './QuickActions';
 
@@ -58,6 +58,14 @@ export const InputArea: React.FC<InputAreaProps> = ({
     }
   }, []);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
+    }
+  }, [text]);
+
   const toggleDictation = () => {
       if (!recognitionRef.current) {
           alert("Voice dictation not supported in this browser.");
@@ -76,6 +84,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
     if ((!text.trim()) || isLoading) return;
     onSend(text, []);
     setText('');
+    // Reset height
+    if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -120,10 +132,10 @@ export const InputArea: React.FC<InputAreaProps> = ({
       )}
 
       {/* Capsule Input */}
-      <div className="relative bg-[#0a121e] rounded-full border border-white/10 flex items-center px-2 py-2 shadow-2xl shadow-black/50 ring-1 ring-white/5 focus-within:ring-teal-500/30 transition-all">
+      <div className="relative bg-[#0a121e] rounded-3xl border border-white/10 flex items-end px-2 py-2 shadow-2xl shadow-black/50 ring-1 ring-white/5 focus-within:ring-teal-500/30 transition-all">
           
           {/* Left Tools (Scan, Radio, Attach) */}
-          <div className="flex items-center gap-1 pl-1 border-r border-white/5 pr-2 mr-2 flex-shrink-0">
+          <div className="flex items-center gap-1 pl-1 border-r border-white/5 pr-2 mr-2 mb-1.5 flex-shrink-0">
               <button 
                 onClick={onScanClick}
                 className="p-2 text-zinc-500 hover:text-teal-400 transition-colors rounded-full hover:bg-white/5 flex items-center justify-center"
@@ -150,11 +162,11 @@ export const InputArea: React.FC<InputAreaProps> = ({
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isDictating ? "Listening..." : "Command..."}
-            className={`flex-1 bg-transparent border-none focus:outline-none text-sm text-zinc-300 placeholder:text-zinc-600 resize-none py-3 font-mono min-w-0 ${isDictating ? 'animate-pulse text-teal-400' : ''}`}
+            className={`flex-1 bg-transparent border-none focus:outline-none text-sm text-zinc-300 placeholder:text-zinc-600 resize-none py-3 font-mono min-w-0 max-h-[120px] overflow-y-auto custom-scrollbar ${isDictating ? 'animate-pulse text-teal-400' : ''}`}
             disabled={isLoading}
           />
 
-          <div className="flex items-center gap-2 pl-2 border-l border-white/5 flex-shrink-0">
+          <div className="flex items-center gap-2 pl-2 border-l border-white/5 flex-shrink-0 mb-1">
               <button 
                 onClick={toggleDictation}
                 className={`p-2 transition-colors rounded-full flex items-center justify-center ${isDictating ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-red-900/50 hover:text-red-500'}`}
