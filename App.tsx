@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction, VhfLog } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction, VhfLog, AisTarget } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
@@ -72,10 +72,14 @@ export default function App() {
   // NEW: VHF Traffic Logs
   const [vhfLogs, setVhfLogs] = useState<VhfLog[]>([]); 
   
+  // NEW: Live AIS Targets
+  const [aisTargets, setAisTargets] = useState<AisTarget[]>([]);
+
   // UI State
   const [activeChannel, setActiveChannel] = useState('72');
   const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // --- EFFECTS ---
 
@@ -85,10 +89,32 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-Scroll
+  // Smart Auto-Scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Only scroll if user is already near the bottom OR if it's the very first load
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    
+    if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, activeMobileTab]);
+
+  // AIS Polling (Every 10s)
+  useEffect(() => {
+    const fetchAis = async () => {
+        const lat = wimMasterData.identity.location.coordinates.lat;
+        const lng = wimMasterData.identity.location.coordinates.lng;
+        const targets = await marinaExpert.scanSector(lat, lng, 20, () => {});
+        setAisTargets(targets);
+    };
+    
+    fetchAis(); // Initial fetch
+    const interval = setInterval(fetchAis, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Resizing Handlers
   useEffect(() => {
@@ -172,11 +198,9 @@ export default function App() {
     }
   }, []);
 
-  // Core function to process text (from Input or Voice)
   const processCommand = async (text: string, addToChat: boolean = true) => {
       setIsLoading(true);
       
-      // Optimistic Chat Update
       const tempMsgId = Date.now().toString();
       if (addToChat) {
           const newMessage: Message = { id: tempMsgId, role: MessageRole.User, text, timestamp: Date.now() };
@@ -201,9 +225,9 @@ export default function App() {
                  setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: MessageRole.Model, text: orchestratorResult.text, timestamp: Date.now() }]);
              }
              setIsLoading(false);
-             return orchestratorResult.text; // Return for Voice handling
+             return orchestratorResult.text; 
         } else {
-            // Fallback to LLM Streaming if no deterministic answer
+            // Fallback to LLM Streaming
             if (addToChat) {
                 await streamChatResponse(
                   [...messages, { id: tempMsgId, role: MessageRole.User, text, timestamp: Date.now() }],
@@ -242,22 +266,18 @@ export default function App() {
   const handleVoiceTranscript = (userText: string, modelText: string) => {
       const timestamp = new Date().toLocaleTimeString();
       
-      // 1. Add to VHF Log (Operations Deck)
       const newLogs: VhfLog[] = [
           { id: `vhf-${Date.now()}-u`, timestamp, channel: activeChannel, speaker: 'VESSEL', message: userText },
           { id: `vhf-${Date.now()}-m`, timestamp, channel: activeChannel, speaker: 'CONTROL', message: modelText }
       ];
       setVhfLogs(prev => [...newLogs, ...prev]);
 
-      // 2. Also add to Main Chat for history (Optional, but good for context)
       setMessages(prev => [
           ...prev, 
           { id: Date.now().toString(), role: MessageRole.User, text: `[VHF CH${activeChannel}] ${userText}`, timestamp: Date.now() },
           { id: (Date.now()+1).toString(), role: MessageRole.Model, text: modelText, timestamp: Date.now() }
       ]);
 
-      // 3. CRITICAL: Send user voice command to Orchestrator to trigger ACTIONS (e.g., Dispatch Tender)
-      // We don't need to add to chat again, just execute logic.
       orchestratorService.processRequest(userText, userProfile, tenders).then(result => {
           if (result.actions) {
               result.actions.forEach(handleAgentAction);
@@ -293,16 +313,19 @@ export default function App() {
             </div>
         </div>
 
-        {/* Messages Feed */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32 custom-scrollbar space-y-6">
+        {/* Messages Feed - FLUID SCROLL AREA */}
+        <div 
+            className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar space-y-6" 
+            ref={scrollContainerRef}
+        >
             {messages.map((msg) => (
                 <MessageBubble key={msg.id} message={msg} />
             ))}
             <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#050b14] via-[#050b14] to-transparent pt-10 pb-4 sm:pb-6 px-4 sm:px-6 z-20">
+        {/* Input Area - STATIC BLOCK */}
+        <div className="flex-shrink-0 bg-[#050b14] border-t border-white/5 pt-4 pb-6 px-4 sm:px-6 z-20">
             <InputArea 
                 onSend={handleSendMessage}
                 isLoading={isLoading}
@@ -349,6 +372,7 @@ export default function App() {
                         registry={registry}
                         tenders={tenders}
                         vhfLogs={vhfLogs}
+                        aisTargets={aisTargets}
                         userProfile={userProfile}
                         onOpenReport={() => setIsReportOpen(true)}
                         onOpenTrace={() => setIsTraceOpen(true)}
@@ -428,6 +452,7 @@ export default function App() {
                     registry={registry}
                     tenders={tenders}
                     vhfLogs={vhfLogs}
+                    aisTargets={aisTargets}
                     userProfile={userProfile}
                     onOpenReport={() => setIsReportOpen(true)}
                     onOpenTrace={() => setIsTraceOpen(true)}
@@ -460,7 +485,7 @@ export default function App() {
             isOpen={isReportOpen}
             onClose={() => setIsReportOpen(false)}
             registry={registry}
-            logs={agentTraces} // Using traces as logs for now
+            logs={agentTraces} 
             vesselsInPort={vesselsInPort}
             userProfile={userProfile}
             weatherData={[{ day: 'Today', temp: 24, condition: 'Sunny', windSpeed: 12, windDir: 'NW' }]}

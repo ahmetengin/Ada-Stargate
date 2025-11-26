@@ -1,5 +1,5 @@
 
-import { AgentAction, AgentTraceLog, MaintenanceJob, NodeName, UserProfile } from '../../types';
+import { AgentAction, AgentTraceLog, MaintenanceJob, NodeName, UserProfile, MaintenanceLogEntry } from '../../types';
 import { TaskHandlerFn } from '../decomposition/types';
 import { persistenceService, STORAGE_KEYS } from '../persistence'; // Enterprise Persistence
 
@@ -13,6 +13,9 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
     persona
 });
 
+// Helper to timestamp internal job logs
+const getJobTimestamp = (): string => new Date().toLocaleString('en-GB', { hour12: false });
+
 // --- DEFAULT TECHNIC DATA ---
 const DEFAULT_JOBS: MaintenanceJob[] = [
     {
@@ -23,7 +26,10 @@ const DEFAULT_JOBS: MaintenanceJob[] = [
         scheduledDate: '2025-11-25 09:00',
         contractor: 'WIM Tech Services',
         partsStatus: 'N/A',
-        notes: '700T Lift Reserved. Hull inspection.'
+        notes: '700T Lift Reserved. Hull inspection.',
+        logs: [
+            { timestamp: '20/11/2025 09:00', stage: 'SCHEDULED', details: 'Job created. 700T Travel Lift slot reserved.' }
+        ]
     },
     {
         id: 'JOB-1024',
@@ -33,7 +39,11 @@ const DEFAULT_JOBS: MaintenanceJob[] = [
         scheduledDate: '2025-11-22',
         contractor: 'Authorized Volvo Penta Service',
         partsStatus: 'ORDERED',
-        notes: 'Main engine overhaul. Filters ordered from Italy.'
+        notes: 'Main engine overhaul. Filters ordered from Italy.',
+        logs: [
+            { timestamp: '18/11/2025 10:30', stage: 'SCHEDULED', details: 'Engine service booked.' },
+            { timestamp: '18/11/2025 14:00', stage: 'PARTS_ORDERED', details: 'Oil filters and gaskets ordered from VP Italy.' }
+        ]
     },
     {
         id: 'JOB-1025',
@@ -43,12 +53,22 @@ const DEFAULT_JOBS: MaintenanceJob[] = [
         scheduledDate: '2025-11-20',
         contractor: 'WIM Tech Services',
         partsStatus: 'ARRIVED',
-        notes: 'Outboard motor electrical fault.'
+        notes: 'Outboard motor electrical fault.',
+        logs: [
+            { timestamp: '20/11/2025 08:00', stage: 'SCHEDULED', details: 'Immediate repair requested.' },
+            { timestamp: '20/11/2025 08:15', stage: 'PARTS_ARRIVED', details: 'Spare solenoid in stock.' },
+            { timestamp: '20/11/2025 08:30', stage: 'IN_PROGRESS', details: 'Technician assigned: Murat K.' }
+        ]
     }
 ];
 
 // --- LOAD FROM PERSISTENCE ---
 let TECHNIC_DB: MaintenanceJob[] = persistenceService.load(STORAGE_KEYS.TECHNIC_JOBS, DEFAULT_JOBS);
+// Migration check for old data without logs
+TECHNIC_DB = TECHNIC_DB.map(job => ({
+    ...job,
+    logs: job.logs || [{ timestamp: getJobTimestamp(), stage: 'SCHEDULED', details: 'Legacy job data migrated.' }]
+}));
 persistenceService.save(STORAGE_KEYS.TECHNIC_JOBS, TECHNIC_DB);
 
 
@@ -69,6 +89,21 @@ export const technicHandlers: Record<string, TaskHandlerFn> = {
 // --- DIRECT AGENT INTERFACE ---
 export const technicExpert = {
     
+    // Internal Helper: Append Log & Persist
+    _addJobLog: (jobId: string, stage: MaintenanceLogEntry['stage'], details: string) => {
+        const jobIndex = TECHNIC_DB.findIndex(j => j.id === jobId);
+        if (jobIndex === -1) return;
+
+        const newEntry: MaintenanceLogEntry = {
+            timestamp: getJobTimestamp(),
+            stage: stage,
+            details: details
+        };
+
+        TECHNIC_DB[jobIndex].logs.push(newEntry);
+        persistenceService.save(STORAGE_KEYS.TECHNIC_JOBS, TECHNIC_DB);
+    },
+
     // Skill: Get all active jobs for UI
     getActiveJobs: (): MaintenanceJob[] => {
         return TECHNIC_DB;
@@ -95,7 +130,10 @@ export const technicExpert = {
             scheduledDate: date,
             contractor: 'WIM Tech Services', // Default
             partsStatus: 'N/A',
-            notes: 'Scheduled via Ada AI.'
+            notes: 'Scheduled via Ada AI.',
+            logs: [
+                { timestamp: getJobTimestamp(), stage: 'SCHEDULED', details: `Service booked via AI Agent. Contractor: WIM Tech.` }
+            ]
         };
 
         TECHNIC_DB.push(newJob);
@@ -106,6 +144,29 @@ export const technicExpert = {
         addTrace(createLog('ada.technic', 'TOOL_EXECUTION', `Job Ticket ${newJob.id} created in WIM Technical System.`, 'WORKER'));
 
         return { success: true, message: `Service Confirmed. Ticket #${newJob.id} created for ${vesselName}.`, job: newJob };
+    },
+
+    // Skill: Update Job Status (Parts/Progress Tracking)
+    updateJobStatus: async (jobId: string, newStatus: MaintenanceJob['status'], partsStatus: MaintenanceJob['partsStatus'], notes: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string }> => {
+        const jobIndex = TECHNIC_DB.findIndex(j => j.id === jobId);
+        if (jobIndex === -1) return { success: false, message: "Job not found." };
+
+        addTrace(createLog('ada.technic', 'THINKING', `Updating Job ${jobId}: ${newStatus} (Parts: ${partsStatus})`, 'EXPERT'));
+
+        // Update Fields
+        TECHNIC_DB[jobIndex].status = newStatus;
+        if (partsStatus) TECHNIC_DB[jobIndex].partsStatus = partsStatus;
+        
+        // Determine Log Stage
+        let stage: MaintenanceLogEntry['stage'] = 'IN_PROGRESS';
+        if (partsStatus === 'ORDERED') stage = 'PARTS_ORDERED';
+        else if (partsStatus === 'ARRIVED') stage = 'PARTS_ARRIVED';
+        else if (newStatus === 'COMPLETED') stage = 'COMPLETED';
+
+        // Add Log
+        technicExpert._addJobLog(jobId, stage, notes);
+
+        return { success: true, message: `Job ${jobId} updated.` };
     },
 
     // Skill: Check status of existing jobs
@@ -121,10 +182,17 @@ export const technicExpert = {
         let report = `**TECHNICAL STATUS REPORT: ${vesselName}**\n\n`;
         jobs.forEach(j => {
             report += `**Job #${j.id}: ${j.jobType}**\n`;
-            report += `- Status: **${j.status}**\n`;
-            report += `- Schedule: ${j.scheduledDate}\n`;
+            report += `- Current Status: **${j.status}**\n`;
             report += `- Contractor: ${j.contractor}\n`;
             if (j.partsStatus !== 'N/A') report += `- Parts: ${j.partsStatus}\n`;
+            
+            // Render Logs
+            if (j.logs && j.logs.length > 0) {
+                report += `\n*Activity Log:*\n`;
+                j.logs.forEach(l => {
+                    report += `> \`${l.timestamp}\` - **${l.stage}**: ${l.details}\n`;
+                });
+            }
             report += `\n`;
         });
 
@@ -175,13 +243,13 @@ export const technicExpert = {
         const job = TECHNIC_DB[jobIndex];
         TECHNIC_DB[jobIndex].status = 'COMPLETED';
         
-        // Enterprise: PERSISTENCE SAVE
-        persistenceService.save(STORAGE_KEYS.TECHNIC_JOBS, TECHNIC_DB);
-
         // Calculate Final Cost (Simulated)
         let cost = 500; // Base call out
         if (job.jobType === 'HAUL_OUT') cost = 3500;
         if (job.jobType === 'ENGINE_SERVICE') cost = 1200;
+
+        // Add Log via Helper
+        technicExpert._addJobLog(job.id, 'COMPLETED', `Job marked completed by ${user.name}. Final billing amount: €${cost}.`);
 
         addTrace(createLog('ada.technic', 'OUTPUT', `Job ${job.id} marked COMPLETED. Final Cost: €${cost}.`, 'WORKER'));
         addTrace(createLog('ada.technic', 'PLANNING', `Initiating Billing Hand-off to ada.finance...`, 'ORCHESTRATOR'));

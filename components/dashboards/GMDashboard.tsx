@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { RegistryEntry, Tender, UserProfile, CongressEvent, Delegate, AgentTraceLog, VhfLog } from '../../types';
+import { RegistryEntry, Tender, UserProfile, CongressEvent, Delegate, AgentTraceLog, VhfLog, AisTarget } from '../../types';
 import { facilityExpert } from '../../services/agents/facilityAgent';
 import { congressExpert } from '../../services/agents/congressAgent';
 import { hrExpert } from '../../services/agents/hrAgent';
@@ -27,6 +27,7 @@ interface GMDashboardProps {
   vesselsInPort: number;
   agentTraces: AgentTraceLog[];
   vhfLogs?: VhfLog[];
+  aisTargets?: AisTarget[];
   onOpenReport: () => void;
   onOpenTrace: () => void;
 }
@@ -39,6 +40,7 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
   vesselsInPort,
   agentTraces,
   vhfLogs = [],
+  aisTargets = [],
   onOpenReport,
   onOpenTrace
 }) => {
@@ -181,6 +183,7 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
                 criticalLogs={criticalLogs} 
                 tenders={tenders}
                 vhfLogs={vhfLogs}
+                aisTargets={aisTargets}
             />
         )}
         {activeGmTab === 'fleet' && <FleetTab tenders={tenders} />}

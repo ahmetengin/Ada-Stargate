@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { RegistryEntry, Tender, VhfLog, UserProfile, VesselSystemsStatus, AgentTraceLog } from '../types';
+import { RegistryEntry, Tender, VhfLog, UserProfile, VesselSystemsStatus, AgentTraceLog, AisTarget } from '../types';
 import { ExternalLink, Radar, List, Database, Cloud, Globe, Radio, Calendar, Utensils, Wind, Droplets, Battery, Anchor, Navigation } from 'lucide-react';
 import { wimMasterData } from '../services/wimMasterData';
 import { marinaExpert } from '../services/agents/marinaAgent';
@@ -13,6 +13,7 @@ interface CanvasProps {
   registry: RegistryEntry[];
   tenders: Tender[];
   vhfLogs?: VhfLog[];
+  aisTargets?: AisTarget[];
   userProfile: UserProfile;
   onOpenReport?: () => void;
   onOpenTrace?: () => void;
@@ -24,6 +25,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   registry,
   tenders,
   vhfLogs = [],
+  aisTargets = [],
   userProfile,
   onOpenReport,
   onOpenTrace,
@@ -64,6 +66,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             vesselsInPort={vesselsInPort}
             agentTraces={agentTraces}
             vhfLogs={vhfLogs} // PASS THE COMMS
+            aisTargets={aisTargets}
             onOpenReport={onOpenReport || (() => {})}
             onOpenTrace={onOpenTrace || (() => {})}
         />

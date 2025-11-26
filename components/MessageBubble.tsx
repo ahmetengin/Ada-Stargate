@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole, VesselIntelligenceProfile } from '../types';
 import { marinaExpert } from '../services/agents/marinaAgent';
@@ -10,7 +10,7 @@ interface MessageBubbleProps {
   message: Message;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = memo(({ message }) => {
   const isUser = message.role === MessageRole.User;
   const [vesselProfiles, setVesselProfiles] = useState<Record<string, VesselIntelligenceProfile>>({});
 
@@ -18,19 +18,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     if (message.role === MessageRole.Model && message.text) {
       const lowerText = message.text.toLowerCase();
       
-      // Dynamic Fleet Lookup instead of hardcoded keywords
       const allVessels = marinaExpert.getAllFleetVessels();
       const foundProfiles: Record<string, VesselIntelligenceProfile> = {};
 
       allVessels.forEach(vessel => {
           const fullName = vessel.name.toLowerCase();
-          // Extract core name (e.g., "Phisedelia" from "S/Y Phisedelia")
-          // This handles cases where the user/AI refers to the boat just by name
           const nameParts = fullName.split(' ');
           const coreName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : fullName;
 
-          // Match if full name or core name appears in text
-          // Core name check avoids short words if name is too simple, but here names are distinct enough
           if (lowerText.includes(fullName) || (coreName.length >= 4 && lowerText.includes(coreName))) {
               foundProfiles[vessel.name] = vessel;
           }
@@ -100,4 +95,4 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         </div>
     </div>
   );
-};
+});

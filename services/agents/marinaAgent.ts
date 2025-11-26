@@ -1,6 +1,6 @@
 
 import { TaskHandlerFn } from '../decomposition/types';
-import { AgentAction, AgentTraceLog, VesselIntelligenceProfile, NodeName, Tender, VesselSystemsStatus } from '../../types';
+import { AgentAction, AgentTraceLog, VesselIntelligenceProfile, NodeName, Tender, VesselSystemsStatus, AisTarget } from '../../types';
 import { wimMasterData } from '../wimMasterData';
 import { haversineDistance, getCurrentMaritimeTime } from '../utils';
 import { persistenceService, STORAGE_KEYS } from '../persistence'; 
@@ -136,7 +136,7 @@ export const marinaExpert = {
     },
 
     // ATC Radar Scan (20nm radius + Ambarlı Commercial Traffic)
-    scanSector: async (lat: number, lng: number, radiusMiles: number, addTrace: (t: AgentTraceLog) => void): Promise<any[]> => {
+    scanSector: async (lat: number, lng: number, radiusMiles: number, addTrace: (t: AgentTraceLog) => void): Promise<AisTarget[]> => {
         addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `Scanning Radar Sector: ${radiusMiles}nm radius around ${lat}, ${lng}...`, 'WORKER'));
         
         // 1. WIM Fleet (AIS)
@@ -149,14 +149,15 @@ export const marinaExpert = {
             type: v.type,
             distance: haversineDistance(lat, lng, v.coordinates!.lat, v.coordinates!.lng).toFixed(1),
             squawk: '1200', // VFR Standard
-            status: v.status,
-            coordinates: v.coordinates
+            status: v.status!,
+            coordinates: v.coordinates!,
+            speed: v.status === 'DOCKED' ? '0.0' : '8.5'
         }));
 
         // 2. Ambarlı Commercial Traffic (Simulated Injection)
-        const commercialTraffic = [
-            { name: "M/V MSC Gulsun", type: "Container Ship", distance: "4.2", squawk: "7700", status: "CROSSING", speed: "14kn", coordinates: { lat: 40.9200, lng: 28.6100 } },
-            { name: "M/T Torm Republican", type: "Chemical Tanker", distance: "6.5", squawk: "2305", status: "ANCHORED", speed: "0kn", coordinates: { lat: 40.9000, lng: 28.6000 } }
+        const commercialTraffic: AisTarget[] = [
+            { name: "M/V MSC Gulsun", type: "Container Ship", distance: "4.2", squawk: "7700", status: "CROSSING", speed: "14.0", coordinates: { lat: 40.9200, lng: 28.6100 } },
+            { name: "M/T Torm Republican", type: "Chemical Tanker", distance: "6.5", squawk: "2305", status: "ANCHORED", speed: "0.0", coordinates: { lat: 40.9000, lng: 28.6000 } }
         ];
 
         addTrace(createLog('ada.marina', 'OUTPUT', `Radar Contact: ${fleet.length} WIM vessels + ${commercialTraffic.length} Commercial Targets (Ambarlı).`, 'WORKER'));
@@ -286,16 +287,46 @@ export const marinaExpert = {
         };
     },
 
-    // ATC Arrival Protocol
+    // ATC Arrival Protocol - UPDATED for 20nm Monitoring & Guest Handling
     processArrival: async (vesselName: string, currentTenders: Tender[], addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, actions: AgentAction[], tender?: Tender, squawk?: string }> => {
         
-        const vesselProfile = await marinaExpert.getVesselIntelligence(vesselName);
+        // 1. Identify Target & Radar Lock
+        let vesselProfile = await marinaExpert.getVesselIntelligence(vesselName);
+        
+        // RADAR SIMULATION: 20nm Detection
+        addTrace(createLog('ada.marina', 'THINKING', `[RADAR] SCANNING SECTOR MARMARA (20nm Radius)...`, 'WORKER'));
+        addTrace(createLog('ada.marina', 'OUTPUT', `[RADAR] TARGET ACQUIRED: ${vesselName} | Range: 19.8nm | Bearing: 240°`, 'EXPERT'));
+
+        // 2. Differentiate Member vs Guest
+        const isMember = !!vesselProfile;
+        let berth = "Visitor Quay V-01";
+        let squawk = Math.floor(1000 + Math.random() * 8999).toString();
+        let welcomeMessage = "";
+
+        if (isMember && vesselProfile) {
+            // MEMBER LOGIC (Homecoming)
+            berth = vesselProfile.location || "Pontoon C-12";
+            welcomeMessage = `**PROACTIVE HAIL [CH 72]**\n` +
+                `> **"West Istanbul Marina calling ${vesselName}. Welcome home, Captain."**\n` +
+                `> "We have you on AIS at 20nm. Your home berth at **${berth}** is prepped, shore power is live."\n` +
+                `> "Tender has been dispatched for escort. Proceed to waypoints."`;
+        } else {
+            // GUEST LOGIC (Reservation)
+            // Simulating a lookup for the specific prompt scenario
+            addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `Checking Reservation Database for '${vesselName}'...`, 'WORKER'));
+            addTrace(createLog('ada.marina', 'OUTPUT', `CONFIRMED: Reservation #RES-9921 found. Duration: 4 Nights.`, 'EXPERT'));
+            
+            berth = "Pontoon A-08 (Visitor)";
+            squawk = "7001"; // Visitor Squawk
+            welcomeMessage = `**PROACTIVE HAIL [CH 72]**\n` +
+                `> **"West Istanbul Marina calling ${vesselName}. Welcome to Istanbul."**\n` +
+                `> "We have confirmed your **4-Night Reservation**. We have you on radar at 20nm."\n` +
+                `> "Your designated berth is **${berth}**. We are ready to welcome you."`;
+        }
+
         const priority = marinaExpert.calculateTrafficPriority(vesselProfile);
-        const squawk = Math.floor(1000 + Math.random() * 8999).toString(); 
-        const berth = "Pontoon C-12"; 
 
-        addTrace(createLog('ada.marina', 'THINKING', `[ATC-APP] RADAR CONTACT: ${vesselName} | RANGE: 5nm | INBOUND`, 'EXPERT'));
-
+        // 3. Tender Dispatch
         const availableTender = currentTenders.find(t => t.status === 'Idle');
 
         if (!availableTender) {
@@ -307,8 +338,9 @@ export const marinaExpert = {
              };
         }
 
-        addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `[ATC-APP] Reserving ${availableTender.name} for arrival escort.`, 'WORKER'));
+        addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `[ATC-APP] Dispatching ${availableTender.name} for intercept at 2nm mark.`, 'WORKER'));
 
+        // 4. Execute Actions
         const actions: AgentAction[] = [];
         actions.push({
             id: `marina_arr_${Date.now()}`,
@@ -340,14 +372,14 @@ export const marinaExpert = {
             kind: 'internal',
             name: 'ada.marina.log_operation',
             params: {
-                message: `[ATC-ARR] TENDER RESERVED | AST:${availableTender.name.toUpperCase()} -> VS:${vesselName.toUpperCase()} | GATE:${berth}`,
+                message: `[ATC-ARR] PROACTIVE WELCOME | TARGET:${vesselName.toUpperCase()} | 20NM LOCK | BERTH:${berth}`,
                 type: 'info'
             }
         });
 
         return {
             success: true,
-            message: "Cleared for Approach.",
+            message: welcomeMessage,
             tender: availableTender,
             squawk: squawk,
             actions: actions

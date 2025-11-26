@@ -79,6 +79,17 @@ export interface Tender {
   serviceCount?: number; 
 }
 
+export interface AisTarget {
+    name: string;
+    type: string;
+    distance: string;
+    squawk: string;
+    status: string;
+    coordinates: { lat: number; lng: number; };
+    speed: string;
+    course?: number;
+}
+
 export interface KplerAisTarget {
     id: string;
     vessel_name: string;
@@ -197,6 +208,13 @@ export interface WeatherForecast {
 }
 
 // --- MAINTENANCE TYPES ---
+export interface MaintenanceLogEntry {
+    timestamp: string;
+    stage: 'SCHEDULED' | 'PARTS_ORDERED' | 'PARTS_ARRIVED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+    details: string;
+    user?: string; // Who triggered it
+}
+
 export interface MaintenanceJob {
     id: string;
     vesselName: string;
@@ -206,6 +224,7 @@ export interface MaintenanceJob {
     contractor: string; // e.g., "WIM Tech", "Bilgin Yachts", "External"
     partsStatus?: 'N/A' | 'ORDERED' | 'ARRIVED' | 'INSTALLED';
     notes?: string;
+    logs: MaintenanceLogEntry[]; // Detailed transaction history
 }
 
 // --- AUTHENTICATION & ROLES ---
