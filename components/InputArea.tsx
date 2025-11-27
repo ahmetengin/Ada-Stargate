@@ -36,7 +36,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
     if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = false;
-        recognition.lang = 'en-US';
+        recognition.lang = 'tr-TR'; 
         recognition.interimResults = false;
 
         recognition.onresult = (event: any) => {
@@ -161,7 +161,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isDictating ? "Listening..." : "Command..."}
+            placeholder={isDictating ? "Dinliyorum..." : "Komut..."}
             className={`flex-1 bg-transparent border-none focus:outline-none text-sm text-zinc-300 placeholder:text-zinc-600 resize-none py-3 font-mono min-w-0 max-h-[120px] overflow-y-auto custom-scrollbar ${isDictating ? 'animate-pulse text-teal-400' : ''}`}
             disabled={isLoading}
           />
@@ -170,7 +170,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
               <button 
                 onClick={toggleDictation}
                 className={`p-2 transition-colors rounded-full flex items-center justify-center ${isDictating ? 'text-red-500 bg-red-500/10 animate-pulse' : 'text-red-900/50 hover:text-red-500'}`}
-                title="Voice Dictation"
+                title="Sesli Yazma (TR)"
               >
                   <AudioWaveform size={18}/>
               </button>

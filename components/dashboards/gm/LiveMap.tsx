@@ -9,28 +9,28 @@ export const LiveMap: React.FC = () => {
   // cx/cy is the anchoring point on the pontoon edge (Stern location)
   const berths = [
     // --- PONTOON A (Top) ---
-    // North Side (Facing Up)
+    // North Side (Facing Up) - Stern at y=35, Bow at y=10
     { id: 'A-N1', status: 'OCCUPIED', vessel: 'S/Y Wind Chaser', type: 'Sail', cx: 60, cy: 35, orientation: 'up' },
     { id: 'A-N2', status: 'EMPTY', vessel: null, type: null, cx: 80, cy: 35, orientation: 'up' },
     { id: 'A-N3', status: 'OCCUPIED', vessel: 'M/Y Solaris', type: 'Motor', cx: 100, cy: 35, orientation: 'up' },
     
-    // South Side (Facing Down)
+    // South Side (Facing Down) - Stern at y=43, Bow at y=68
     { id: 'A-S1', status: 'OCCUPIED', vessel: 'S/Y Phisedelia', type: 'Sail (VO65)', cx: 60, cy: 43, orientation: 'down' },
     { id: 'A-S2', status: 'OCCUPIED', vessel: 'M/Y Blue Horizon', type: 'Motor', cx: 80, cy: 43, orientation: 'down' },
     { id: 'A-S3', status: 'BREACH', vessel: 'Speedboat X', type: 'Speed', cx: 100, cy: 43, orientation: 'down' },
     { id: 'A-S4', status: 'OCCUPIED', vessel: 'Tender Alpha', type: 'Service', cx: 120, cy: 43, orientation: 'down' },
 
     // --- PONTOON B (Middle) ---
-    // North Side (Facing Up)
+    // North Side (Facing Up) - Stern at y=85
     { id: 'B-N1', status: 'OCCUPIED', vessel: 'Catamaran Lir', type: 'Cat', cx: 60, cy: 85, orientation: 'up' },
     { id: 'B-N2', status: 'OCCUPIED', vessel: 'S/Y Aegeas', type: 'Sail', cx: 90, cy: 85, orientation: 'up' },
 
-    // South Side (Facing Down)
+    // South Side (Facing Down) - Stern at y=93
     { id: 'B-S1', status: 'EMPTY', vessel: null, type: null, cx: 70, cy: 93, orientation: 'down' },
     { id: 'B-S2', status: 'OCCUPIED', vessel: 'M/Y Poseidon', type: 'Superyacht', cx: 100, cy: 93, orientation: 'down' },
     
     // --- VIP QUAY (Right) ---
-    // Facing Left (West)
+    // Facing Left (West) - Stern at x=230
     { id: 'VIP-01', status: 'OCCUPIED', vessel: 'M/Y Grand Turk', type: 'Mega', cx: 230, cy: 50, orientation: 'left' },
     { id: 'VIP-02', status: 'OCCUPIED', vessel: 'M/Y White Pearl', type: 'Mega', cx: 230, cy: 100, orientation: 'left' },
   ];
@@ -99,27 +99,35 @@ export const LiveMap: React.FC = () => {
 
                     if (b.orientation === 'down') {
                         // Stern at Pontoon South Edge (y), Bow pointing South (y+)
-                        // Shape: Stern width 10, Length 25
+                        // Shape: Stern width 10, Length 25. Points Down.
                         boatPath = `M ${b.cx-5} ${b.cy + 2} L ${b.cx+5} ${b.cy + 2} L ${b.cx+5} ${b.cy+20} Q ${b.cx} ${b.cy+28} ${b.cx-5} ${b.cy+20} Z`;
+                        // Mooring Lines (Tonoz) - Extending from Bow further South
                         mooringLine1 = `M ${b.cx-4} ${b.cy+20} L ${b.cx-8} ${b.cy+35}`;
                         mooringLine2 = `M ${b.cx+4} ${b.cy+20} L ${b.cx+8} ${b.cy+35}`;
-                        passY2 = b.cy + 4; // Gangway down
+                        // Gangway
+                        passY2 = b.cy + 4; 
                         labelY += 15;
                     } 
                     else if (b.orientation === 'up') {
                         // Stern at Pontoon North Edge (y), Bow pointing North (y-)
+                        // Points Up.
                         boatPath = `M ${b.cx-5} ${b.cy - 2} L ${b.cx+5} ${b.cy - 2} L ${b.cx+5} ${b.cy-20} Q ${b.cx} ${b.cy-28} ${b.cx-5} ${b.cy-20} Z`;
+                        // Mooring Lines (Tonoz) - Extending from Bow further North
                         mooringLine1 = `M ${b.cx-4} ${b.cy-20} L ${b.cx-8} ${b.cy-35}`;
                         mooringLine2 = `M ${b.cx+4} ${b.cy-20} L ${b.cx+8} ${b.cy-35}`;
-                        passY2 = b.cy - 4; // Gangway up
+                        // Gangway
+                        passY2 = b.cy - 4; 
                         labelY -= 15;
                     }
                     else if (b.orientation === 'left') {
                         // Stern at Quay Left Edge (x), Bow pointing West (x-)
+                        // Points Left.
                         boatPath = `M ${b.cx-2} ${b.cy-6} L ${b.cx-2} ${b.cy+6} L ${b.cx-30} ${b.cy+6} Q ${b.cx-40} ${b.cy} ${b.cx-30} ${b.cy-6} Z`;
+                        // Mooring Lines (Tonoz) - Extending from Bow further West
                         mooringLine1 = `M ${b.cx-30} ${b.cy-5} L ${b.cx-50} ${b.cy-10}`;
                         mooringLine2 = `M ${b.cx-30} ${b.cy+5} L ${b.cx-50} ${b.cy+10}`;
-                        passX2 = b.cx - 4; // Gangway left
+                        // Gangway
+                        passX2 = b.cx - 4; 
                         labelX -= 20;
                     }
 
@@ -147,7 +155,7 @@ export const LiveMap: React.FC = () => {
                                 filter={b.status === 'BREACH' ? 'drop-shadow(0 0 4px #ef4444)' : ''}
                             />
                             
-                            {/* Passarelle (Gangway) */}
+                            {/* Passarelle (Gangway) - Connecting Stern to Pontoon */}
                             {(b.status === 'OCCUPIED' || b.status === 'BREACH') && (
                                 <line x1={passX1} y1={passY1} x2={passX2} y2={passY2} stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                             )}

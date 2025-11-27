@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction, VhfLog, AisTarget } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
@@ -40,6 +40,99 @@ const BOOT_TRACES: any[] = [
     { id: 'boot_5', timestamp: '08:00:05', node: 'ada.vhf', step: 'OUTPUT', content: 'Listening on Ch 72 / 16. Audio Stream Ready.', persona: 'WORKER' },
 ];
 
+// --- SUB-COMPONENTS (DEFINED OUTSIDE TO PREVENT RE-RENDER FLICKER) ---
+
+interface ChatInterfaceProps {
+    messages: Message[];
+    activeChannel: string;
+    isLoading: boolean;
+    selectedModel: ModelType;
+    userRole: any;
+    onModelChange: (m: ModelType) => void;
+    onSend: (text: string, attachments: File[]) => void;
+    onQuickAction: (text: string) => void;
+    onScanClick: () => void;
+    onRadioClick: () => void;
+    onTraceClick: () => void;
+}
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
+    messages,
+    activeChannel,
+    isLoading,
+    selectedModel,
+    userRole,
+    onModelChange,
+    onSend,
+    onQuickAction,
+    onScanClick,
+    onRadioClick,
+    onTraceClick
+}) => {
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const isUserAtBottomRef = useRef(true);
+
+    // Track user scroll position
+    const handleScroll = useCallback(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        
+        const threshold = 50; // px
+        const distanceToBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        isUserAtBottomRef.current = distanceToBottom < threshold;
+    }, []);
+
+    // Smart Auto-Scroll: Only scroll if user was already at bottom
+    useLayoutEffect(() => {
+        if (isUserAtBottomRef.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }); // 'auto' is more stable than 'smooth' for chat
+        }
+    }, [messages]);
+
+    return (
+        <div className="flex flex-col h-full relative bg-[#050b14] w-full">
+            {/* Header */}
+            <div className="h-14 flex items-center justify-between px-4 sm:px-6 border-b border-white/5 bg-[#050b14]/50 backdrop-blur-sm z-10 flex-shrink-0">
+                <div className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase cursor-pointer hover:text-teal-500 transition-colors" onClick={onTraceClick}>
+                    ADA.MARINA <span className="text-zinc-700 mx-2">|</span> <span className="text-teal-500 animate-pulse">READY</span>
+                </div>
+                <div className="text-[9px] font-bold text-red-500 flex items-center gap-2 sm:gap-4">
+                    <span className="hidden sm:inline">N 40°57’46’’ E 28°39’49’’</span>
+                    <span className="text-zinc-600 bg-zinc-900 px-2 py-1 rounded border border-white/5">VHF {activeChannel}</span>
+                </div>
+            </div>
+
+            {/* Messages Feed */}
+            <div 
+                className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar space-y-6" 
+                ref={scrollContainerRef}
+                onScroll={handleScroll}
+            >
+                {messages.map((msg) => (
+                    <MessageBubble key={msg.id} message={msg} />
+                ))}
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="flex-shrink-0 bg-[#050b14] border-t border-white/5 pt-4 pb-6 px-4 sm:px-6 z-20">
+                <InputArea 
+                    onSend={onSend}
+                    isLoading={isLoading}
+                    selectedModel={selectedModel}
+                    onModelChange={onModelChange}
+                    userRole={userRole}
+                    onQuickAction={onQuickAction}
+                    onScanClick={onScanClick}
+                    onRadioClick={onRadioClick}
+                />
+            </div>
+        </div>
+    );
+};
+
+
 export default function App() {
   // --- STATE ---
   const [isBooting, setIsBooting] = useState(true);
@@ -78,8 +171,6 @@ export default function App() {
   // UI State
   const [activeChannel, setActiveChannel] = useState('72');
   const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({});
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // --- EFFECTS ---
 
@@ -88,19 +179,6 @@ export default function App() {
     const timer = setTimeout(() => setIsBooting(false), 2800);
     return () => clearTimeout(timer);
   }, []);
-
-  // Smart Auto-Scroll
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    // Only scroll if user is already near the bottom OR if it's the very first load
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-    
-    if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, activeMobileTab]);
 
   // AIS Polling (Every 10s)
   useEffect(() => {
@@ -172,6 +250,14 @@ export default function App() {
 
   const handleAgentAction = useCallback((action: AgentAction) => {
     console.log("Executing Agent Action:", action);
+
+    // NEW: Handle UI Triggers
+    if (action.name === 'ada.ui.openModal') {
+        if (action.params.modal === 'SCANNER') setIsScannerOpen(true);
+        if (action.params.modal === 'VOICE') setIsVoiceOpen(true);
+        if (action.params.modal === 'REPORT') setIsReportOpen(true);
+        if (action.params.modal === 'TRACE') setIsTraceOpen(true);
+    }
 
     if (action.name === 'ada.marina.tenderReserved') {
         const { tenderId, mission, vessel } = action.params;
@@ -298,48 +384,6 @@ export default function App() {
 
   if (isBooting) return <BootSequence />;
 
-  // --- LAYOUT COMPONENTS ---
-
-  const ChatInterface = () => (
-    <div className="flex flex-col h-full relative bg-[#050b14] w-full">
-        {/* Header */}
-        <div className="h-14 flex items-center justify-between px-4 sm:px-6 border-b border-white/5 bg-[#050b14]/50 backdrop-blur-sm z-10 flex-shrink-0">
-            <div className="text-[10px] font-bold text-zinc-500 tracking-[0.2em] uppercase cursor-pointer hover:text-teal-500 transition-colors" onClick={() => setIsTraceOpen(true)}>
-                ADA.MARINA <span className="text-zinc-700 mx-2">|</span> <span className="text-teal-500 animate-pulse">READY</span>
-            </div>
-            <div className="text-[9px] font-bold text-red-500 flex items-center gap-2 sm:gap-4">
-                <span className="hidden sm:inline">N 40°57’46’’ E 28°39’49’’</span>
-                <span className="text-zinc-600 bg-zinc-900 px-2 py-1 rounded border border-white/5">VHF {activeChannel}</span>
-            </div>
-        </div>
-
-        {/* Messages Feed - FLUID SCROLL AREA */}
-        <div 
-            className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar space-y-6" 
-            ref={scrollContainerRef}
-        >
-            {messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} />
-            ))}
-            <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area - STATIC BLOCK */}
-        <div className="flex-shrink-0 bg-[#050b14] border-t border-white/5 pt-4 pb-6 px-4 sm:px-6 z-20">
-            <InputArea 
-                onSend={handleSendMessage}
-                isLoading={isLoading}
-                selectedModel={selectedModel}
-                onModelChange={setSelectedModel}
-                userRole={userProfile.role}
-                onQuickAction={(text) => handleSendMessage(text, [])}
-                onScanClick={() => setIsScannerOpen(true)}
-                onRadioClick={() => setIsVoiceOpen(true)}
-            />
-        </div>
-    </div>
-  );
-
   return (
     <div className="h-[100dvh] w-screen bg-black text-zinc-300 overflow-hidden font-mono flex flex-col lg:flex-row">
         
@@ -362,7 +406,19 @@ export default function App() {
 
                 {/* TAB: COMMS (Chat) */}
                 <div className={`absolute inset-0 bg-[#050b14] transition-transform duration-300 ${activeMobileTab === 'comms' ? 'translate-x-0' : activeMobileTab === 'nav' ? 'translate-x-full' : '-translate-x-full'}`}>
-                    <ChatInterface />
+                    <ChatInterface 
+                        messages={messages}
+                        activeChannel={activeChannel}
+                        isLoading={isLoading}
+                        selectedModel={selectedModel}
+                        userRole={userProfile.role}
+                        onModelChange={setSelectedModel}
+                        onSend={handleSendMessage}
+                        onQuickAction={(text) => handleSendMessage(text, [])}
+                        onScanClick={() => setIsScannerOpen(true)}
+                        onRadioClick={() => setIsVoiceOpen(true)}
+                        onTraceClick={() => setIsTraceOpen(true)}
+                    />
                 </div>
 
                 {/* TAB: OPS */}
@@ -436,7 +492,19 @@ export default function App() {
 
             {/* CENTER PANE (Chat) */}
             <div className="flex-1 h-full overflow-hidden min-w-[300px]">
-                <ChatInterface />
+                <ChatInterface 
+                    messages={messages}
+                    activeChannel={activeChannel}
+                    isLoading={isLoading}
+                    selectedModel={selectedModel}
+                    userRole={userProfile.role}
+                    onModelChange={setSelectedModel}
+                    onSend={handleSendMessage}
+                    onQuickAction={(text) => handleSendMessage(text, [])}
+                    onScanClick={() => setIsScannerOpen(true)}
+                    onRadioClick={() => setIsVoiceOpen(true)}
+                    onTraceClick={() => setIsTraceOpen(true)}
+                />
             </div>
 
             {/* RESIZE HANDLE 2 */}

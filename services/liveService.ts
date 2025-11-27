@@ -49,6 +49,17 @@ RULE:
           rbacInstruction = `\n\nCURRENT USER ROLE: ${userProfile.role}. Authorized for operations.`;
       }
 
+      // LANGUAGE PRIORITY
+      const LANGUAGE_INSTRUCTION = `
+      *** LANGUAGE PROTOCOL: TURKISH PRIORITY ***
+      - You are operating in Istanbul, Turkey.
+      - The user will likely speak **TURKISH**.
+      - Do NOT attempt to force English transcription if the user speaks Turkish.
+      - If you hear "Merhaba", "Sesimi alıyor musun", "Çıkış yapmak istiyorum", treat it as TURKISH.
+      - Do NOT translate Turkish input into English "hallucinations" (e.g., do not turn "geliyorum" into "galleria").
+      - You can speak English if the user speaks English.
+      `;
+
       // PHONETIC CORRECTION GUIDE (Fixing STT Errors)
       const PHONETIC_GUIDE = `
       *** SPEECH RECOGNITION HINTS (STT CORRECTION) ***
@@ -85,6 +96,7 @@ RULE:
       - **Vision:** "${wimMasterData.identity.vision}"
 
       ${FLEET_MANIFEST}
+      ${LANGUAGE_INSTRUCTION}
       ${PHONETIC_GUIDE}
 
       *** BEHAVIOR RULES (CRITICAL) ***

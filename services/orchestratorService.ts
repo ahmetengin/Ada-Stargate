@@ -115,7 +115,14 @@ export const orchestratorService = {
              if (res.actions) actions.push(...res.actions);
         }
         else if (lower.includes('scan') || lower.includes('id') || lower.includes('passport')) {
-             responseText = "Please use the **Passport Scanner** module in the Sidebar for identity verification.";
+             responseText = "Initiating Identity Verification Protocol...";
+             // TRIGGER UI ACTION
+             actions.push({
+                 id: `ui_open_scanner_${Date.now()}`,
+                 kind: 'internal',
+                 name: 'ada.ui.openModal',
+                 params: { modal: 'SCANNER' }
+             });
         }
 
         // If responseText is still empty, it means no specific agent handled it fully
