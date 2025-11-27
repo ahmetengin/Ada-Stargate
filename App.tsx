@@ -86,7 +86,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Smart Auto-Scroll: Only scroll if user was already at bottom
     useLayoutEffect(() => {
         if (isUserAtBottomRef.current) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }); // 'auto' is more stable than 'smooth' for chat
+            messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }); 
         }
     }, [messages]);
 
