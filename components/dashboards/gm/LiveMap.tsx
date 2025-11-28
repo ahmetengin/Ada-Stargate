@@ -6,31 +6,27 @@ export const LiveMap: React.FC = () => {
   const [hoveredBerth, setHoveredBerth] = useState<string | null>(null);
 
   // Mock Berth Data
-  // cx/cy is the anchoring point on the pontoon edge (Stern location)
   const berths = [
     // --- PONTOON A (Top) ---
-    // North Side (Facing Up) - Stern at y=35, Bow at y=10
     { id: 'A-N1', status: 'OCCUPIED', vessel: 'S/Y Wind Chaser', type: 'Sail', cx: 60, cy: 35, orientation: 'up' },
     { id: 'A-N2', status: 'EMPTY', vessel: null, type: null, cx: 80, cy: 35, orientation: 'up' },
     { id: 'A-N3', status: 'OCCUPIED', vessel: 'M/Y Solaris', type: 'Motor', cx: 100, cy: 35, orientation: 'up' },
     
-    // South Side (Facing Down) - Stern at y=43, Bow at y=68
+    // South Side (Facing Down)
     { id: 'A-S1', status: 'OCCUPIED', vessel: 'S/Y Phisedelia', type: 'Sail (VO65)', cx: 60, cy: 43, orientation: 'down' },
     { id: 'A-S2', status: 'OCCUPIED', vessel: 'M/Y Blue Horizon', type: 'Motor', cx: 80, cy: 43, orientation: 'down' },
     { id: 'A-S3', status: 'BREACH', vessel: 'Speedboat X', type: 'Speed', cx: 100, cy: 43, orientation: 'down' },
     { id: 'A-S4', status: 'OCCUPIED', vessel: 'Tender Alpha', type: 'Service', cx: 120, cy: 43, orientation: 'down' },
 
     // --- PONTOON B (Middle) ---
-    // North Side (Facing Up) - Stern at y=85
     { id: 'B-N1', status: 'OCCUPIED', vessel: 'Catamaran Lir', type: 'Cat', cx: 60, cy: 85, orientation: 'up' },
     { id: 'B-N2', status: 'OCCUPIED', vessel: 'S/Y Aegeas', type: 'Sail', cx: 90, cy: 85, orientation: 'up' },
 
-    // South Side (Facing Down) - Stern at y=93
+    // South Side (Facing Down)
     { id: 'B-S1', status: 'EMPTY', vessel: null, type: null, cx: 70, cy: 93, orientation: 'down' },
     { id: 'B-S2', status: 'OCCUPIED', vessel: 'M/Y Poseidon', type: 'Superyacht', cx: 100, cy: 93, orientation: 'down' },
     
     // --- VIP QUAY (Right) ---
-    // Facing Left (West) - Stern at x=230
     { id: 'VIP-01', status: 'OCCUPIED', vessel: 'M/Y Grand Turk', type: 'Mega', cx: 230, cy: 50, orientation: 'left' },
     { id: 'VIP-02', status: 'OCCUPIED', vessel: 'M/Y White Pearl', type: 'Mega', cx: 230, cy: 100, orientation: 'left' },
   ];
@@ -46,6 +42,13 @@ export const LiveMap: React.FC = () => {
 
   return (
     <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl flex flex-col h-full overflow-hidden relative animate-in fade-in duration-500">
+        <style>{`
+            @keyframes drift {
+                from { transform: translate(0, 0); }
+                to { transform: translate(-20px, -20px); }
+            }
+        `}</style>
+        
         <div className="p-3 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
             <h3 className="text-xs font-bold text-sky-500 uppercase tracking-widest flex items-center gap-2">
                 <MapIcon size={14} /> DIGITAL TWIN (LIVE)
@@ -60,13 +63,13 @@ export const LiveMap: React.FC = () => {
         <div className="flex-1 relative bg-[#050b14] p-0 flex items-center justify-center overflow-hidden">
             {/* SVG MAP REPRESENTATION */}
             <svg viewBox="0 0 300 150" className="w-full h-full">
-                {/* Water Background Pattern (Subtle Grid) */}
+                {/* Water Background Pattern (Subtle Grid) with Animation */}
                 <defs>
                     <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
                         <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#1f2937" strokeWidth="0.5" opacity="0.5"/>
                     </pattern>
                 </defs>
-                <rect width="300" height="150" fill="url(#grid)" opacity="0.3" />
+                <rect width="400" height="400" fill="url(#grid)" opacity="0.3" style={{ animation: 'drift 60s linear infinite' }} />
 
                 {/* --- INFRASTRUCTURE --- */}
                 
@@ -74,12 +77,10 @@ export const LiveMap: React.FC = () => {
                 <rect x="10" y="10" width="15" height="130" rx="2" fill="#374151" stroke="#4b5563" strokeWidth="1" />
                 
                 {/* Pontoon A (Top) */}
-                {/* y: 35 to 43 (Height 8) */}
                 <rect x="25" y="35" width="140" height="8" rx="1" fill="#4b5563" stroke="#6b7280" strokeWidth="0.5" /> 
                 <text x="30" y="40.5" fontSize="4" fill="#d1d5db" fontFamily="monospace" fontWeight="bold" letterSpacing="1">PONTOON A</text>
 
                 {/* Pontoon B (Bottom) */}
-                {/* y: 85 to 93 (Height 8) */}
                 <rect x="25" y="85" width="140" height="8" rx="1" fill="#4b5563" stroke="#6b7280" strokeWidth="0.5" /> 
                 <text x="30" y="90.5" fontSize="4" fill="#d1d5db" fontFamily="monospace" fontWeight="bold" letterSpacing="1">PONTOON B</text>
 
@@ -99,34 +100,23 @@ export const LiveMap: React.FC = () => {
 
                     if (b.orientation === 'down') {
                         // Stern at Pontoon South Edge (y), Bow pointing South (y+)
-                        // Shape: Stern width 10, Length 25. Points Down.
                         boatPath = `M ${b.cx-5} ${b.cy + 2} L ${b.cx+5} ${b.cy + 2} L ${b.cx+5} ${b.cy+20} Q ${b.cx} ${b.cy+28} ${b.cx-5} ${b.cy+20} Z`;
-                        // Mooring Lines (Tonoz) - Extending from Bow further South
                         mooringLine1 = `M ${b.cx-4} ${b.cy+20} L ${b.cx-8} ${b.cy+35}`;
                         mooringLine2 = `M ${b.cx+4} ${b.cy+20} L ${b.cx+8} ${b.cy+35}`;
-                        // Gangway
                         passY2 = b.cy + 4; 
                         labelY += 15;
                     } 
                     else if (b.orientation === 'up') {
-                        // Stern at Pontoon North Edge (y), Bow pointing North (y-)
-                        // Points Up.
                         boatPath = `M ${b.cx-5} ${b.cy - 2} L ${b.cx+5} ${b.cy - 2} L ${b.cx+5} ${b.cy-20} Q ${b.cx} ${b.cy-28} ${b.cx-5} ${b.cy-20} Z`;
-                        // Mooring Lines (Tonoz) - Extending from Bow further North
                         mooringLine1 = `M ${b.cx-4} ${b.cy-20} L ${b.cx-8} ${b.cy-35}`;
                         mooringLine2 = `M ${b.cx+4} ${b.cy-20} L ${b.cx+8} ${b.cy-35}`;
-                        // Gangway
                         passY2 = b.cy - 4; 
                         labelY -= 15;
                     }
                     else if (b.orientation === 'left') {
-                        // Stern at Quay Left Edge (x), Bow pointing West (x-)
-                        // Points Left.
                         boatPath = `M ${b.cx-2} ${b.cy-6} L ${b.cx-2} ${b.cy+6} L ${b.cx-30} ${b.cy+6} Q ${b.cx-40} ${b.cy} ${b.cx-30} ${b.cy-6} Z`;
-                        // Mooring Lines (Tonoz) - Extending from Bow further West
                         mooringLine1 = `M ${b.cx-30} ${b.cy-5} L ${b.cx-50} ${b.cy-10}`;
                         mooringLine2 = `M ${b.cx-30} ${b.cy+5} L ${b.cx-50} ${b.cy+10}`;
-                        // Gangway
                         passX2 = b.cx - 4; 
                         labelX -= 20;
                     }
@@ -155,7 +145,7 @@ export const LiveMap: React.FC = () => {
                                 filter={b.status === 'BREACH' ? 'drop-shadow(0 0 4px #ef4444)' : ''}
                             />
                             
-                            {/* Passarelle (Gangway) - Connecting Stern to Pontoon */}
+                            {/* Passarelle (Gangway) */}
                             {(b.status === 'OCCUPIED' || b.status === 'BREACH') && (
                                 <line x1={passX1} y1={passY1} x2={passX2} y2={passY2} stroke="white" strokeWidth="1.5" strokeLinecap="round" />
                             )}

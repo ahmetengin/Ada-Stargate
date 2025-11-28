@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { X, Mic, Radio, SignalHigh, Waves, Power } from 'lucide-react';
+import { X, Mic, Radio, SignalHigh, Waves, Power, AlertTriangle, RefreshCw } from 'lucide-react';
 import { LiveSession } from '../services/geminiService';
 import { LiveConnectionState, UserProfile } from '../types'; // Import UserProfile
 import { wimMasterData } from '../services/wimMasterData'; // Import wimMasterData
@@ -27,6 +28,15 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
 
   useEffect(() => {
     if (isOpen && status === LiveConnectionState.Disconnected) {
+      connect();
+    }
+
+    return () => {
+      // Cleanup handled by disconnect button for now, but safety here
+    };
+  }, [isOpen]);
+
+  const connect = async () => {
       const newSession = new LiveSession();
       
       newSession.onStatusChange = (s) => {
@@ -45,12 +55,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
       setSession(newSession);
       // Pass userProfile to connect for RBAC
       newSession.connect(userProfile);
-    }
-
-    return () => {
-      // Cleanup handled by disconnect button for now, but safety here
-    };
-  }, [isOpen]);
+  };
 
   const handleDisconnect = async () => {
     if (session) {
@@ -59,6 +64,12 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
     onClose();
     setStatus(LiveConnectionState.Disconnected);
     setSession(null);
+  };
+
+  const handleRetry = async () => {
+      if (session) await session.disconnect();
+      setStatus(LiveConnectionState.Disconnected);
+      setTimeout(() => connect(), 500);
   };
 
   if (!isOpen) return null;
@@ -83,7 +94,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
                   <span className="text-[10px] font-mono font-bold">REC</span>
                 </div>
               )}
-             <div className={`w-2 h-2 rounded-full ${status === LiveConnectionState.Connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+             <div className={`w-2 h-2 rounded-full ${status === LiveConnectionState.Connected ? 'bg-green-500 animate-pulse' : status === LiveConnectionState.Error ? 'bg-red-500' : 'bg-amber-500'}`} />
              <span className="text-[10px] font-mono uppercase text-zinc-500">{status}</span>
           </div>
         </div>
@@ -101,29 +112,38 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
              </div>
            </div>
 
-           {/* Visualizer Circle */}
+           {/* Visualizer Circle / Error State */}
            <div className="relative w-32 h-32 flex items-center justify-center">
-             {/* Outer Rings */}
-             <div className={`absolute inset-0 rounded-full border-2 border-indigo-900 transition-all duration-100`} 
-                  style={{ transform: `scale(${1 + audioLevel * 2})`, opacity: 0.5 - audioLevel }}></div>
-             <div className={`absolute inset-0 rounded-full border border-indigo-800 transition-all duration-100 delay-75`} 
-                  style={{ transform: `scale(${1 + audioLevel * 3})`, opacity: 0.3 - audioLevel }}></div>
-             
-             {/* Inner Core */}
-             <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-900 flex items-center justify-center shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-transform duration-75 ${status === LiveConnectionState.Connected ? 'scale-100' : 'scale-90 grayscale'}`}>
-               {status === LiveConnectionState.Connected ? (
-                 <Mic className="text-white w-8 h-8" />
-               ) : (
-                 <Waves className="text-white/50 w-8 h-8 animate-pulse" />
-               )}
-             </div>
+             {status === LiveConnectionState.Error ? (
+                 <div className="flex flex-col items-center justify-center text-red-500">
+                     <AlertTriangle size={48} className="animate-bounce" />
+                     <span className="text-[10px] font-bold mt-2 uppercase tracking-widest">Signal Lost</span>
+                 </div>
+             ) : (
+                 <>
+                    {/* Outer Rings */}
+                    <div className={`absolute inset-0 rounded-full border-2 border-indigo-900 transition-all duration-100`} 
+                        style={{ transform: `scale(${1 + audioLevel * 2})`, opacity: 0.5 - audioLevel }}></div>
+                    <div className={`absolute inset-0 rounded-full border border-indigo-800 transition-all duration-100 delay-75`} 
+                        style={{ transform: `scale(${1 + audioLevel * 3})`, opacity: 0.3 - audioLevel }}></div>
+                    
+                    {/* Inner Core */}
+                    <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-900 flex items-center justify-center shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-transform duration-75 ${status === LiveConnectionState.Connected ? 'scale-100' : 'scale-90 grayscale'}`}>
+                    {status === LiveConnectionState.Connected ? (
+                        <Mic className="text-white w-8 h-8" />
+                    ) : (
+                        <Waves className="text-white/50 w-8 h-8 animate-pulse" />
+                    )}
+                    </div>
+                 </>
+             )}
            </div>
 
            {/* Status Text */}
            <div className="mt-8 font-mono text-sm text-zinc-400 text-center h-6">
              {status === LiveConnectionState.Connecting && "ESTABLISHING LINK..."}
              {status === LiveConnectionState.Connected && (audioLevel > 0.05 ? "RECEIVING / TRANSMITTING" : "MONITORING...")}
-             {status === LiveConnectionState.Error && "CONNECTION FAILED"}
+             {status === LiveConnectionState.Error && <span className="text-red-500 font-bold">NETWORK ERROR - CHECK CONNECTION</span>}
            </div>
             
            {/* Protocol Instructions */}
@@ -152,13 +172,24 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
                 {showProtocol ? '[ Hide Protocol ]' : '[ Show Comms Protocol ]'}
             </button>
           </div>
-          <button 
-            onClick={handleDisconnect}
-            className="group flex items-center gap-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-500 px-8 py-3 rounded-full transition-all font-mono uppercase font-bold tracking-wider hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-          >
-            <Power size={18} className="group-hover:scale-110 transition-transform" />
-            End Transmission
-          </button>
+          
+          {status === LiveConnectionState.Error ? (
+              <button 
+                onClick={handleRetry}
+                className="group flex items-center gap-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 text-amber-500 px-8 py-3 rounded-full transition-all font-mono uppercase font-bold tracking-wider hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+              >
+                <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+                Retry Connection
+              </button>
+          ) : (
+              <button 
+                onClick={handleDisconnect}
+                className="group flex items-center gap-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-500 px-8 py-3 rounded-full transition-all font-mono uppercase font-bold tracking-wider hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+              >
+                <Power size={18} className="group-hover:scale-110 transition-transform" />
+                End Transmission
+              </button>
+          )}
         </div>
 
       </div>

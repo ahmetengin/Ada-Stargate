@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
-import { ArrowUp, Paperclip, AudioWaveform, ScanLine, Radio } from 'lucide-react'; 
+import { ArrowUp, Paperclip, AudioWaveform, ScanLine, Radio, Sparkles, Zap, Image as ImageIcon } from 'lucide-react'; 
 import { ModelType, UserRole } from '../types';
 import { QuickActions } from './QuickActions';
 
@@ -100,26 +100,26 @@ export const InputArea: React.FC<InputAreaProps> = ({
   return (
     <div className="w-full max-w-3xl mx-auto pb-16 lg:pb-0">
       
-      <div className="flex items-center justify-between mb-2 sm:mb-3 ml-2 sm:ml-4">
-          {/* Model Selectors */}
-          <div className="flex gap-4 text-[9px] font-bold uppercase tracking-[0.2em]">
+      {/* UX Improvement: Segmented Model Selector */}
+      <div className="flex items-center justify-between mb-3 ml-2 sm:ml-1">
+          <div className="flex bg-[#0a121e] p-1 rounded-full border border-white/5 shadow-inner">
               <button 
                 onClick={() => onModelChange(ModelType.Flash)}
-                className={`transition-colors ${selectedModel === ModelType.Flash ? "text-teal-400" : "text-zinc-600 hover:text-zinc-400"}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${selectedModel === ModelType.Flash ? "bg-teal-500/10 text-teal-400 border border-teal-500/20 shadow-[0_0_10px_rgba(45,212,191,0.1)]" : "text-zinc-600 hover:text-zinc-400 hover:bg-white/5"}`}
               >
-                  FLASH
+                  <Zap size={10} /> FLASH
               </button>
               <button 
                 onClick={() => onModelChange(ModelType.Pro)}
-                className={`transition-colors ${selectedModel === ModelType.Pro ? "text-red-500" : "text-zinc-600 hover:text-zinc-400"}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${selectedModel === ModelType.Pro ? "bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]" : "text-zinc-600 hover:text-zinc-400 hover:bg-white/5"}`}
               >
-                  PRO
+                  <Sparkles size={10} /> PRO
               </button>
               <button 
                 onClick={() => onModelChange(ModelType.Image)}
-                className={`transition-colors ${selectedModel === ModelType.Image ? "text-zinc-300" : "text-zinc-600 hover:text-zinc-400"}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all ${selectedModel === ModelType.Image ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]" : "text-zinc-600 hover:text-zinc-400 hover:bg-white/5"}`}
               >
-                  IMAGE
+                  <ImageIcon size={10} /> IMAGE
               </button>
           </div>
       </div>
@@ -132,25 +132,26 @@ export const InputArea: React.FC<InputAreaProps> = ({
       )}
 
       {/* Capsule Input */}
-      <div className="relative bg-[#0a121e] rounded-3xl border border-white/10 flex items-end px-2 py-2 shadow-2xl shadow-black/50 ring-1 ring-white/5 focus-within:ring-teal-500/30 transition-all">
+      <div className={`relative bg-[#0a121e] rounded-3xl border flex items-end px-2 py-2 shadow-2xl shadow-black/50 ring-1 ring-white/5 transition-all duration-300 ${isLoading ? 'border-teal-500/30 ring-teal-500/10' : 'border-white/10 focus-within:ring-teal-500/30'}`}>
           
           {/* Left Tools (Scan, Radio, Attach) */}
           <div className="flex items-center gap-1 pl-1 border-r border-white/5 pr-2 mr-2 mb-1.5 flex-shrink-0">
               <button 
                 onClick={onScanClick}
-                className="p-2 text-zinc-500 hover:text-teal-400 transition-colors rounded-full hover:bg-white/5 flex items-center justify-center"
-                title="Scan ID/Card"
+                className="p-2 text-zinc-500 hover:text-teal-400 transition-colors rounded-full hover:bg-white/5 flex items-center justify-center group relative"
+                title="Scan ID / Passport"
               >
                   <ScanLine size={18} />
               </button>
               <button 
                 onClick={onRadioClick}
-                className="p-2 text-red-600 hover:text-red-500 transition-colors rounded-full hover:bg-white/5 flex items-center justify-center"
-                title="VHF Radio"
+                className="p-2 text-red-600 hover:text-red-500 transition-colors rounded-full hover:bg-white/5 flex items-center justify-center relative"
+                title="Open VHF Radio"
               >
                   <Radio size={18} />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full animate-pulse border border-[#0a121e]"></span>
               </button>
-              <button className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors rounded-full hover:bg-white/5 flex items-center justify-center hidden sm:flex">
+              <button className="p-2 text-zinc-500 hover:text-zinc-300 transition-colors rounded-full hover:bg-white/5 flex items-center justify-center hidden sm:flex" title="Attach File">
                   <Paperclip size={18} />
               </button>
           </div>
@@ -161,7 +162,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isDictating ? "Dinliyorum..." : "Komut..."}
+            placeholder={isDictating ? "Dinliyorum..." : isLoading ? "İşleniyor..." : "Komut..."}
             className={`flex-1 bg-transparent border-none focus:outline-none text-sm text-zinc-300 placeholder:text-zinc-600 resize-none py-3 font-mono min-w-0 max-h-[120px] overflow-y-auto custom-scrollbar ${isDictating ? 'animate-pulse text-teal-400' : ''}`}
             disabled={isLoading}
           />
@@ -177,9 +178,20 @@ export const InputArea: React.FC<InputAreaProps> = ({
               
               <button 
                 onClick={handleSend}
-                className="w-10 h-10 bg-[#151f2e] hover:bg-[#1c2a3d] border border-white/5 text-zinc-400 hover:text-teal-400 rounded-full flex items-center justify-center transition-all shadow-inner"
+                disabled={isLoading || !text.trim()}
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-inner border border-white/5
+                    ${isLoading 
+                        ? 'bg-teal-500/20 text-teal-500 cursor-not-allowed animate-pulse' 
+                        : text.trim() 
+                            ? 'bg-teal-600 hover:bg-teal-500 text-white shadow-[0_0_15px_rgba(20,184,166,0.3)]' 
+                            : 'bg-[#151f2e] text-zinc-600 hover:text-zinc-400'
+                    }`}
               >
-                  <ArrowUp size={18} />
+                  {isLoading ? (
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                      <ArrowUp size={18} />
+                  )}
               </button>
           </div>
       </div>
