@@ -79,5 +79,28 @@ export const passkitExpert = {
         addTrace(createLog('ada.passkit', 'OUTPUT', `Travel Pass ready. Delivered to client wallet.`, 'EXPERT'));
 
         return { success: true, passUrl };
+    },
+
+    // NEW SKILL: Send Registration Link (Pre-Arrival)
+    sendRegistrationLink: async (contact: string, vesselName: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, actions: AgentAction[] }> => {
+        addTrace(createLog('ada.passkit', 'THINKING', `Generating secure KYC link for ${vesselName}...`, 'EXPERT'));
+        
+        const link = `https://ada.passkit.wim/register?ref=${Date.now()}`;
+        
+        addTrace(createLog('ada.passkit', 'TOOL_EXECUTION', `Dispatching SMS/Email to ${contact || 'Client Phone'}...`, 'WORKER'));
+        addTrace(createLog('ada.passkit', 'OUTPUT', `Link Sent: ${link}`, 'EXPERT'));
+
+        return {
+            success: true,
+            message: "Link sent.",
+            actions: [
+                {
+                    id: `pk_link_${Date.now()}`,
+                    kind: 'internal',
+                    name: 'ada.marina.log_operation',
+                    params: { message: `[PASSKIT] KYC LINK SENT -> ${vesselName}`, type: 'info' }
+                }
+            ]
+        };
     }
 };

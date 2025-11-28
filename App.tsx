@@ -13,6 +13,7 @@ import { DailyReportModal } from './components/DailyReportModal';
 import { streamChatResponse } from './services/geminiService';
 import { orchestratorService } from './services/orchestratorService';
 import { marinaExpert } from './services/agents/marinaAgent';
+import { passkitExpert } from './services/agents/passkitAgent';
 import { wimMasterData } from './services/wimMasterData';
 import { persistenceService, STORAGE_KEYS } from './services/persistence';
 import { Menu, Radio, Activity, MessageSquare } from 'lucide-react';
@@ -363,6 +364,16 @@ export default function App() {
           { id: Date.now().toString(), role: MessageRole.User, text: `[VHF CH${activeChannel}] ${userText}`, timestamp: Date.now() },
           { id: (Date.now()+1).toString(), role: MessageRole.Model, text: modelText, timestamp: Date.now() }
       ]);
+
+      // TRIGGER: If the AI mentions PassKit, trigger the backend action
+      if (modelText.includes('Ada PassKit') || (modelText.includes('Rezervasyon') && modelText.includes('iletilmiştir'))) {
+          passkitExpert.sendRegistrationLink("Guest", "Unknown Vessel", (t) => setAgentTraces(prev => [t, ...prev]))
+            .then(result => {
+                if (result.actions) {
+                    result.actions.forEach(handleAgentAction);
+                }
+            });
+      }
 
       orchestratorService.processRequest(userText, userProfile, tenders).then(result => {
           if (result.actions) {

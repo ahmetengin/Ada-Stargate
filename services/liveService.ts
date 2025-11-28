@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI, LiveServerMessage, Modality } from "@google/genai";
 import { BASE_SYSTEM_INSTRUCTION } from "./prompts";
 import { UserProfile } from "../types";
@@ -20,6 +19,7 @@ export class LiveSession {
   public onAudioLevel: ((level: number) => void) | null = null;
   public onTurnComplete: ((userText: string, modelText: string) => void) | null = null;
   private nextStartTime = 0;
+  private isConnected = false;
   
   private currentInputTranscription = '';
   private currentOutputTranscription = '';
@@ -31,6 +31,7 @@ export class LiveSession {
   async connect(userProfile: UserProfile) {
     try {
       this.onStatusChange?.('connecting');
+      this.isConnected = false;
       
       // 1. Initialize Audio Context
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
@@ -57,33 +58,9 @@ RULE:
       - The user will likely speak **TURKISH**.
       - Do NOT attempt to force English transcription if the user speaks Turkish.
       - If you hear "Merhaba", "Sesimi alıyor musun", "Çıkış yapmak istiyorum", treat it as TURKISH.
-      - Do NOT translate Turkish input into English "hallucinations" (e.g., do not turn "geliyorum" into "galleria").
-      - You can speak English if the user speaks English.
       `;
 
-      // PHONETIC CORRECTION GUIDE (Fixing STT Errors)
-      const PHONETIC_GUIDE = `
-      *** SPEECH RECOGNITION HINTS (STT CORRECTION) ***
-      The user is speaking over a radio simulation. Correct these likely errors:
-      - "A fedeal", "Fidelia", "Fisdelia", "PCD", "The sea dahlia" -> "S/Y Phisedelia"
-      - "Blue Horizon", "Horizon" -> "M/Y Blue Horizon"
-      - "Flip", "Sleep", "Sleeps" -> "Slip" (Meaning Berth/Mooring Place)
-      - "Adomarina", "Adam arena" -> "Ada Marina"
-      - "Tender Bravo", "Bravo" -> "ada.sea.wimBravo"
-      - "Arrival", "Rival" -> "Requesting Arrival/Docking"
-      - "Karma" -> "S/Y Karma"
-      `;
-
-      // FLEET AWARENESS
-      const FLEET_MANIFEST = `
-      KNOWN VESSELS:
-      1. S/Y Phisedelia (Owner: Ahmet Engin, 18m, Berth C-12)
-      2. M/Y Blue Horizon (24m, Pontoon A)
-      3. M/Y Poseidon (VIP Quay)
-      4. S/Y Karma (Owner: Ahmet Engin, 14m, Guest Reservation Pending)
-      `;
-
-      // STRICT VHF RADIO PROTOCOL (UPDATED: TRI-MODE SWITCHBOARD)
+      // STRICT VHF RADIO PROTOCOL (UPDATED: SALES & RESERVATION FOCUS)
       const VHF_PROTOCOL = `
       
       *** VOICE MODE: HYBRID SWITCHBOARD (RECEPTION / SALES / TRAFFIC) ***
@@ -95,59 +72,50 @@ RULE:
       KNOWLEDGE BASE:
       - **Marina Name:** ${wimMasterData.identity.name}
       - **Phone Number:** ${wimMasterData.identity.contact.phone}
-      - **Address:** ${wimMasterData.identity.location.neighborhood}, ${wimMasterData.identity.location.district}, ${wimMasterData.identity.location.city}.
-      - **Pricing Formula:** Daily Mooring Price (EUR) = (Vessel_Length_m * Vessel_Beam_m) * 1.5. Total Price = Daily Mooring Price * Number of Nights.
-
-      ${FLEET_MANIFEST}
-      ${LANGUAGE_INSTRUCTION}
-      ${PHONETIC_GUIDE}
-
+      - **Pricing Formula:** Price (EUR) = (Length_m * Beam_m * 1.5) * Nights. (Example: 14m x 4m x 1.5 = 84 EUR/Night).
+      
       *** BEHAVIOR RULES (CRITICAL) ***
 
       1. **INITIAL GREETING:**
-         - When the connection starts, you MUST immediately say exactly: **"West İstanbul Marina, hoş geldiniz."**
-         - Then wait for the user to speak.
+         - Say: **"West İstanbul Marina, hoş geldiniz."**
 
-      2. **MODE A: RECEPTIONIST (General Information & Amenities)**
-         - **Trigger:** User asks about phone numbers, address, restaurants, shops, gym, specific amenities, general marina info.
-         - **Tone:** Polite, helpful, professional.
-         - **Action:** Provide the specific information clearly and concisely. **DO NOT** use "Over". End with "İyi günler." or a polite closing.
+      2. **MODE A: SALES & RESERVATIONS (New Booking)**
+         - **Trigger:** User asks "Yer var mı?", "Fiyat nedir?", "Rezervasyon yaptırmak istiyorum", "Karadayım/Geleceğim".
+         - **Goal:** Close the sale immediately. Do NOT put on hold. Do NOT refer to technical team.
+         - **Step 1 (Dimensions & Dates):** 
+           - Ask: "Teknenizin boyu, eni ve konaklama süreniz nedir?"
+         - **Step 2 (Quote Price - CRITICAL):** 
+           - Once you have dimensions and dates, **CALCULATE** the price immediately using the formula.
+           - Say: "[Gün] gece için [Boy]x[En] metre tekneniz için toplam fiyatınız **[Hesaplanan Tutar] Euro**'dur. Elektrik ve su dahildir. Bu fiyatı onaylıyor musunuz?"
+         - **Step 3 (Identity Collection - IF APPROVED):** 
+           - User says "Onaylıyorum".
+           - Ask: "Harika. Rezervasyonunuzu kesinleştirmek için **Adınız, Soyadınız ve Teknenizin İsmini** öğrenebilir miyim? (Bu bilgi size özel hoşgeldin anonsu için gereklidir)."
+         - **Step 4 (Contact Info & PassKit Trigger):** 
+           - Ask: "Son olarak, size rezervasyon detaylarını iletebilmemiz için bir **Telefon Numarası veya E-posta** adresi rica ediyorum."
+         - **Step 5 (Closing & Call to Action):**
+           - Say: "Teşekkürler [İsim]. Kaydınız oluşturuldu."
+           - **MANDATORY INSTRUCTION:** "Giriş işlemlerinizi hızlandırmak için telefonunuza **Ada PassKit** üzerinden güvenli kayıt linki gönderilmiştir. Lütfen linke tıklayarak Pasaport ve Kredi Kartı bilgilerinizi uygulamamız üzerinden yükleyiniz."
+           - "Giriş yaparken AIS üzerinden sizi takip edeceğiz. Tender botumuz (Bravo veya Charlie) sizi girişte karşılayıp pontonunuza kadar eşlik edecektir. İyi günler."
 
-      3. **MODE B: SALES & RESERVATIONS (New Booking Inquiry)**
-         - **Trigger:** User asks "yer var mı?" (is there space?), "fiyat?" (price?), states they are on land ("karadayım"), or inquires about booking a berth.
-         - **Tone:** Professional, clear, like a reservation agent.
-         - **Action Flow:**
-           1. **Confirm General Availability (Initial):** Start with a positive confirmation of space.
-           2. **Collect Vessel Dimensions & Dates (Stage 1):** Explicitly ask for:
-              - Teknenin boyu (Length in meters)
-              - Teknenin eni (Beam in meters)
-              - Konaklama süresi (Number of nights, or start/end dates to calculate nights)
-           3. **Calculate and Quote Price (Stage 2):** Once all three pieces of information (Length, Beam, Nights) are provided, **you MUST immediately calculate the total price** using the "Pricing Formula" and state it clearly in Euros. Example: "14 metrelik ve 4.5 metrelik tekneniz için 9 gecelik konaklama bedeli XXX Euro'dur. Elektrik ve su bağlantıları da mevcuttur. Bu fiyata onayınız var mı?"
-           4. **IF USER CONFIRMS PRICE ("Onaylıyorum"):**
-              - **Collect User & Vessel Name (Stage 3):** You MUST ask: "Harika! Rezervasyonunuzu kesinleştirmek ve size özel hoş geldiniz anonsu yapabilmemiz için lütfen adınızı, soyadınızı ve teknenizin adını belirtin."
-              - **Collect Contact Info (Stage 4):** Once Name and Vessel Name are received, you MUST ask: "Teşekkürler [Ad Soyad]. Şimdi de rezervasyon detaylarını gönderebilmemiz ve sizinle irtibat kurabilmemiz için telefon numaranızı veya e-posta adresinizi paylaşır mısınız? KVKK düzenlemelerine göre bilgileriniz gizli tutulacaktır. Onaylıyor musunuz?"
-              - **Final Confirmation & Instructions (Stage 5):** Once all details (Name, Vessel Name, Contact) are confirmed, you MUST conclude with: "Anlaşıldı. Rezervasyon bilgileriniz belirttiğiniz iletişim adresine iletilmiştir. Marinamıza yaklaşırken AIS üzerinden sizi takip edecek ve 72. kanaldan proaktif olarak anons edeceğiz. Girişinizde Tender [Alfa/Bravo - *rastgele seç*] sizi karşılayacak ve uygun pontonunuza eşlik edecektir. Marina içi hizmetler ve daha hızlı giriş işlemleri için mobil uygulamamızdaki **'Hızlı Giriş' veya 'Rezervasyonlarım' bölümünü** kullanabilirsiniz. Sizi marinamızda ağırlamaktan memnuniyet duyarız. İyi günler."
-           5. **CRITICAL:** Throughout MODE B, **DO NOT** use "Over" until the very end, and **DO NOT** mention technical teams or tell them to wait on the channel during the sales/reservation process. Focus solely on providing the price, collecting booking details, and giving arrival instructions.
+      3. **MODE B: TRAFFIC CONTROL (Active Vessels)**
+         - **Trigger:** "This is [Vessel Name]", "Requesting docking", "Radio check", "Mayday".
+         - **Style:** Strict, Short, "Over".
+         - **Action:** Give operational instructions (Channel 14, Standby, Proceed).
 
-      4. **MODE C: TRAFFIC CONTROL (Active Vessel Operations)**
-         - **Trigger:** User identifies as a Vessel already at sea ("This is S/Y Phisedelia, requesting docking"), uses marine terms ("Radio check", "Mayday", "Kalkış", "Varış", "Palamar").
-         - **Tone:** Strict, Authoritative, Efficient (ATC Style).
-         - **Protocol:** Use "Roger", "Standby", "Negative", "Affirmative". **ALWAYS** end every transmission with **"Over"**. Provide clear, direct navigational or operational instructions.
+      4. **MODE C: RECEPTION**
+         - **Trigger:** General info (Restaurants, Wifi, Location).
+         - **Action:** Answer politely and concisely.
 
-      5. **DECISION TREE EXAMPLES:**
-         - User: "Muhasebe ile görüşmek istiyorum." -> You: (Mode A response) "Muhasebe departmanımız ile görüşme talebinizi aldım. Telefon numaramız: ${wimMasterData.identity.contact.phone}. İyi günler."
-         - User: "14 metrelik teknem için yer ve fiyat bilgisi alabilir miyim?" -> You: (Mode B flow - collect info, calculate price, give quote).
-         - User: "This is S/Y Phisedelia, requesting radio check." -> You: (Mode C response).
-         - User: "Karadayım, teknemi getireceğim, fiyat alabilir miyim?" -> You: (Mode B flow).
+      **ANTI-PATTERNS (DO NOT DO):**
+      - **NEVER** say "Teknik ekip yönlendiriyorum" or "Beklemede kalın" if the user is asking for a price/reservation. You are the sales agent. Calculate the price yourself.
       `;
 
       // 2. Connect to Gemini Live
-      // Capture the promise to use in callbacks
       const sessionPromise = this.client.live.connect({
         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
         config: {
            responseModalities: [Modality.AUDIO],
-           systemInstruction: BASE_SYSTEM_INSTRUCTION + VHF_PROTOCOL + rbacInstruction,
+           systemInstruction: BASE_SYSTEM_INSTRUCTION + VHF_PROTOCOL + rbacInstruction + LANGUAGE_INSTRUCTION,
            speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } 
            },
@@ -156,7 +124,10 @@ RULE:
         },
         callbacks: {
             onopen: () => {
+                this.isConnected = true;
                 this.onStatusChange?.('connected');
+                // Trigger Welcome Message only after connection is explicitly open
+                this.sendWelcomeTrigger();
             },
             onmessage: async (msg: LiveServerMessage) => {
                 await this.handleMessage(msg);
@@ -164,9 +135,11 @@ RULE:
             onerror: (e: any) => {
                 console.error("Live API Error:", e);
                 this.onStatusChange?.('error');
+                this.isConnected = false;
             },
             onclose: () => {
                 this.onStatusChange?.('disconnected');
+                this.isConnected = false;
             }
         }
       });
@@ -174,12 +147,7 @@ RULE:
       // Assign session after resolution
       this.session = await sessionPromise;
 
-      // 3. Trigger Welcome Message (After connection is secured)
-      // We wrap this in a separate async function to not block and to handle errors independently
-      this.sendWelcomeTrigger();
-
       // 4. Start Audio Streaming
-      // Pass the sessionPromise to ensure callbacks access the valid session
       await this.startRecording(sessionPromise);
 
     } catch (e) {
@@ -190,23 +158,16 @@ RULE:
 
   private async sendWelcomeTrigger() {
       try {
-          // Small delay to ensure socket is stable
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Safety check: Ensure session exists and has a 'send' method
           if (this.session && typeof this.session.send === 'function') {
               await this.session.send({
                   clientContent: {
                       turns: [{
                           role: 'user', 
-                          // This text prompt forces the model to execute Rule #1 of the protocol immediately
                           parts: [{ text: "Connection Open. State the mandatory welcome greeting defined in Rule #1 immediately." }]
                       }], 
                       turnComplete: true
                   }
               });
-          } else {
-              console.log("Session ready, waiting for voice input.");
           }
       } catch (err) {
           console.warn("Error sending welcome trigger (non-fatal):", err);
@@ -282,6 +243,8 @@ RULE:
         this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
         
         this.processor.onaudioprocess = (e) => {
+            if (!this.isConnected) return; // Prevent sending before Open
+
             const inputData = e.inputBuffer.getChannelData(0);
             
             let sum = 0;
@@ -294,7 +257,7 @@ RULE:
             // Use the sessionPromise to access the session securely inside the callback
             sessionPromise.then(session => {
                 try {
-                    // CRITICAL FIX: Check if session exists and has sendRealtimeInput
+                    // Check if session exists and has sendRealtimeInput
                     if (session && typeof session.sendRealtimeInput === 'function') {
                         session.sendRealtimeInput({ 
                             media: {
@@ -304,7 +267,7 @@ RULE:
                         });
                     }
                 } catch (err) {
-                    // Suppress generic send errors to avoid log spam if connection closes
+                    // Suppress generic send errors
                 }
             });
         };
@@ -345,5 +308,6 @@ RULE:
     this.audioContext?.close();
     this.onStatusChange?.('disconnected');
     this.session = null;
+    this.isConnected = false;
   }
 }
