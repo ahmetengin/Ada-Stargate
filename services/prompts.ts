@@ -16,7 +16,7 @@ export const generateComplianceSystemMessage = (key: SystemMessageKey): string =
     }
 };
 
-// 🚀 ADA AI — COST-OPTIMIZED PROMPT KERNEL v2.1 (Context & Persona Aware)
+// 🚀 ADA AI — COST-OPTIMIZED PROMPT KERNEL v2.2 (Context & Persona Aware)
 // Compressed for maximum token efficiency while maintaining multi-agent reasoning.
 export const BASE_SYSTEM_INSTRUCTION = `
 Role: **ADA**, AI Orchestrator for **${TENANT_CONFIG.fullName}**.

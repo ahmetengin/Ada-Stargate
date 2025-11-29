@@ -168,6 +168,7 @@ export default function App() {
   const [aisTargets, setAisTargets] = useState<AisTarget[]>([]);
   const [nodeStates, setNodeStates] = useState<Record<string, 'connected' | 'working' | 'disconnected'>>({});
   const [activeChannel, setActiveChannel] = useState('72');
+  const [hailedVessels, setHailedVessels] = useState<Set<string>>(new Set());
 
   // --- INITIALIZATION ---
   useEffect(() => {
@@ -198,6 +199,37 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Proactive Hailing for Inbound Vessels
+  useEffect(() => {
+      if (isBooting) return;
+
+      const checkInboundVessels = async () => {
+          const currentFleet = marinaExpert.getAllFleetVessels();
+          const newInboundVessels = currentFleet.filter(
+              vessel => vessel.status === 'INBOUND' && vessel.voyage?.eta && !hailedVessels.has(vessel.name)
+          );
+
+          if (newInboundVessels.length > 0) {
+              for (const vessel of newInboundVessels) {
+                  const hailMessageText = await marinaExpert.generateProactiveHail(vessel.name);
+                  const hailMessage: Message = {
+                      id: `hail-${Date.now()}-${vessel.name}`,
+                      role: MessageRole.Model,
+                      text: hailMessageText,
+                      timestamp: Date.now()
+                  };
+                  setMessages(prev => [...prev, hailMessage]);
+                  setHailedVessels(prev => new Set(prev).add(vessel.name));
+              }
+          }
+      };
+
+      const interval = setInterval(checkInboundVessels, 10000);
+      checkInboundVessels();
+
+      return () => clearInterval(interval);
+  }, [isBooting, hailedVessels]);
+
   // --- ACTIONS ---
   const toggleTheme = () => {
       setTheme(curr => curr === 'auto' ? 'light' : curr === 'light' ? 'dark' : 'auto');
@@ -208,7 +240,6 @@ export default function App() {
       if (profile) {
           setUserProfile(profile);
           persistenceService.save(STORAGE_KEYS.USER_PROFILE, profile);
-          // Auto-switch tabs based on role capability
           if (newRole === 'GUEST' && activeMobileTab === 'nav') setActiveMobileTab('ops');
       }
   };
@@ -220,11 +251,11 @@ export default function App() {
 
   const handleSendMessage = (text: string, attachments: File[]) => {
       setIsLoading(true);
-      const tempMsg: Message = { id: Date.now().toString(), role: MessageRole.User, text, timestamp: Date.now() };
-      setMessages(prev => [...prev, tempMsg]);
+      const newMessages = [...messages, { id: Date.now().toString(), role: MessageRole.User, text, timestamp: Date.now() }];
+      setMessages(newMessages);
 
-      // Process
-      orchestratorService.processRequest(text, userProfile, tenders, registry, vesselsInPort, messages).then(res => {
+      // Pass the updated messages array for context
+      orchestratorService.processRequest(text, userProfile, tenders, registry, vesselsInPort, newMessages).then(res => {
           if (res.traces) setAgentTraces(prev => [...res.traces, ...prev]);
           if (res.actions) {
               res.actions.forEach(act => {
@@ -257,13 +288,11 @@ export default function App() {
   if (isBooting) return <BootSequence />;
 
   return (
-    // MAIN CONTAINER: 100dvh handles mobile browser bars correctly
     <div className="h-[100dvh] w-full bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-300 font-sans overflow-hidden flex flex-col lg:flex-row">
         
         {/* --- MOBILE VIEW --- */}
         <div className="lg:hidden flex flex-col h-full w-full relative overflow-hidden">
             
-            {/* CONTENT AREA (Dynamic based on Tab) */}
             <div className="flex-1 overflow-hidden relative">
                 {activeMobileTab === 'nav' && (
                     <div className="h-full w-full overflow-y-auto">
@@ -313,7 +342,6 @@ export default function App() {
                 )}
             </div>
 
-            {/* BOTTOM NAV BAR (Fixed Height) */}
             <div className="h-16 flex-shrink-0 bg-white dark:bg-[#0a121e] border-t border-zinc-200 dark:border-white/5 flex items-center justify-around px-2 z-50 pb-safe">
                 <button 
                     onClick={() => setActiveMobileTab('nav')}
@@ -341,7 +369,6 @@ export default function App() {
 
         {/* --- DESKTOP VIEW --- */}
         <div className="hidden lg:flex h-full w-full">
-            {/* LEFT SIDEBAR */}
             <div style={{ width: sidebarWidth }} className="flex-shrink-0 h-full border-r border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-[#050b14]">
                 <Sidebar 
                     nodeStates={nodeStates}
@@ -355,7 +382,6 @@ export default function App() {
                 />
             </div>
 
-            {/* CENTER CHAT */}
             <div className="flex-1 h-full min-w-[400px] border-r border-zinc-200 dark:border-white/5">
                 <ChatInterface 
                     messages={messages}
@@ -374,7 +400,6 @@ export default function App() {
                 />
             </div>
 
-            {/* RIGHT OPS CANVAS */}
             <div style={{ width: opsWidth }} className="flex-shrink-0 h-full bg-zinc-100 dark:bg-black">
                 <Canvas 
                     vesselsInPort={vesselsInPort}

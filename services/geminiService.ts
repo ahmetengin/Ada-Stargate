@@ -11,7 +11,7 @@ export { LiveSession } from "./liveService";
 const createClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 // COST OPTIMIZATION: Max history length to send to API
-const MAX_HISTORY_LENGTH = 10; 
+export const MAX_HISTORY_LENGTH = 10; 
 
 export const streamChatResponse = async (
   messages: Message[],
@@ -110,8 +110,7 @@ export const generateSimpleResponse = async (
         const systemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
         
         // Use optimized history for simple response as well
-        const fullHistory = messages.slice(0, -1);
-        const optimizedHistory = fullHistory.slice(-MAX_HISTORY_LENGTH);
+        const optimizedHistory = messages.slice(-MAX_HISTORY_LENGTH);
 
         const chat: Chat = ai.chats.create({
             model: 'gemini-2.5-flash',
@@ -122,7 +121,6 @@ export const generateSimpleResponse = async (
             }
         });
 
-        // Use the prompt (which is the last message) for the current content
         const response = await chat.sendMessage({ message: prompt });
         
         return response.text || "I'm having trouble connecting to the network right now.";
