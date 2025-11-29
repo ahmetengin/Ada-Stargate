@@ -1,15 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Mic, Radio, SignalHigh, Waves, Power, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Mic, Radio, SignalHigh, Waves, Power, AlertTriangle, RefreshCw, Activity } from 'lucide-react';
 import { LiveSession } from '../services/geminiService';
-import { LiveConnectionState, UserProfile } from '../types'; // Import UserProfile
-import { wimMasterData } from '../services/wimMasterData'; // Import wimMasterData
+import { LiveConnectionState, UserProfile } from '../types';
+import { wimMasterData } from '../services/wimMasterData';
 import { formatCoordinate } from '../services/utils';
 
 interface VoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userProfile: UserProfile; // Add UserProfile prop
+  userProfile: UserProfile;
   onTranscriptReceived: (userText: string, modelText: string) => void;
 }
 
@@ -68,7 +68,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
 
   const handleRetry = async () => {
       if (session) await session.disconnect();
-      setStatus(LiveConnectionState.Disconnected);
+      setStatus(LiveConnectionState.Connecting); // Set to connecting immediately for UI feedback
       setTimeout(() => connect(), 500);
   };
 
@@ -115,9 +115,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
            {/* Visualizer Circle / Error State */}
            <div className="relative w-32 h-32 flex items-center justify-center">
              {status === LiveConnectionState.Error ? (
-                 <div className="flex flex-col items-center justify-center text-red-500">
-                     <AlertTriangle size={48} className="animate-bounce" />
-                     <span className="text-[10px] font-bold mt-2 uppercase tracking-widest">Signal Lost</span>
+                 <div className="flex flex-col items-center justify-center text-red-500 animate-pulse">
+                     <AlertTriangle size={48} />
+                     <span className="text-[10px] font-bold mt-2 uppercase tracking-widest text-center">Signal Lost<br/>Retrying...</span>
                  </div>
              ) : (
                  <>
@@ -132,7 +132,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
                     {status === LiveConnectionState.Connected ? (
                         <Mic className="text-white w-8 h-8" />
                     ) : (
-                        <Waves className="text-white/50 w-8 h-8 animate-pulse" />
+                        <Activity className="text-white/50 w-8 h-8 animate-spin-slow" />
                     )}
                     </div>
                  </>
@@ -143,7 +143,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
            <div className="mt-8 font-mono text-sm text-zinc-400 text-center h-6">
              {status === LiveConnectionState.Connecting && "ESTABLISHING LINK..."}
              {status === LiveConnectionState.Connected && (audioLevel > 0.05 ? "RECEIVING / TRANSMITTING" : "MONITORING...")}
-             {status === LiveConnectionState.Error && <span className="text-red-500 font-bold">NETWORK ERROR - CHECK CONNECTION</span>}
+             {status === LiveConnectionState.Error && <span className="text-red-500 font-bold">NETWORK ERROR - RECONNECTING</span>}
            </div>
             
            {/* Protocol Instructions */}
@@ -179,7 +179,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
                 className="group flex items-center gap-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 text-amber-500 px-8 py-3 rounded-full transition-all font-mono uppercase font-bold tracking-wider hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]"
               >
                 <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
-                Retry Connection
+                Force Reconnect
               </button>
           ) : (
               <button 

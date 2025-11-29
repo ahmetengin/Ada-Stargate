@@ -45,6 +45,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       return () => clearInterval(interval);
   }, [registry.length]);
 
+  // Extract Critical Logs from Traces for the Dashboard
+  const dashboardLogs = agentTraces
+    .filter(t => t.step === 'ERROR' || t.isError || t.content.includes('DENIED') || t.content.includes('ALERT'))
+    .map(t => ({
+        timestamp: t.timestamp,
+        source: t.node,
+        message: t.content,
+        type: 'critical'
+    }));
+
   // --- VIEW 1: GUEST (LIFESTYLE DECK) ---
   if (userProfile.role === 'GUEST') {
       return <GuestDashboard userProfile={userProfile} />;
@@ -60,7 +70,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       <div className="h-full w-full pb-20 lg:pb-0">
         <GMDashboard 
             userProfile={userProfile}
-            logs={[]} // Pass logs if available in future
+            logs={dashboardLogs} // Passing dynamic logs derived from traces
             registry={registry}
             tenders={tenders}
             vesselsInPort={vesselsInPort}

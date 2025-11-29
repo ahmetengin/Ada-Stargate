@@ -90,27 +90,46 @@ export const orchestratorService = {
              const financeDecision = debtStatus.status === 'CLEAR' ? 'APPROVE' : 'DENY';
              traces.push(createLog('ada.finance', 'VOTING', `Vote: ${financeDecision}. Reason: ${financeDecision === 'APPROVE' ? 'Account Clear' : 'Outstanding Debt'}`, 'EXPERT'));
 
-             // 2. Technic Vote
+             // 2. Technic Vote (Jobs & Blue Card)
              const jobs = technicExpert.getActiveJobs().filter(j => j.vesselName.toLowerCase().includes(vesselName.toLowerCase()) && j.status !== 'COMPLETED');
              const criticalJob = jobs.find(j => j.jobType === 'HAUL_OUT' || j.jobType === 'ENGINE_SERVICE');
-             const technicDecision = criticalJob ? 'DENY' : 'APPROVE';
-             traces.push(createLog('ada.technic', 'VOTING', `Vote: ${technicDecision}.`, 'EXPERT'));
+             let technicDecision = criticalJob ? 'DENY' : 'APPROVE';
+             let technicReason = criticalJob ? `Active Critical Job: ${criticalJob.jobType}` : 'No active critical maintenance';
+
+             // Check Blue Card
+             const blueCard = await technicExpert.checkBlueCardStatus(vesselName, (t) => traces.push(t));
+             if (blueCard.status === 'EXPIRED') {
+                 technicDecision = 'CONDITIONAL'; // Warning, but not a hard block
+                 technicReason = `Blue Card EXPIRED (${blueCard.daysSinceLast} days).`;
+             }
+
+             traces.push(createLog('ada.technic', 'VOTING', `Vote: ${technicDecision}. Reason: ${technicReason}`, 'EXPERT'));
 
              // 3. Marina Ops Vote
              const marinaDecision = 'APPROVE'; 
              traces.push(createLog('ada.marina', 'VOTING', `Vote: ${marinaDecision}.`, 'EXPERT'));
 
              // Aggregate
-             if (financeDecision === 'DENY' || technicDecision === 'DENY') {
-                 responseText = `**DEPARTURE DENIED**\n\nConsensus failed. Outstanding issues detected via local simulation.`;
+             if (financeDecision === 'DENY') {
+                 responseText = `**DEPARTURE DENIED**\n\nConsensus failed. Outstanding Debt: **€${debtStatus.amount}**. Please clear balance before departure.`;
+             } else if (technicDecision === 'DENY') {
+                 responseText = `**DEPARTURE DENIED**\n\nConsensus failed. Safety Block: **${technicReason}**.`;
              } else {
                  const res = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
                  responseText = res.message;
+                 
+                 // Append Blue Card Warning if Conditional
+                 if (technicDecision === 'CONDITIONAL') {
+                     responseText += `\n\n⚠️ **ENVIRONMENTAL ALERT (MAVİ KART):**\nYour Blue Card period has expired (**${blueCard.daysSinceLast} days** since last discharge). Please visit the Pump-out station immediately at your next port to avoid Coast Guard fines.`;
+                 }
+
                  if (res.actions) actions.push(...res.actions);
              }
         }
         else if (lower.includes('arrival') || lower.includes('arrive') || lower.includes('dock') || lower.includes('approach')) {
-             const res = await marinaExpert.processArrival(vesselName, tenders, t => traces.push(t));
+             // Pre-Arrival Check: Finance
+             const debtStatus = await financeExpert.checkDebt(vesselName);
+             const res = await marinaExpert.processArrival(vesselName, tenders, debtStatus, t => traces.push(t));
              responseText = res.message;
              if (res.actions) actions.push(...res.actions);
         }

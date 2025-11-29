@@ -1,8 +1,9 @@
 
-import React from 'react';
-import { Car, CheckCircle2, Zap, Utensils, Calendar, Wind, PartyPopper } from 'lucide-react';
+import React, { useState } from 'react';
+import { Car, CheckCircle2, Zap, Utensils, Calendar, Wind, PartyPopper, QrCode, MapPin, Scan } from 'lucide-react';
 import { UserProfile } from '../../types';
 import { wimMasterData } from '../../services/wimMasterData';
+import { securityExpert } from '../../services/agents/securityAgent';
 
 interface GuestDashboardProps {
   userProfile: UserProfile;
@@ -10,6 +11,26 @@ interface GuestDashboardProps {
 
 export const GuestDashboard: React.FC<GuestDashboardProps> = ({ userProfile }) => {
   const upcomingEvents = wimMasterData.event_calendar || [];
+  const [accessStatus, setAccessStatus] = useState<'INSIDE' | 'OUTSIDE'>('OUTSIDE');
+  const [lastGate, setLastGate] = useState<string | null>(null);
+
+  // Generate a mock QR Data string unique to the user
+  const qrData = JSON.stringify({
+      uid: userProfile.id,
+      name: userProfile.name,
+      valid: '24H',
+      ts: Date.now()
+  });
+  
+  // Use a public API to generate the QR image based on the data
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}&color=000000&bgcolor=ffffff`;
+
+  const simulateGateScan = async (gate: string) => {
+      const newStatus = accessStatus === 'INSIDE' ? 'OUTSIDE' : 'INSIDE';
+      await securityExpert.processAccessPass(userProfile.name, gate, newStatus === 'INSIDE' ? 'ENTRY' : 'EXIT', () => {});
+      setAccessStatus(newStatus);
+      setLastGate(gate);
+  };
 
   return (
     <div className="space-y-6 font-sans text-zinc-800 dark:text-zinc-200 p-4 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -22,6 +43,56 @@ export const GuestDashboard: React.FC<GuestDashboardProps> = ({ userProfile }) =
             <div className="text-right">
                 <div className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Membership</div>
                 <div className="text-sm font-bold text-indigo-500">PLATINUM</div>
+            </div>
+        </div>
+
+        {/* --- NEW: DIGITAL ACCESS PASS (QR) --- */}
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-xl overflow-hidden relative group">
+            {/* Holographic Top Bar */}
+            <div className="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-gradient-x"></div>
+            
+            <div className="p-6 flex flex-col sm:flex-row items-center gap-6">
+                {/* QR Code Area */}
+                <div className="bg-white p-2 rounded-xl shadow-inner border border-zinc-100 flex-shrink-0 relative">
+                    <img src={qrImageUrl} alt="Access QR" className="w-32 h-32 object-contain mix-blend-multiply opacity-90" />
+                    <div className="absolute inset-0 border-[3px] border-indigo-500/20 rounded-xl pointer-events-none"></div>
+                    <div className="absolute -bottom-2 -right-2 bg-indigo-600 text-white p-1 rounded-full shadow-lg">
+                        <Scan size={14} />
+                    </div>
+                </div>
+
+                {/* Info Area */}
+                <div className="flex-1 w-full text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-between mb-2">
+                        <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-100 uppercase tracking-widest flex items-center gap-2">
+                            <QrCode size={16} className="text-indigo-500" /> Ada Access Pass
+                        </h3>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${accessStatus === 'INSIDE' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-zinc-100 text-zinc-500 border-zinc-200'}`}>
+                            {accessStatus === 'INSIDE' ? '● ON PREMISES' : '○ AWAY'}
+                        </span>
+                    </div>
+                    
+                    <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
+                        Use this QR code at turnstiles and security gates for contactless entry/exit.
+                        {lastGate && <span className="block mt-1 text-indigo-500 font-medium">Last Activity: {lastGate} ({new Date().toLocaleTimeString()})</span>}
+                    </p>
+
+                    {/* Simulation Controls (Hidden in Production) */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button 
+                            onClick={() => simulateGateScan('Main Gate A')}
+                            className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 border border-zinc-200 dark:border-zinc-700 hover:border-indigo-200 text-xs font-bold py-2 rounded-lg transition-all"
+                        >
+                            <MapPin size={12} /> {accessStatus === 'OUTSIDE' ? 'Enter Gate A' : 'Exit Gate A'}
+                        </button>
+                        <button 
+                            onClick={() => simulateGateScan('VIP Turnstile')}
+                            className="flex items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-purple-50 dark:hover:bg-purple-900/20 border border-zinc-200 dark:border-zinc-700 hover:border-purple-200 text-xs font-bold py-2 rounded-lg transition-all"
+                        >
+                            <Zap size={12} /> {accessStatus === 'OUTSIDE' ? 'VIP Entry' : 'VIP Exit'}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

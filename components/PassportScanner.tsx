@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { X, ScanLine, Smartphone, AlertTriangle, CameraOff, CreditCard, UserSquare2 } from 'lucide-react';
+import { X, ScanLine, Smartphone, AlertTriangle, CameraOff, CreditCard, UserSquare2, Focus, MoveDown } from 'lucide-react';
 
 interface ScanResult {
     type: 'PASSPORT' | 'CARD';
@@ -21,6 +21,7 @@ export const PassportScanner: React.FC<PassportScannerProps> = ({ isOpen, onClos
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'PASSPORT' | 'CARD'>('PASSPORT');
+  const [focusDistance, setFocusDistance] = useState(50); // cm
 
   useEffect(() => {
     if (isOpen) {
@@ -39,7 +40,13 @@ export const PassportScanner: React.FC<PassportScannerProps> = ({ isOpen, onClos
 
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+              facingMode: 'environment',
+              width: { ideal: 1920 }, // Prefer High Res for OCR
+              height: { ideal: 1080 } 
+          } 
+      });
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
@@ -68,21 +75,31 @@ export const PassportScanner: React.FC<PassportScannerProps> = ({ isOpen, onClos
 
   const simulateScanning = () => {
     let p = 0;
+    
+    // Simulate focusing movement
+    let dist = 50;
+    const focusInterval = setInterval(() => {
+        dist = Math.max(12, dist - 2);
+        setFocusDistance(dist);
+        if (p >= 100) clearInterval(focusInterval);
+    }, 100);
+
     const interval = setInterval(() => {
-      p += 2; 
+      p += 1.5; 
       setProgress(p);
       
-      if (p > 20 && p < 50) setStatusText("Focusing...");
-      if (p > 50 && p < 80) setStatusText(mode === 'PASSPORT' ? "Reading MRZ..." : "Reading Chip Data...");
-      if (p > 80) setStatusText("Verifying Checksums...");
+      if (p < 20) setStatusText("Acquiring Macro Focus...");
+      if (p > 20 && p < 40) setStatusText("Distance: " + Math.round(focusDistance) + "cm (Adjusting...)");
+      if (p > 40 && p < 70) setStatusText(mode === 'PASSPORT' ? "OCR Active: Reading MRZ..." : "NFC Active: Reading Chip...");
+      if (p > 70) setStatusText("Validating Checksums...");
 
       if (p >= 100) {
         clearInterval(interval);
         setTimeout(() => {
             finishScan();
-        }, 200);
+        }, 500);
       }
-    }, 40);
+    }, 50);
   };
 
   const finishScan = () => {
@@ -176,6 +193,18 @@ export const PassportScanner: React.FC<PassportScannerProps> = ({ isOpen, onClos
                     className="absolute inset-0 w-full h-full object-cover opacity-50"
                 />
                 
+                {/* Tech Overlay (Distance & Focus) */}
+                <div className="absolute top-1/3 left-4 space-y-2 z-20">
+                    <div className="flex items-center gap-2 bg-black/60 px-2 py-1 rounded text-[10px] text-emerald-400 font-mono border border-emerald-500/30">
+                        <Focus size={12} />
+                        MACRO LENS: ON
+                    </div>
+                    <div className="flex items-center gap-2 bg-black/60 px-2 py-1 rounded text-[10px] text-white font-mono border border-white/10">
+                        <MoveDown size={12} className={focusDistance > 15 ? 'text-amber-500 animate-bounce' : 'text-emerald-500'} />
+                        DIST: {Math.round(focusDistance)}cm {focusDistance > 15 ? '(MOVE CLOSER)' : '(OPTIMAL)'}
+                    </div>
+                </div>
+
                 {/* Scanner Frame - Clean Look */}
                 <div 
                     className={`relative border-2 rounded-lg overflow-hidden shadow-2xl transition-all duration-500 z-10
@@ -192,12 +221,22 @@ export const PassportScanner: React.FC<PassportScannerProps> = ({ isOpen, onClos
                     <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-white"></div>
                     <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-white"></div>
                     <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-white"></div>
+                    
+                    {/* MRZ Zone Indicator (Passport Only) */}
+                    {mode === 'PASSPORT' && (
+                        <div className="absolute bottom-4 left-4 right-4 h-8 border border-dashed border-yellow-500/50 bg-yellow-500/10 rounded flex items-center justify-center">
+                            <span className="text-[9px] text-yellow-500 font-bold tracking-widest uppercase">Align MRZ Zone &lt;&lt;&lt;</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Status Text */}
                 <div className="absolute bottom-32 text-center w-full z-20">
-                    <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full inline-block">
-                        <p className="text-white text-sm font-mono">{statusText}</p>
+                    <div className="bg-black/60 backdrop-blur-sm px-4 py-2 rounded-full inline-block border border-white/10">
+                        <p className="text-white text-sm font-mono flex items-center gap-2">
+                            {progress < 100 && <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>}
+                            {statusText}
+                        </p>
                     </div>
                 </div>
             </>
@@ -208,7 +247,7 @@ export const PassportScanner: React.FC<PassportScannerProps> = ({ isOpen, onClos
       <div className="h-24 bg-zinc-900 border-t border-zinc-800 flex items-center px-8 justify-center">
          <div className="w-full max-w-md">
              <div className="flex justify-between text-xs text-zinc-500 uppercase mb-2 font-bold">
-                 <span>Scan Progress</span>
+                 <span>Scan Confidence</span>
                  <span>{Math.round(progress)}%</span>
              </div>
              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">

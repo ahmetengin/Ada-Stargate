@@ -1,6 +1,4 @@
 
-// services/agents/customerAgent.ts
-
 import { AgentAction, AgentTraceLog, NodeName, VesselIntelligenceProfile } from '../../types';
 import { wimMasterData } from '../wimMasterData'; // Import for Event Data
 
@@ -27,7 +25,7 @@ const WIM_INFO_DB: Record<string, string> = {
     'gym': 'Fitness Center: **West Life Sports Club**. Includes Sauna, Indoor & Outdoor Swimming Pools. Tennis, Basketball, and Volleyball courts available.',
     'taxi': 'Taxi Station: +90 212 555 1234 (Gate A pickup). VIP Chauffeur service also available.',
     'pharmacy': 'Pharmacy: "Deniz Eczanesi" located at West Wall mall. Duty pharmacy list available at Security.',
-    'restaurant': 'Gastronomy: **Poem, Fersah, Calisto, BigChefs, Happy Moon\'s, Ella Italian, Port of Point, The Roof Kingdom** and many more. Visit **Kumsal Istanbul Street** for street food and entertainment.',
+    'restaurant': 'Gastronomy: **Poem, Fersah, Calisto, BigChefs, Happy Moon\'s, Ella Italian, Port of Point, Can Samimiyet, The Roof Kingdom** and many more. Visit **Kumsal Istanbul Street** for street food and entertainment.',
     'fuel': 'Fuel Station (Lukoil): 24/7. Duty-free available with 24h notice.',
     'lift': 'Technical: **700 Ton Travel Lift** (Mega Yachts) and **75 Ton Travel Lift** available. 60.000m2 hardstanding area.',
     'parking': 'Parking: Managed by **ISPARK** in strategic partnership with WIM. 550 vehicle capacity. Marina customers receive complimentary exit validation tokens.'

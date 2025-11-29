@@ -13,6 +13,7 @@ export const GuestCheckInTab: React.FC = () => {
 
   // Mock Expected Arrivals (Merged Live AIS + Future Schedules)
   const [expectedArrivals, setExpectedArrivals] = useState([
+      { id: 'EXP-PHI', type: 'VESSEL', name: 'S/Y Phisedelia', contact: 'Cpt. Barbaros', eta: 'Tomorrow 10:00', status: 'INBOUND', vesselId: 'TR-PHI' },
       { id: 'EXP-01', type: 'VESSEL', name: 'S/Y Wind Chaser', contact: 'Cpt. Murat', eta: '3.2 nm', status: 'INBOUND', vesselId: 'CH-02' },
       { id: 'EXP-02', type: 'GUEST', name: 'Mr. John Wick', contact: 'Host: M/Y Poseidon', eta: 'Tomorrow 14:00', status: 'SCHEDULED', vesselId: 'TR-POS' },
       { id: 'EXP-03', type: 'GUEST', name: 'VIP Delegation', contact: 'Host: WIM Sales', eta: '22 Nov 09:00', status: 'SCHEDULED', vesselId: 'ADMIN' },

@@ -288,16 +288,38 @@ export const marinaExpert = {
     },
 
     // ATC Arrival Protocol - UPDATED for 20nm Monitoring & Guest Handling
-    processArrival: async (vesselName: string, currentTenders: Tender[], addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, actions: AgentAction[], tender?: Tender, squawk?: string }> => {
+    processArrival: async (vesselName: string, currentTenders: Tender[], debtStatus: { status: 'CLEAR' | 'DEBT', amount: number }, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, actions: AgentAction[], tender?: Tender, squawk?: string }> => {
         
         // 1. Identify Target & Radar Lock
         let vesselProfile = await marinaExpert.getVesselIntelligence(vesselName);
+        const actions: AgentAction[] = [];
         
         // RADAR SIMULATION: 20nm Detection
         addTrace(createLog('ada.marina', 'THINKING', `[RADAR] SCANNING SECTOR MARMARA (20nm Radius)...`, 'WORKER'));
         addTrace(createLog('ada.marina', 'OUTPUT', `[RADAR] TARGET ACQUIRED: ${vesselName} | Range: 19.8nm | Bearing: 240°`, 'EXPERT'));
 
-        // 2. Differentiate Member vs Guest
+        // 2. Financial Audit (Contract & Payment Check)
+        addTrace(createLog('ada.marina', 'THINKING', `[AUDIT] Verifying Contract Status & Financial Standing for ${vesselName}...`, 'EXPERT'));
+        
+        let hasDebt = false;
+        if (debtStatus.status === 'DEBT') {
+             // STRATEGY CHANGE: Do not deny entry. Allow entry to exercise "Right of Retention" (Hapis Hakkı).
+             addTrace(createLog('ada.marina', 'WARNING', `[DEBT ALERT] Outstanding Balance: €${debtStatus.amount}. Protocol: ALLOW ENTRY -> SEIZE ASSET (Art H.2).`, 'EXPERT'));
+             
+             // Flag for immediate administrative hold upon arrival
+             actions.push({
+                 id: `flag_debt_seize_${Date.now()}`,
+                 kind: 'internal',
+                 name: 'ada.security.flagVessel',
+                 params: { vesselName, reason: 'Right of Retention (Hapis Hakkı) - Unpaid Debt' }
+             });
+             
+             hasDebt = true;
+        } else {
+             addTrace(createLog('ada.marina', 'OUTPUT', `[AUDIT] Financial Status: CLEAR. Contract: ACTIVE. Proceeding to Tender allocation.`, 'WORKER'));
+        }
+
+        // 3. Differentiate Member vs Guest
         const isMember = !!vesselProfile;
         let berth = "Visitor Quay V-01";
         let squawk = Math.floor(1000 + Math.random() * 8999).toString();
@@ -324,9 +346,14 @@ export const marinaExpert = {
                 `> "Your designated berth is **${berth}**. We are ready to welcome you."`;
         }
 
+        // Append Debt Warning if applicable
+        if (hasDebt) {
+            welcomeMessage += `\n\n**⚠️ IMPORTANT:** Captain, please report to the **Finance Office** immediately upon docking regarding your account status.`;
+        }
+
         const priority = marinaExpert.calculateTrafficPriority(vesselProfile);
 
-        // 3. Tender Dispatch
+        // 4. Tender Dispatch
         const availableTender = currentTenders.find(t => t.status === 'Idle');
 
         if (!availableTender) {
@@ -340,8 +367,7 @@ export const marinaExpert = {
 
         addTrace(createLog('ada.marina', 'TOOL_EXECUTION', `[ATC-APP] Dispatching ${availableTender.name} for intercept at 2nm mark.`, 'WORKER'));
 
-        // 4. Execute Actions
-        const actions: AgentAction[] = [];
+        // 5. Execute Actions
         actions.push({
             id: `marina_arr_${Date.now()}`,
             kind: 'external',
@@ -372,7 +398,7 @@ export const marinaExpert = {
             kind: 'internal',
             name: 'ada.marina.log_operation',
             params: {
-                message: `[ATC-ARR] PROACTIVE WELCOME | TARGET:${vesselName.toUpperCase()} | 20NM LOCK | BERTH:${berth}`,
+                message: `[ATC-ARR] PROACTIVE WELCOME | TARGET:${vesselName.toUpperCase()} | 20NM LOCK | BERTH:${berth} ${hasDebt ? '| DEBT:HOLD' : ''}`,
                 type: 'info'
             }
         });

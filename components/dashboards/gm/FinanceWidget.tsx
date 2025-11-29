@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { DollarSign, TrendingUp, CreditCard, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 
 export const FinanceWidget: React.FC = () => {
   const transactions = [
@@ -12,41 +12,21 @@ export const FinanceWidget: React.FC = () => {
   ];
 
   return (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl flex flex-col h-full overflow-hidden animate-in fade-in duration-500 delay-200">
-        <div className="p-3 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
-            <h3 className="text-xs font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                <TrendingUp size={14} /> CASH FLOW
-            </h3>
-            <div className="text-[9px] font-mono text-zinc-500">LIVE STREAM</div>
-        </div>
-
-        <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
-            <div className="grid grid-cols-2 gap-2 mb-2">
-                <div className="bg-zinc-800/50 p-2 rounded text-center border border-emerald-500/10">
-                    <div className="text-[9px] text-zinc-500 uppercase">Inflow</div>
-                    <div className="text-sm font-bold text-emerald-400">+€12,450</div>
-                </div>
-                <div className="bg-zinc-800/50 p-2 rounded text-center border border-amber-500/10">
-                    <div className="text-[9px] text-zinc-500 uppercase">Pending</div>
-                    <div className="text-sm font-bold text-amber-400">€850</div>
-                </div>
-            </div>
-
-            <div className="space-y-1.5">
-                {transactions.map(tx => (
-                    <div key={tx.id} className="flex justify-between items-center p-2 bg-black/20 rounded border border-zinc-800 hover:border-zinc-700 transition-colors text-xs group">
-                        <div className="flex items-center gap-2">
-                            <div className={`p-1 rounded-full ${tx.type === 'IN' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                                {tx.type === 'IN' ? <ArrowDownLeft size={10} /> : <ArrowUpRight size={10} />}
-                            </div>
-                            <span className="text-zinc-300 truncate max-w-[120px] group-hover:text-white transition-colors">{tx.desc}</span>
+    <div className="flex flex-col">
+        <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {transactions.map(tx => (
+                <div key={tx.id} className="flex justify-between items-center p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                        <div className={`p-1.5 rounded-full ${tx.type === 'IN' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                            {tx.type === 'IN' ? <ArrowDownLeft size={14} /> : <ArrowUpRight size={14} />}
                         </div>
-                        <div className={`font-mono font-bold ${tx.type === 'IN' ? 'text-emerald-500' : 'text-red-400'}`}>
-                            {tx.type === 'IN' ? '+' : '-'}€{tx.amount}
-                        </div>
+                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[150px]">{tx.desc}</span>
                     </div>
-                ))}
-            </div>
+                    <div className={`font-mono font-bold text-sm ${tx.type === 'IN' ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-600 dark:text-red-500'}`}>
+                        {tx.type === 'IN' ? '+' : '-'}€{tx.amount}
+                    </div>
+                </div>
+            ))}
         </div>
     </div>
   );

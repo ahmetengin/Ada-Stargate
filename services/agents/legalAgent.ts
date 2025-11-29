@@ -78,6 +78,69 @@ function simulateRagLookup(query: string, documentId: string, addTrace: (t: Agen
 }
 
 export const legalExpert = {
+  // Skill: Check Vessel Compliance (Turkish Waters)
+  checkTurkishCompliance: async (vesselFlag: string, length: number, addTrace: (t: AgentTraceLog) => void): Promise<{ compliant: boolean, requirements: string[], message: string }> => {
+      addTrace({
+          id: `trace_legal_comp_${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString(),
+          node: 'ada.legal',
+          step: 'THINKING',
+          content: `Evaluating compliance for ${vesselFlag} flagged vessel (${length}m) against Turkish Maritime Guide...`,
+          persona: 'EXPERT'
+      });
+
+      const requirements: string[] = [];
+      let compliant = true;
+      
+      // Logic based on docs/legal/turkish_maritime_guide.md content
+      
+      // 1. Mandatory Documents (Section 2)
+      if (vesselFlag === 'TR') {
+          requirements.push("Certificate of Registry / Tonnage Certificate");
+          requirements.push("Mandatory Vessel Insurance");
+          
+          if (length >= 2.5 && length < 24) {
+              requirements.push("Amateur Seaman's Certificate (ADB)");
+          }
+          requirements.push("Short Range Certificate (SRC) (if VHF present)");
+      } else {
+          // Foreign flag requirements implied
+          requirements.push("Transit Log (Yacht Registration Certificate)");
+          requirements.push("Valid Insurance Policy");
+      }
+
+      // 2. Safety Equipment (Section 3 Overview)
+      requirements.push("Life Jackets (1 per person)");
+      requirements.push("Fire Extinguishers");
+      
+      // 3. Straits Rules (Section 5)
+      let straitsRule = "Monitor VHF Sector Channels (11/12/13/14).";
+      if (length < 20) {
+          straitsRule += " Navigation restricted to outside TSS lanes.";
+      } else {
+          straitsRule += " SP-1 Reporting required to VTS.";
+      }
+
+      const message = `**TURKISH MARITIME COMPLIANCE CHECK**\n\n` +
+                      `**Vessel Profile:** Flag ${vesselFlag}, LOA ${length}m\n\n` +
+                      `**Mandatory Documentation:**\n` +
+                      requirements.map(r => `- ${r}`).join('\n') +
+                      `\n\n**Straits Navigation Protocol:**\n` +
+                      `- ${straitsRule}\n` +
+                      `- Max Speed: 10 Knots (SOG).`;
+
+      addTrace({
+          id: `trace_legal_comp_out_${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString(),
+          node: 'ada.legal',
+          step: 'OUTPUT',
+          content: `Compliance checklist generated. ${requirements.length} items flagged.`,
+          persona: 'WORKER'
+      });
+
+      return { compliant, requirements, message };
+  },
+
   process: async (params: any, user: UserProfile, addTrace: (t: AgentTraceLog) => void): Promise<AgentAction[]> => {
     
     // RBAC Check

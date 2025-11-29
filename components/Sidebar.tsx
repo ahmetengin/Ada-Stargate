@@ -98,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               
               <div className="space-y-2">
                   {/* Priority Channels Row */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-2 mb-2">
                       <button 
                         onClick={onVhfClick}
                         className={`h-10 flex flex-col items-center justify-center rounded border transition-all ${activeChannel === '16' ? 'bg-red-500/10 border-red-500/50 text-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)]' : 'bg-[#0a121e] border-white/5 text-zinc-500 hover:text-zinc-300 hover:border-white/10'}`}
@@ -115,30 +115,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       </button>
                   </div>
 
-                  {/* Secondary Channels Row */}
+                  {/* Secondary Channels Grid */}
                   <div className="grid grid-cols-2 gap-2">
                       <button 
                         onClick={onVhfClick}
                         className="h-8 flex items-center justify-center rounded border bg-[#0a121e] border-white/5 text-zinc-600 hover:text-zinc-400 hover:border-white/10 transition-all text-[10px] font-bold"
                       >
-                          CH 69
+                          CH 12
                       </button>
                       <button 
                         onClick={onVhfClick}
                         className="h-8 flex items-center justify-center rounded border bg-[#0a121e] border-white/5 text-zinc-600 hover:text-zinc-400 hover:border-white/10 transition-all text-[10px] font-bold"
                       >
-                          CH 06
+                          CH 13
+                      </button>
+                      <button 
+                        onClick={onVhfClick}
+                        className="h-8 flex items-center justify-center rounded border bg-[#0a121e] border-white/5 text-zinc-600 hover:text-zinc-400 hover:border-white/10 transition-all text-[10px] font-bold"
+                      >
+                          CH 14
+                      </button>
+                      <button 
+                        onClick={onVhfClick}
+                        className="h-8 flex items-center justify-center rounded border border-amber-500/20 bg-amber-500/5 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all text-[10px] font-bold tracking-widest"
+                      >
+                          SCAN
                       </button>
                   </div>
-
-                  {/* Function Bar (Scan) */}
-                  <button 
-                    onClick={onVhfClick}
-                    className="w-full h-8 mt-2 flex items-center justify-center gap-2 rounded border border-amber-500/20 bg-amber-500/5 text-amber-500/80 hover:bg-amber-500/10 hover:text-amber-400 transition-all"
-                  >
-                      <Search size={10} />
-                      <span className="text-[9px] font-bold tracking-widest uppercase">SCAN CHANNELS</span>
-                  </button>
               </div>
           </div>
       )}

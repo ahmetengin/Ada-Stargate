@@ -109,6 +109,31 @@ export const technicExpert = {
         return TECHNIC_DB;
     },
 
+    // Skill: Check Blue Card Status (Environmental Compliance)
+    checkBlueCardStatus: async (vesselName: string, addTrace: (t: AgentTraceLog) => void): Promise<{ status: 'VALID' | 'EXPIRED', daysSinceLast: number, lastDate: string }> => {
+        addTrace(createLog('ada.technic', 'THINKING', `Verifying Blue Card (Mavi Kart) waste discharge history for ${vesselName}...`, 'EXPERT'));
+
+        // Mock Logic: 
+        // "Mistral" is always expired for simulation purposes.
+        // Others are valid (random 1-10 days ago).
+        const isExpiredTarget = vesselName.toLowerCase().includes('mistral');
+        
+        const daysSinceLast = isExpiredTarget ? 21 : Math.floor(Math.random() * 10) + 1;
+        const lastDate = new Date(Date.now() - (daysSinceLast * 24 * 60 * 60 * 1000)).toLocaleDateString();
+        
+        // Regulation: Must discharge every 14 days in this region (Simulated rule)
+        const limit = 14; 
+        const status = daysSinceLast > limit ? 'EXPIRED' : 'VALID';
+
+        if (status === 'EXPIRED') {
+            addTrace(createLog('ada.technic', 'WARNING', `BLUE CARD EXPIRED. Last discharge: ${daysSinceLast} days ago (Limit: ${limit}).`, 'WORKER'));
+        } else {
+            addTrace(createLog('ada.technic', 'OUTPUT', `Blue Card Valid. Last discharge: ${daysSinceLast} days ago.`, 'WORKER'));
+        }
+
+        return { status, daysSinceLast, lastDate };
+    },
+
     // Skill: Check availability and schedule
     scheduleService: async (vesselName: string, jobType: string, date: string, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string, job?: MaintenanceJob }> => {
         
