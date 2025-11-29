@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction, VhfLog, AisTarget, ThemeMode } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -225,7 +224,7 @@ export default function App() {
       setMessages(prev => [...prev, tempMsg]);
 
       // Process
-      orchestratorService.processRequest(text, userProfile, tenders, registry, vesselsInPort).then(res => {
+      orchestratorService.processRequest(text, userProfile, tenders, registry, vesselsInPort, messages).then(res => {
           if (res.traces) setAgentTraces(prev => [...res.traces, ...prev]);
           if (res.actions) {
               res.actions.forEach(act => {

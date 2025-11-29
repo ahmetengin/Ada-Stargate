@@ -1,3 +1,5 @@
+// services/agents/customerAgent.ts
+
 
 import { AgentAction, AgentTraceLog, NodeName, VesselIntelligenceProfile } from '../../types';
 import { wimMasterData } from '../wimMasterData'; // Import for Event Data
@@ -40,6 +42,19 @@ export const customerExpert = {
     const lowerQuery = query.toLowerCase();
     let response = "";
     
+    // Check for specific menu requests first
+    const knownRestaurants = wimMasterData.services.amenities.restaurants;
+    const menuForVenueMatch = knownRestaurants.find(r => lowerQuery.includes(`${r.toLowerCase()} menu`) || lowerQuery.includes(`${r.toLowerCase()} menü`));
+
+    if (menuForVenueMatch) {
+        response = `I do not have real-time access to the menu for **${menuForVenueMatch}**. Please contact the restaurant directly at their number, or I can help you with a reservation if you like.`;
+        addTrace(createLog('ada.customer', 'OUTPUT', `Menu request for '${menuForVenueMatch}' handled.`, 'WORKER'));
+        return {
+            text: `**ADA CUSTOMER (INFO DESK):**\n${response}`,
+            actions: []
+        };
+    }
+
     const match = Object.keys(WIM_INFO_DB).find(key => lowerQuery.includes(key));
 
     if (match) {
@@ -49,7 +64,7 @@ export const customerExpert = {
         if (lowerQuery.includes('food') || lowerQuery.includes('eat') || lowerQuery.includes('restaurant')) response = WIM_INFO_DB['restaurant'];
         else if (lowerQuery.includes('tech') || lowerQuery.includes('repair') || lowerQuery.includes('lift')) response = WIM_INFO_DB['lift'];
         else if (lowerQuery.includes('park') || lowerQuery.includes('car')) response = WIM_INFO_DB['parking'];
-        else response = "Specific info not found. Please contact Front Office (09:00-18:00).";
+        else response = "Specific info not found. Please contact Front Office (09:00-18:00) for general inquiries.";
         
         addTrace(createLog('ada.customer', 'OUTPUT', `Direct match processed or fallback used.`, 'WORKER'));
     }
@@ -91,20 +106,38 @@ export const customerExpert = {
   },
 
   // Skill: Manage Dining Reservations
-  manageDiningReservation: async (venueName: string, guests: number, time: string, preOrder: string | null, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string }> => {
-      addTrace(createLog('ada.customer', 'THINKING', `Checking availability at ${venueName}...`, 'EXPERT'));
+  manageDiningReservation: async (venueName: string | null, guests: number | null, time: string | null, date: string | null, preOrder: string | null, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string }> => {
+      
+      if (!venueName) {
+        return { success: false, message: "Which restaurant would you like to reserve? (e.g., Poem Restaurant, Fersah)" };
+      }
+      if (!date) {
+          return { success: false, message: "For what date would you like to make the reservation? (e.g., today, tomorrow)" };
+      }
+      if (!time) {
+          return { success: false, message: "What time would you prefer for the reservation? (e.g., 19:30, 20:00)" };
+      }
+      if (!guests) {
+          return { success: false, message: "How many guests will be attending? (e.g., 2 persons, 4 people)" };
+      }
+
+      addTrace(createLog('ada.customer', 'THINKING', `Checking availability at ${venueName} for ${guests} guests at ${time} on ${date}...`, 'EXPERT'));
       
       // Special logic for "Can Samimiyet" or others without direct API
       if (venueName.toLowerCase().includes('can samimiyet') || venueName.toLowerCase().includes('samimiyet')) {
           addTrace(createLog('ada.customer', 'OUTPUT', `Manual Concierge Protocol required for ${venueName}.`, 'WORKER'));
           return { 
               success: true, 
-              message: `**CONCIERGE REQUEST RECEIVED**\n\nWe do not have a direct digital link with **${venueName}**, but I have instructed the Concierge Desk to call them immediately on your behalf.\n\n> **Action:** Calling +90 53X XXX XX XX\n> **Request:** Table for ${guests} at ${time}.\n\n*You will receive a confirmation SMS shortly.*` 
+              message: `**CONCIERGE REQUEST RECEIVED**\n\nWe do not have a direct digital link with **${venueName}**, but I have instructed the Concierge Desk to call them immediately on your behalf for **${guests} guests at ${time} on ${date}**.\n\n> **Action:** Calling +90 53X XXX XX XX\n> **Request:** Table for ${guests} at ${time} on ${date}.\n\n*You will receive a confirmation SMS shortly.*` 
           };
       }
 
       // Default Mock for Partners (Poem, Fersah, etc.)
-      return { success: true, message: `**RESERVATION CONFIRMED**\n\n📍 **Venue:** ${venueName}\n👥 **Guests:** ${guests}\n⏰ **Time:** ${time}\n\n*Table reserved via Ada.Dining.*` };
+      // In a real system, this would call an external API
+      addTrace(createLog('ada.customer', 'TOOL_EXECUTION', `Invoking external reservation API for ${venueName}.`, 'WORKER'));
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+
+      return { success: true, message: `**RESERVATION CONFIRMED**\n\n📍 **Venue:** ${venueName}\n🗓️ **Date:** ${date}\n⏰ **Time:** ${time}\n👥 **Guests:** ${guests}\n\n*Table reserved via Ada.Dining.*` };
   },
 
   // Skill: Calculate Loyalty Score

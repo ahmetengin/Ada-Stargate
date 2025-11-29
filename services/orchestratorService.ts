@@ -1,7 +1,6 @@
-
 // services/orchestratorService.ts
 
-import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, Tender, RegistryEntry } from '../types';
+import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, Tender, RegistryEntry, Message } from '../types'; // Added Message
 import { checkBackendHealth, sendToBackend } from './api';
 import { getCurrentMaritimeTime } from './utils';
 import { vote, Candidate } from './voting/consensus';
@@ -14,8 +13,10 @@ import { marinaExpert } from './agents/marinaAgent';
 import { customerExpert } from './agents/customerAgent';
 import { technicExpert } from './agents/technicAgent';
 import { kitesExpert } from './agents/travelAgent'; 
+import { federationExpert } from './agents/federationAgent'; // NEW: Import federation expert
 import { wimMasterData } from './wimMasterData';
 import { VESSEL_KEYWORDS } from './constants';
+import { FEDERATION_REGISTRY } from './config'; // NEW: Import federation registry
 
 // Helper
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -33,7 +34,8 @@ export const orchestratorService = {
         user: UserProfile, 
         tenders: Tender[],
         registry: RegistryEntry[] = [], // Added for context
-        vesselsInPort: number = 0       // Added for context
+        vesselsInPort: number = 0,       // Added for context
+        messages: Message[] = []         // NEW: Added messages array for context
     ): Promise<OrchestratorResponse> {
         const traces: AgentTraceLog[] = [];
         
@@ -218,12 +220,103 @@ export const orchestratorService = {
                  });
              }
         }
+        // NEW: FEDERATED QUERY HANDLER
+        else if (lower.includes('setur') || lower.includes('d-marin') || lower.includes('monaco') || lower.includes('place')) {
+            const partnerNameMatch = FEDERATION_REGISTRY.peers.find(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.id.toLowerCase()));
+            const partnerAddress = partnerNameMatch?.node_address;
+
+            if (partnerAddress) {
+                traces.push(createLog('ada.federation', 'ROUTING', `Query detected for federated partner: ${partnerNameMatch.name}.`, 'ORCHESTRATOR'));
+                
+                // For now, simulate checking for "today"
+                const today = new Date().toISOString().split('T')[0];
+                const availability = await federationExpert.getRemoteBerthAvailability(partnerAddress, today, (t) => traces.push(t));
+
+                if (availability) {
+                    responseText = `**FEDERATED BERTH AVAILABILITY (${partnerNameMatch.name})**\n\n` +
+                                   `*${availability.message}*\n\n` +
+                                   `> **Occupancy:** ${availability.occupancyRate}%\n` +
+                                   `> **Available:** ${availability.availableBerths} / ${availability.totalBerths} berths.`;
+                } else {
+                    responseText = `**FEDERATED QUERY FAILED:** Unable to retrieve data from ${partnerNameMatch.name}. It might be offline or an API issue.`;
+                }
+
+            }
+        }
+
+        // NEW: DINING RESERVATION HANDLER (Context-aware Multi-Turn)
+        else if (lower.includes('rezervasyon') || lower.includes('reserve') || lower.includes('masa') || lower.includes('table') || lower.includes('kişi') || lower.includes('person') || lower.includes('tonight') || lower.includes('yarın') || lower.includes('saat') || lower.includes('restaurant') || lower.includes('yemek') || lower.includes('dinner') || lower.includes('lunch') || lower.includes('kahvaltı')) {
+            traces.push(createLog('ada.customer', 'ROUTING', `Dining reservation request detected. Routing to Concierge Expert.`, 'ORCHESTRATOR'));
+            
+            let venueName: string | null = null;
+            let guests: number | null = null;
+            let time: string | null = null;
+            let date: string | null = null;
+
+            // Iterate through recent messages to extract context
+            // Start from the latest and go back a few turns
+            for (let i = messages.length - 1; i >= Math.max(0, messages.length - 5); i--) {
+                const msgText = messages[i].text.toLowerCase();
+
+                // Extract Venue
+                const allRestaurants = wimMasterData.services.amenities.restaurants;
+                const venueMatch = allRestaurants.find(r => msgText.includes(r.toLowerCase()));
+                if (venueMatch && !venueName) {
+                    venueName = venueMatch;
+                }
+
+                // Extract Guests
+                const guestsMatch = msgText.match(/(\d+)\s*(kişi|person)/i);
+                if (guestsMatch && !guests) {
+                    guests = parseInt(guestsMatch[1]);
+                }
+
+                // Extract Time
+                const timeMatch = msgText.match(/(\d{1,2}:\d{2})\s*(am|pm|pm|öğleden sonra|akşam)?/i);
+                if (timeMatch && !time) {
+                    time = timeMatch[1];
+                }
+
+                // Extract Date (simplified for now, "tonight" / "bugün")
+                if ((msgText.includes('tonight') || msgText.includes('bugün')) && !date) {
+                    date = new Date().toISOString().split('T')[0]; // Current date
+                } else if (msgText.includes('yarın') && !date) {
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    date = tomorrow.toISOString().split('T')[0];
+                }
+                // Add more date parsing as needed
+            }
+
+            // Check if all necessary details are gathered or if it's a menu request
+            if (lower.includes('menu') || lower.includes('menü')) {
+                // Specific menu handling
+                responseText = (await customerExpert.handleGeneralInquiry(`menu for ${venueName || 'restaurant'}`, (t) => traces.push(t))).text;
+            } else if (venueName && guests && time && date) {
+                // All details available, finalize reservation
+                responseText = (await customerExpert.manageDiningReservation(venueName, guests, time, null, (t) => traces.push(t))).message;
+            } else {
+                // Missing details, prompt for them
+                let missingInfo = [];
+                if (!venueName) missingInfo.push("restaurant name (e.g., Poem, Fersah)");
+                if (!date) missingInfo.push("date (e.g., today, tomorrow)");
+                if (!time) missingInfo.push("time (e.g., 20:00)");
+                if (!guests) missingInfo.push("number of guests");
+
+                responseText = `Certainly! I can help with a dining reservation. Please tell me the ${missingInfo.join(', ')}.`;
+            }
+        }
+        // General Inquiry Fallback (if no specific agent handled it)
+        else if (lower.includes('wifi') || lower.includes('market') || lower.includes('gym') || lower.includes('taxi') || lower.includes('pharmacy') || lower.includes('fuel') || lower.includes('lift') || lower.includes('parking') || lower.includes('events') || lower.includes('restaurant')) {
+            responseText = (await customerExpert.handleGeneralInquiry(prompt, (t) => traces.push(t))).text;
+        }
 
         // If responseText is still empty, it means no specific agent handled it fully
         // The App.tsx logic expects a string. If empty, fall back to the LLM.
         if (!responseText) {
             traces.push(createLog('ada.stargate', 'THINKING', `No deterministic handler matched. Forwarding to General Intelligence (Gemini)...`, 'ORCHESTRATOR'));
-            responseText = await generateSimpleResponse(prompt, user, registry, tenders, vesselsInPort);
+            // Added `messages` as the sixth argument to match the updated `generateSimpleResponse` signature.
+            responseText = await generateSimpleResponse(prompt, user, registry, tenders, vesselsInPort, messages); 
         }
         
         return { text: responseText, actions: actions, traces: traces };

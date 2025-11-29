@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Message, ModelType, GroundingSource, RegistryEntry, Tender, UserProfile } from "../types";
 import { BASE_SYSTEM_INSTRUCTION, generateContextBlock } from "./prompts";
@@ -101,20 +102,28 @@ export const generateSimpleResponse = async (
     userProfile: UserProfile,
     registry: RegistryEntry[],
     tenders: Tender[],
-    vesselsInPort: number
+    vesselsInPort: number,
+    messages: Message[] // Added messages for context
 ): Promise<string> => {
     try {
         const ai = createClient();
         const systemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
         
-        const response = await ai.models.generateContent({
+        // Use optimized history for simple response as well
+        const fullHistory = messages.slice(0, -1);
+        const optimizedHistory = fullHistory.slice(-MAX_HISTORY_LENGTH);
+
+        const chat: Chat = ai.chats.create({
             model: 'gemini-2.5-flash',
-            contents: prompt,
+            history: formatHistory(optimizedHistory),
             config: {
                 systemInstruction: systemInstruction,
                 temperature: 0.7
             }
         });
+
+        // Use the prompt (which is the last message) for the current content
+        const response = await chat.sendMessage({ message: prompt });
         
         return response.text || "I'm having trouble connecting to the network right now.";
     } catch (error) {

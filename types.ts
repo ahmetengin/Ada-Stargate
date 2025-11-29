@@ -33,7 +33,7 @@ export interface Message {
 export enum ModelType {
   Flash = 'gemini-2.5-flash',
   Pro = 'gemini-3-pro-preview', // For complex reasoning
-  Image = 'imagen-4.0-generate-001', // For generation
+  // Image = 'imagen-4.0-generate-001', // Removed per user request
 }
 
 export interface AppState {
@@ -158,7 +158,7 @@ export interface VesselSystemsStatus {
   };
 }
 
-export type NodeName = string;
+export type NodeName = string | 'ada.stargate'; // Added ada.stargate for consistency
 
 export interface AgentTraceLog {
   id: string;
@@ -239,4 +239,24 @@ export interface GuestProfile {
   nationality: string;
   dob: string;
   vesselName: string;
+}
+
+// NEW: Federated Marina and Berth Availability Types
+export interface FederatedMarina {
+  id: string;
+  name: string;
+  node_address: string;
+  status: 'ONLINE' | 'OFFLINE';
+  api_endpoint?: string;
+  region?: string;
+  tier?: string;
+}
+
+export interface FederatedBerthAvailability {
+  marinaId: string;
+  date: string;
+  totalBerths: number;
+  availableBerths: number;
+  occupancyRate: number;
+  message: string;
 }

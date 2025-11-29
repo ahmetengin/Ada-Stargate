@@ -1,4 +1,3 @@
-
 // services/wimMasterData.ts
 
 export const wimMasterData = {
@@ -130,9 +129,12 @@ export const wimMasterData = {
       },
       "partner_marinas": [
           { "name": "Alesta Yachting", "location": "Fethiye", "node": "ada.marina.alesta" },
-          { "name": "D-Marin Göcek", "location": "Göcek", "node": "ada.marina.gocek" },
+          { "name": "D-Marin Göcek", "location": "Göcek", "node": "ada.marina.dmarisgocek" },
           { "name": "Setur Kaş", "location": "Kaş", "node": "ada.marina.setur_kas" },
-          { "name": "Setur Ayvalık", "location": "Ayvalık", "node": "ada.marina.setur_ayvalik" }
+          { "name": "Setur Ayvalık", "location": "Ayvalık", "node": "ada.marina.setur_ayvalik" },
+          { "name": "Setur Kalamış", "location": "Istanbul", "node": "ada.marina.seturkalamis" },
+          { "name": "Setur Mytilene", "location": "Lesvos, Greece", "node": "ada.marina.seturmidilli" },
+          { "name": "Yacht Club de Monaco", "location": "Monaco", "node": "ada.marina.monacoyachtclub" }
       ],
       "federation_rules": {
           "cross_berthing_discount": 0.15, // 15% discount for network members
