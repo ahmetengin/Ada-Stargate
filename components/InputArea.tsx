@@ -54,12 +54,11 @@ export const InputArea: React.FC<InputAreaProps> = ({
   return (
     <div className="w-full max-w-3xl mx-auto">
       
-      {/* Model Selector */}
+      {/* Model Selector - Optimized: Removed Image Model */}
       <div className="flex justify-center sm:justify-start mb-2">
           <div className="flex bg-zinc-100 dark:bg-[#0a121e] p-1 rounded-lg border border-zinc-200 dark:border-white/10 shadow-sm">
               <button onClick={() => onModelChange(ModelType.Flash)} className={`px-2 py-1 rounded text-[9px] font-bold flex items-center gap-1 ${selectedModel === ModelType.Flash ? 'bg-white dark:bg-white/10 shadow text-teal-600 dark:text-teal-400' : 'text-zinc-500'}`}><Zap size={10}/> FLASH</button>
               <button onClick={() => onModelChange(ModelType.Pro)} className={`px-2 py-1 rounded text-[9px] font-bold flex items-center gap-1 ${selectedModel === ModelType.Pro ? 'bg-white dark:bg-white/10 shadow text-indigo-600 dark:text-indigo-400' : 'text-zinc-500'}`}><Sparkles size={10}/> PRO</button>
-              <button onClick={() => onModelChange(ModelType.Image)} className={`px-2 py-1 rounded text-[9px] font-bold flex items-center gap-1 ${selectedModel === ModelType.Image ? 'bg-white dark:bg-white/10 shadow text-purple-600 dark:text-purple-400' : 'text-zinc-500'}`}><ImageIcon size={10}/> IMG</button>
           </div>
       </div>
 

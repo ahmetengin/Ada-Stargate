@@ -129,7 +129,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
              {status === LiveConnectionState.Error ? (
                  <div className="flex flex-col items-center justify-center text-red-500 animate-pulse">
                      <AlertTriangle size={48} />
-                     <span className="text-[10px] font-bold mt-2 uppercase tracking-widest text-center">Signal Lost<br/>Retrying...</span>
+                     <span className="text-[10px] font-bold mt-2 uppercase tracking-widest text-center">Network Error<br/>Link Lost</span>
                  </div>
              ) : (
                  <>

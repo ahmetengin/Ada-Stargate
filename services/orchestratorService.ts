@@ -1,10 +1,11 @@
 
 // services/orchestratorService.ts
 
-import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, Tender } from '../types';
+import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, Tender, RegistryEntry } from '../types';
 import { checkBackendHealth, sendToBackend } from './api';
 import { getCurrentMaritimeTime } from './utils';
 import { vote, Candidate } from './voting/consensus';
+import { generateSimpleResponse } from './geminiService';
 
 // --- LEGACY IMPORTS (FALLBACK MODE) ---
 import { financeExpert } from './agents/financeAgent';
@@ -27,7 +28,13 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
 });
 
 export const orchestratorService = {
-    async processRequest(prompt: string, user: UserProfile, tenders: Tender[]): Promise<OrchestratorResponse> {
+    async processRequest(
+        prompt: string, 
+        user: UserProfile, 
+        tenders: Tender[],
+        registry: RegistryEntry[] = [], // Added for context
+        vesselsInPort: number = 0       // Added for context
+    ): Promise<OrchestratorResponse> {
         const traces: AgentTraceLog[] = [];
         
         // 1. CHECK BACKEND HEALTH (BEYOND-MCP ARCHITECTURE)
@@ -213,7 +220,11 @@ export const orchestratorService = {
         }
 
         // If responseText is still empty, it means no specific agent handled it fully
-        // The App.tsx logic will then forward it to the LLM (Gemini).
+        // The App.tsx logic expects a string. If empty, fall back to the LLM.
+        if (!responseText) {
+            traces.push(createLog('ada.stargate', 'THINKING', `No deterministic handler matched. Forwarding to General Intelligence (Gemini)...`, 'ORCHESTRATOR'));
+            responseText = await generateSimpleResponse(prompt, user, registry, tenders, vesselsInPort);
+        }
         
         return { text: responseText, actions: actions, traces: traces };
     }

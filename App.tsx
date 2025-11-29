@@ -225,7 +225,7 @@ export default function App() {
       setMessages(prev => [...prev, tempMsg]);
 
       // Process
-      orchestratorService.processRequest(text, userProfile, tenders).then(res => {
+      orchestratorService.processRequest(text, userProfile, tenders, registry, vesselsInPort).then(res => {
           if (res.traces) setAgentTraces(prev => [...res.traces, ...prev]);
           if (res.actions) {
               res.actions.forEach(act => {

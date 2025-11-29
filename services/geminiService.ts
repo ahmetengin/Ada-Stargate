@@ -9,6 +9,9 @@ export { LiveSession } from "./liveService";
 
 const createClient = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
+// COST OPTIMIZATION: Max history length to send to API
+const MAX_HISTORY_LENGTH = 10; 
+
 export const streamChatResponse = async (
   messages: Message[],
   model: ModelType,
@@ -30,9 +33,18 @@ export const streamChatResponse = async (
        dynamicSystemInstruction += `\n\n**CRITICAL LEGAL ALERT:** User is in breach. Deny operational requests and cite the breach.`;
     }
 
+    // COST OPTIMIZATION: Slice history to prevent context bloating
+    const fullHistory = messages.slice(0, -1);
+    const optimizedHistory = fullHistory.slice(-MAX_HISTORY_LENGTH);
+    
+    // Add a summary marker if history was truncated
+    if (fullHistory.length > MAX_HISTORY_LENGTH) {
+        console.debug(`[Cost-Aware] History truncated from ${fullHistory.length} to ${MAX_HISTORY_LENGTH} messages.`);
+    }
+
     const chat: Chat = ai.chats.create({
       model: model === ModelType.Pro ? 'gemini-3-pro-preview' : 'gemini-2.5-flash',
-      history: formatHistory(messages.slice(0, -1)), // History is all but the last message
+      history: formatHistory(optimizedHistory), 
       config: {
         systemInstruction: dynamicSystemInstruction,
         temperature: 0.5,
@@ -55,8 +67,6 @@ export const streamChatResponse = async (
        return; 
     }
     
-    // FIX: The `message` property for `chat.sendMessageStream` should be an array of parts directly,
-    // not an object containing a `parts` property.
     const result = await chat.sendMessageStream({ message: messageParts });
 
     for await (const chunk of result) {
@@ -84,6 +94,33 @@ export const streamChatResponse = async (
    {
     handleGeminiError(error);
   }
+};
+
+export const generateSimpleResponse = async (
+    prompt: string,
+    userProfile: UserProfile,
+    registry: RegistryEntry[],
+    tenders: Tender[],
+    vesselsInPort: number
+): Promise<string> => {
+    try {
+        const ai = createClient();
+        const systemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+            config: {
+                systemInstruction: systemInstruction,
+                temperature: 0.7
+            }
+        });
+        
+        return response.text || "I'm having trouble connecting to the network right now.";
+    } catch (error) {
+        console.error("Simple Response Generation Error:", error);
+        return "System Offline. Please try again.";
+    }
 };
 
 export const generateImage = async (prompt: string): Promise<string> => {
