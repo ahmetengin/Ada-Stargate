@@ -153,9 +153,9 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
 
            {/* Status Text */}
            <div className="mt-8 font-mono text-sm text-zinc-400 text-center h-6">
-             {status === LiveConnectionState.Connecting && "ESTABLISHING LINK..."}
-             {status === LiveConnectionState.Connected && (audioLevel > 0.05 ? "RECEIVING / TRANSMITTING" : "MONITORING...")}
-             {status === LiveConnectionState.Error && <span className="text-red-500 font-bold">NETWORK ERROR - CONNECTION DROPPED</span>}
+             {status === LiveConnectionState.Connecting && "ESTABLISHING SECURE LINK..."}
+             {status === LiveConnectionState.Connected && (audioLevel > 0.05 ? "RECEIVING / TRANSMITTING" : "MONITORING (VOX ACTIVE)...")}
+             {status === LiveConnectionState.Error && <span className="text-red-500 font-bold flex items-center justify-center gap-2"><AlertTriangle size={14}/> CONNECTION LOST</span>}
            </div>
             
            {/* Protocol Instructions */}
@@ -188,10 +188,10 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
           {status === LiveConnectionState.Error ? (
               <button 
                 onClick={handleRetry}
-                className="group flex items-center gap-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 text-amber-500 px-8 py-3 rounded-full transition-all font-mono uppercase font-bold tracking-wider hover:shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                className="group flex items-center gap-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/50 text-amber-500 px-8 py-3 rounded-full transition-all font-mono uppercase font-bold tracking-wider hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] animate-pulse"
               >
                 <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
-                Force Reconnect
+                RE-ESTABLISH LINK
               </button>
           ) : (
               <button 
