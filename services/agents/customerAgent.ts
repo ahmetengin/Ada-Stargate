@@ -93,8 +93,18 @@ export const customerExpert = {
   // Skill: Manage Dining Reservations
   manageDiningReservation: async (venueName: string, guests: number, time: string, preOrder: string | null, addTrace: (t: AgentTraceLog) => void): Promise<{ success: boolean, message: string }> => {
       addTrace(createLog('ada.customer', 'THINKING', `Checking availability at ${venueName}...`, 'EXPERT'));
-      // Mock
-      return { success: true, message: `**RESERVATION CONFIRMED**\n\n📍 **Venue:** ${venueName}\n👥 **Guests:** ${guests}\n⏰ **Time:** ${time}` };
+      
+      // Special logic for "Can Samimiyet" or others without direct API
+      if (venueName.toLowerCase().includes('can samimiyet') || venueName.toLowerCase().includes('samimiyet')) {
+          addTrace(createLog('ada.customer', 'OUTPUT', `Manual Concierge Protocol required for ${venueName}.`, 'WORKER'));
+          return { 
+              success: true, 
+              message: `**CONCIERGE REQUEST RECEIVED**\n\nWe do not have a direct digital link with **${venueName}**, but I have instructed the Concierge Desk to call them immediately on your behalf.\n\n> **Action:** Calling +90 53X XXX XX XX\n> **Request:** Table for ${guests} at ${time}.\n\n*You will receive a confirmation SMS shortly.*` 
+          };
+      }
+
+      // Default Mock for Partners (Poem, Fersah, etc.)
+      return { success: true, message: `**RESERVATION CONFIRMED**\n\n📍 **Venue:** ${venueName}\n👥 **Guests:** ${guests}\n⏰ **Time:** ${time}\n\n*Table reserved via Ada.Dining.*` };
   },
 
   // Skill: Calculate Loyalty Score

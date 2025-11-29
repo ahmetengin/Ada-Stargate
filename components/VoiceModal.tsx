@@ -11,9 +11,10 @@ interface VoiceModalProps {
   onClose: () => void;
   userProfile: UserProfile;
   onTranscriptReceived: (userText: string, modelText: string) => void;
+  channel: string;
 }
 
-export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userProfile, onTranscriptReceived }) => {
+export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userProfile, onTranscriptReceived, channel }) => {
   const [status, setStatus] = useState<LiveConnectionState>(LiveConnectionState.Disconnected);
   const [audioLevel, setAudioLevel] = useState(0);
   const [session, setSession] = useState<LiveSession | null>(null);
@@ -72,6 +73,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
       setTimeout(() => connect(), 500);
   };
 
+  const getChannelLabel = (ch: string) => {
+      if (ch === '16') return 'DISTRESS';
+      if (ch === '72') return 'MARINA';
+      if (ch === 'SCAN') return 'SCANNING';
+      if (['12', '13', '14'].includes(ch)) return 'VTS / OPS';
+      return 'AUX';
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -104,11 +113,14 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
            
            {/* Channel Indicator */}
            <div className="mb-8 text-center">
-             <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest block mb-1">Priority Channel</span>
+             <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest block mb-1">
+                 {channel === 'SCAN' ? 'Monitoring' : 'Priority Channel'}
+             </span>
              {/* Prominently displayed coordinates */}
              <div className="text-lg font-mono text-zinc-300 mb-2">{displayCoordinates}</div>
              <div className="text-6xl font-mono font-bold text-indigo-500 tracking-tighter flex items-center justify-center gap-2 text-shadow-glow">
-               72 <span className="text-xl text-zinc-600">MARINA</span>
+               {channel === 'SCAN' ? 'SCAN' : channel} 
+               <span className="text-xl text-zinc-600">{getChannelLabel(channel)}</span>
              </div>
            </div>
 
@@ -143,7 +155,7 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
            <div className="mt-8 font-mono text-sm text-zinc-400 text-center h-6">
              {status === LiveConnectionState.Connecting && "ESTABLISHING LINK..."}
              {status === LiveConnectionState.Connected && (audioLevel > 0.05 ? "RECEIVING / TRANSMITTING" : "MONITORING...")}
-             {status === LiveConnectionState.Error && <span className="text-red-500 font-bold">NETWORK ERROR - RECONNECTING</span>}
+             {status === LiveConnectionState.Error && <span className="text-red-500 font-bold">NETWORK ERROR - CONNECTION DROPPED</span>}
            </div>
             
            {/* Protocol Instructions */}

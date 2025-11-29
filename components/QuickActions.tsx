@@ -1,6 +1,17 @@
 
 import React from 'react';
-import { ArrowDown, ArrowUp, CircleDollarSign, AlertTriangle } from 'lucide-react';
+import { 
+    ArrowDown, 
+    ArrowUp, 
+    CircleDollarSign, 
+    AlertTriangle, 
+    Wifi, 
+    Car, 
+    Utensils, 
+    LifeBuoy, 
+    Recycle, 
+    FileText 
+} from 'lucide-react';
 
 interface QuickActionsProps {
   onAction: (text: string) => void;
@@ -8,13 +19,24 @@ interface QuickActionsProps {
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ onAction, userRole }) => {
-  if (userRole === 'GUEST') return null; // Guests don't have operational actions
-
+  
+  // Define Role-Specific Action Sets
   const actions = [
-    { label: 'Arrival', icon: ArrowDown, text: 'Process arrival for S/Y Phisedelia', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
+    // --- GUEST ACTIONS ---
+    { label: 'Wi-Fi Access', icon: Wifi, text: 'What is the guest wifi password?', roles: ['GUEST'] },
+    { label: 'Book Table', icon: Utensils, text: 'Reserve a table at Poem Restaurant for tonight', roles: ['GUEST'] },
+    { label: 'Call Taxi', icon: Car, text: 'I need a taxi at the main gate', roles: ['GUEST'] },
+    
+    // --- CAPTAIN ACTIONS ---
     { label: 'Departure', icon: ArrowUp, text: 'Request departure clearance for S/Y Phisedelia', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
-    { label: 'Check Debt', icon: CircleDollarSign, text: 'Check my account balance', roles: ['CAPTAIN'] },
+    { label: 'Arrival', icon: ArrowDown, text: 'Process arrival for S/Y Phisedelia', roles: ['CAPTAIN', 'GENERAL_MANAGER'] },
+    { label: 'Blue Card', icon: Recycle, text: 'I need a waste pump-out (Blue Card)', roles: ['CAPTAIN'] },
+    { label: 'My Balance', icon: CircleDollarSign, text: 'Check my account balance', roles: ['CAPTAIN'] },
+    
+    // --- GM ACTIONS ---
+    { label: 'Daily Report', icon: FileText, text: 'Generate daily operations report', roles: ['GENERAL_MANAGER'] },
     { label: 'Incidents', icon: AlertTriangle, text: 'List critical incidents for today', roles: ['GENERAL_MANAGER'] },
+    { label: 'Staff Status', icon: LifeBuoy, text: 'Show security patrol status', roles: ['GENERAL_MANAGER'] },
   ];
 
   const visibleActions = actions.filter(action => action.roles.includes(userRole));

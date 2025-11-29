@@ -72,16 +72,52 @@ export const orchestratorService = {
         const findVesselInPrompt = (p: string) => VESSEL_KEYWORDS.find(v => p.toLowerCase().includes(v));
         const vesselName = findVesselInPrompt(prompt) || (user.role === 'CAPTAIN' ? 'S/Y Phisedelia' : 's/y phisedelia');
 
-        if (lower.includes('invoice') || lower.includes('pay') || lower.includes('debt') || lower.includes('balance')) {
+        // PAYMENT INTENT (High Priority)
+        // Checks for specific keywords indicating a desire to pay immediately
+        if (lower.includes('öde') || lower.includes('pay') || lower.includes('link') || lower.includes('send link')) {
+             if (user.role === 'GUEST') {
+                 responseText = "**ACCESS DENIED.** Only registered Captains or Owners can settle vessel accounts.";
+             } else {
+                 traces.push(createLog('ada.finance', 'PLANNING', `User requested payment link. Initiating transaction protocol...`, 'EXPERT'));
+                 
+                 const status = await financeExpert.checkDebt(vesselName);
+                 
+                 if (status.status === 'DEBT') {
+                     // Trigger Invoice & Link Generation
+                     const finActions = await financeExpert.process({
+                         intent: 'create_invoice',
+                         vesselName: vesselName,
+                         amount: status.amount,
+                         serviceType: 'DEBT_SETTLEMENT'
+                     }, user, (t) => traces.push(t));
+                     
+                     actions.push(...finActions);
+                     
+                     // Extract the link from the action to display in text
+                     const linkAction = finActions.find(a => a.name === 'ada.finance.paymentLinkGenerated');
+                     const linkUrl = linkAction?.params?.link?.url || '#';
+
+                     responseText = `**PAYMENT LINK GENERATED**\n\nI have generated a secure link for your outstanding balance of **€${status.amount}**.\n\n[Click here to Pay via Iyzico 3D-Secure](${linkUrl})\n\n> *Reference: ${vesselName} Debt Settlement*`;
+                 } else {
+                     responseText = "**ACCOUNT CLEAR.**\n\nYou have no outstanding balance to pay at this time. Thank you.";
+                 }
+             }
+        }
+        // DEBT CHECK (Informational only)
+        else if (lower.includes('invoice') || lower.includes('debt') || lower.includes('balance') || lower.includes('borç')) {
              if (user.role === 'GUEST') {
                  responseText = "**ACCESS DENIED.**";
              } else {
                  const status = await financeExpert.checkDebt(vesselName);
-                 if (status.status === 'DEBT') responseText = `**FINANCE ALERT (Local):** ${vesselName} has debt: €${status.amount}`;
-                 else responseText = "**ACCOUNT CLEAR (Local).**";
+                 if (status.status === 'DEBT') {
+                     responseText = `**FINANCIAL STATUS**\n\n**Vessel:** ${vesselName}\n**Outstanding Balance:** €${status.amount}\n**Status:** ${status.paymentHistoryStatus}\n\n*Would you like me to generate a payment link?*`;
+                 }
+                 else {
+                     responseText = "**ACCOUNT CLEAR (Local).**\nNo outstanding invoices found.";
+                 }
              }
         }
-        else if (lower.includes('depart') || lower.includes('leaving')) {
+        else if (lower.includes('depart') || lower.includes('leaving') || lower.includes('çıkış')) {
              // --- CONSENSUS PROTOCOL ---
              traces.push(createLog('ada.marina', 'ROUTING', `Departure request detected. Initiating Multi-Agent Consensus Protocol...`, 'ORCHESTRATOR'));
 
@@ -111,22 +147,22 @@ export const orchestratorService = {
 
              // Aggregate
              if (financeDecision === 'DENY') {
-                 responseText = `**DEPARTURE DENIED**\n\nConsensus failed. Outstanding Debt: **€${debtStatus.amount}**. Please clear balance before departure.`;
+                 responseText = `**DEPARTURE DENIED**\n\nConsensus failed. Outstanding Debt: **€${debtStatus.amount}**.\n\n> **Legal Hold:** Right of Retention exercised pursuant to **WIM Contract Article H.2**.\nPlease clear balance at Finance Office.`;
              } else if (technicDecision === 'DENY') {
-                 responseText = `**DEPARTURE DENIED**\n\nConsensus failed. Safety Block: **${technicReason}**.`;
+                 responseText = `**DEPARTURE DENIED**\n\nConsensus failed. Safety Block: **${technicReason}**.\n\n> **Rule:** **Article E.1.8** (Seaworthiness) & **COLREGs** safety violation.`;
              } else {
                  const res = await marinaExpert.processDeparture(vesselName, tenders, t => traces.push(t));
                  responseText = res.message;
                  
                  // Append Blue Card Warning if Conditional
                  if (technicDecision === 'CONDITIONAL') {
-                     responseText += `\n\n⚠️ **ENVIRONMENTAL ALERT (MAVİ KART):**\nYour Blue Card period has expired (**${blueCard.daysSinceLast} days** since last discharge). Please visit the Pump-out station immediately at your next port to avoid Coast Guard fines.`;
+                     responseText += `\n\n⚠️ **ENVIRONMENTAL ALERT (MAVİ KART):**\nYour Blue Card period has expired (**${blueCard.daysSinceLast} days** since last discharge). Violation of **Article F.13**.\nPlease visit the Pump-out station immediately at your next port to avoid fines.`;
                  }
 
                  if (res.actions) actions.push(...res.actions);
              }
         }
-        else if (lower.includes('arrival') || lower.includes('arrive') || lower.includes('dock') || lower.includes('approach')) {
+        else if (lower.includes('arrival') || lower.includes('arrive') || lower.includes('dock') || lower.includes('approach') || lower.includes('giriş')) {
              // Pre-Arrival Check: Finance
              const debtStatus = await financeExpert.checkDebt(vesselName);
              const res = await marinaExpert.processArrival(vesselName, tenders, debtStatus, t => traces.push(t));
@@ -142,6 +178,38 @@ export const orchestratorService = {
                  name: 'ada.ui.openModal',
                  params: { modal: 'SCANNER' }
              });
+        }
+        // BLUE CARD / WASTE MANAGEMENT HANDLER
+        else if (lower.includes('blue card') || lower.includes('waste') || lower.includes('pump-out') || lower.includes('atık') || lower.includes('mavi kart')) {
+             if (user.role === 'GUEST') {
+                 responseText = "**ACCESS DENIED.** Only Captains can request technical services.";
+             } else {
+                 traces.push(createLog('ada.technic', 'PLANNING', `Received Waste Discharge Request (Blue Card) for ${vesselName}...`, 'EXPERT'));
+                 
+                 // 1. Check Status
+                 const status = await technicExpert.checkBlueCardStatus(vesselName, (t) => traces.push(t));
+                 
+                 // 2. Generate Response based on urgency
+                 let urgencyMsg = "";
+                 if (status.status === 'EXPIRED') {
+                     urgencyMsg = `⚠️ **STATUS: EXPIRED** (${status.daysSinceLast} days). Immediate discharge required to avoid Coast Guard fines.\n> **Regulation:** Article F.13 (Mandatory Discharge)`;
+                 } else {
+                     urgencyMsg = `✅ **STATUS: VALID** (Last: ${status.daysSinceLast} days ago).`;
+                 }
+
+                 responseText = `**BLUE CARD PUMP-OUT REQUEST**\n\n${urgencyMsg}\n\n**Instructions:**\n1. Proceed to **Fuel Dock (Station 4)**.\n2. Prepare **Green Hose** connection.\n3. Digital Blue Card will be auto-updated upon completion.\n\n> *Waste Barge 'WIM-Eco' is also available on Ch 73.*`;
+
+                 // 3. Log the Request
+                 actions.push({
+                    id: `bluecard_req_${Date.now()}`,
+                    kind: 'internal',
+                    name: 'ada.marina.log_operation',
+                    params: {
+                        message: `[ECO] PUMP-OUT REQUEST | VS:${vesselName} | STS:${status.status}`,
+                        type: 'info'
+                    }
+                 });
+             }
         }
 
         // If responseText is still empty, it means no specific agent handled it fully

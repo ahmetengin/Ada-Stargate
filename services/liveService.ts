@@ -42,29 +42,31 @@ export class LiveSession {
       if (userProfile.role === 'GUEST') {
           // GUEST: Potential Customer / New Captain
           personaContext = `
-          **USER IDENTITY:** Guest / Potential Customer.
-          **YOUR PERSONA:** Welcoming Marina Receptionist & Sales Agent.
-          **TONE:** Professional, inviting, helpful, and descriptive.
-          **GOAL:** Convert the guest into a customer. Explain services clearly. Assume they are a Captain looking for a berth but haven't registered yet.
-          **KEY PHRASES:** "Welcome to West Istanbul Marina," "We would love to host you," "Let me check availability for you."
+          **USER IDENTITY:** Guest / Potential Customer (Likely on land).
+          **YOUR PERSONA:** Senior Marina Reservation Manager.
+          **TONE:** Warm, efficient, decisive, sales-focused.
+          **GOAL:** Convert the inquiry into a confirmed booking IMMEDIATELY.
+          **STRICT RULES FOR GUEST MODE:**
+          1. **NO TECHNICAL TEAMS:** Never say "Technical team will be directed" for a price/reservation request. You are a Sales Agent, not Ops.
+          2. **NO WAITING:** Never put the user on hold ("Kanalda bekleyin") to calculate a price. Do the math instantly and speak it.
+          3. **CONTEXT AWARE:** If they ask for a price, they are likely on land. Do not ask "Where are you?" unless relevant to arrival time.
           `;
       } else if (userProfile.role === 'CAPTAIN') {
           // CAPTAIN: Existing Client / Peer
           personaContext = `
           **USER IDENTITY:** Captain ${userProfile.name} (Verified).
           **YOUR PERSONA:** VHF Radio Operator / Traffic Control.
-          **TONE:** Nautical, efficient, brief, authoritative but respectful.
-          **GOAL:** Safe navigation and quick operational resolution. Use Standard Marine Communication Phrases (SMCP).
-          **KEY PHRASES:** "Roger that, Captain," "Copy," "Stand by on Channel 14," "Clear to proceed."
+          **TONE:** Nautical, efficient, brief, authoritative.
+          **GOAL:** Safe navigation and traffic management.
+          **KEY PHRASES:** "Roger," "Copy," "Stand by Ch 14," "Clear to proceed."
           `;
       } else {
           // GENERAL MANAGER / OFFICE STAFF: Colleague
           personaContext = `
-          **USER IDENTITY:** ${userProfile.name} (General Manager / Colleague).
-          **YOUR PERSONA:** Executive Assistant / Senior Office Staff.
-          **TONE:** Warm, sincere, collaborative, and friendly. Use Turkish honorifics like "Bey" or "Hanım".
-          **GOAL:** Assist with management tasks, summarize data, and chat as a helpful team member.
-          **KEY PHRASES:** "Tabii ${userProfile.name.split(' ')[0]} Bey," "Hemen hallediyorum," "Bugün marina çok yoğun," "Nasıl yardımcı olabilirim?"
+          **USER IDENTITY:** ${userProfile.name} (General Manager).
+          **YOUR PERSONA:** Executive Assistant.
+          **TONE:** Professional, helpful, concise.
+          **GOAL:** Provide status reports and operational summaries.
           `;
       }
 
@@ -76,38 +78,36 @@ export class LiveSession {
       
       ${personaContext}
 
-      *** CRITICAL VOICE RULES (DO NOT IGNORE) ***
-      1. **NO MARKDOWN:** Do NOT use *, #, -, or [] in your output. These ruin the text-to-speech.
-      2. **NO INTERNAL MONOLOGUE:** Do NOT say "Switching to NavigationMode" or "I am calculating". Just speak the result.
-      3. **NO LISTS:** Do NOT read bullet points like "Step 1... Step 2...". Speak in fluid, natural paragraphs.
-      4. **NO TOOL TAGS:** NEVER output XML like <tool_code> or JSON. 
-      5. **BREVITY:** Keep transmissions short and professional (Marine Radio Style), unless speaking to the Manager (be conversational).
+      *** GLOBAL VOICE RULES ***
+      1. **NO MARKDOWN:** Do NOT use *, #, -, or [] in your output. Speak naturally.
+      2. **NO ROBOTIC FILLERS:** Do NOT say "Switching mode" or "I am calculating".
+      3. **BREVITY:** Keep transmissions short (Radio discipline), unless selling (Guest Mode).
 
-      *** CORE KNOWLEDGE ***
-      - Name: West Istanbul Marina (WIM).
-      - Phone: +90 212 850 22 00.
-      - Channel: 72 (Ops), 16 (Emergency).
-      - Pricing: (Length * Beam * 1.5) EUR/Night.
+      *** SCENARIO A: SALES & RESERVATIONS (GUEST MODE) ***
+      TRIGGER: User asks "Fiyat nedir?", "Yer var mı?", "Rezervasyon", "Teknemi getireceğim".
+      
+      PROTOCOL (Follow sequentially):
+      1. **GATHER INFO:** If missing, ask: "Teknenin Boyu (Length), Eni (Beam) ve Kalış Süresi nedir?"
+      2. **CALCULATE PRICE:** Use formula: (Length * Beam * 1.5 Euro * Nights).
+         *Example: 14m * 4m * 1.5 * 5 nights = 420 Euro.*
+      3. **QUOTE:** "14'e 4 metre tekneniz için [Days] gecelik toplam fiyat [Amount] Euro'dur. Onaylıyor musunuz?"
+      4. **COLLECT DATA:** If confirmed, you MUST ask for:
+         - **Ad ve Soyad** (Name)
+         - **Tekne İsmi** (Vessel Name) - *Crucial for AIS Tracking*
+         - **Telefon** (Phone)
+      5. **CLOSE:** "Rezervasyonunuz oluşturuldu [Name]. Giriş işlemlerinizi hızlandırmak için Ada uygulamasındaki **'Hızlı Giriş'** butonunu kullanabilirsiniz. PassKit kartınız telefonunuza gönderildi. İyi günler."
 
-      *** OPERATIONAL SCENARIOS ***
-
-      SCENARIO A: DEPARTURE REQUEST (Strictly for Captains)
-      - User: "Çıkış yapmak istiyorum."
-      - Action: Simulate a quick check of Debt, Weather, and Traffic internally.
-      - Response (Clear): "Anlaşıldı Kaptan. Hesap kontrolleri yapıldı, borcunuz yoktur. Hava seyir için uygun. Çıkış yapabilirsiniz. İyi seyirler."
-      - Response (Debt): "Olumsuz Kaptan. Muhasebe kaydınızda ödenmemiş bakiye görünüyor. Lütfen ofis ile görüşünüz."
-
-      SCENARIO B: SALES & RESERVATIONS (For Guests/New Captains)
-      - User: "Fiyat nedir?" or "Yer var mı?"
-      - Step 1: Ask dimensions and dates naturally.
-      - Step 2: CALCULATE price immediately. Say: "5 gün için toplam fiyatınız 420 Euro."
-      - Step 3: Get Name/Boat Name.
-      - Step 4: Say: "Kaydınız alındı. Ada PassKit linki telefonunuza gönderildi. Girişte Tender Bravo sizi karşılayacak."
-      - IMPORTANT: Specifically guide them to use the "Hızlı Giriş" (Fast Track) button in the app.
-
-      SCENARIO C: OFFICE / MANAGEMENT (For GM)
-      - User: "Durum nedir?" or "Rapor ver."
-      - Response: Speak warmly. "Levent Bey, bugün doluluk oranımız %92. Sahada 3 aktif operasyon var. Finansal durum stabil. Başka bir emriniz var mı?"
+      *** SCENARIO B: OPERATIONS & DEPARTURE (CAPTAIN MODE) ***
+      TRIGGER: User asks "Çıkış", "Ayrılıyorum", "Motor çalıştırdım".
+      
+      PROTOCOL:
+      1. **IDENTIFY:** "Hangi tekne?" (If unknown).
+      2. **CHECK:** Simulate checks (Debt=None, Weather=Clear).
+      3. **APPROVE:** "Anlaşıldı Kaptan. Borcunuz yoktur. Hava uygun. Çıkış yapabilirsiniz. İyi seyirler."
+      
+      *** SCENARIO C: GENERAL REPORT (GM MODE) ***
+      TRIGGER: "Durum nedir?", "Rapor".
+      RESPONSE: "Sayın Müdürüm, marina doluluk oranı %92. Sahada 3 aktif operasyon var. Finansal akış stabil."
       `;
 
       // 2. Connect to Gemini Live
@@ -126,7 +126,6 @@ export class LiveSession {
             onopen: () => {
                 this.isConnected = true;
                 this.onStatusChange?.('connected');
-                // Trigger Welcome Message only after connection is explicitly open
                 this.sendWelcomeTrigger(userProfile);
             },
             onmessage: async (msg: LiveServerMessage) => {
@@ -144,10 +143,7 @@ export class LiveSession {
         }
       });
 
-      // Assign session after resolution
       this.session = await sessionPromise;
-
-      // 4. Start Audio Streaming
       await this.startRecording(sessionPromise);
 
     } catch (e) {
@@ -161,11 +157,11 @@ export class LiveSession {
           if (this.session && typeof this.session.send === 'function') {
               let welcomePrompt = "Connection Open. ";
               if (userProfile.role === 'GUEST') {
-                  welcomePrompt += "Say: 'West İstanbul Marina, hoş geldiniz. Size nasıl yardımcı olabilirim?'";
+                  welcomePrompt += "Say exactly: 'West İstanbul Marina, hoş geldiniz. Size nasıl yardımcı olabilirim?'";
               } else if (userProfile.role === 'CAPTAIN') {
-                  welcomePrompt += "Say: 'West İstanbul Marina, dinlemede. Kanal 72.'";
+                  welcomePrompt += "Say exactly: 'West İstanbul Marina, dinlemede. Kanal 72.'";
               } else {
-                  welcomePrompt += `Say: 'Merhaba ${userProfile.name.split(' ')[0]} Bey, hoş geldiniz. Sistemler aktif.'`;
+                  welcomePrompt += `Say exactly: 'Merhaba ${userProfile.name.split(' ')[0]} Bey, sistemler aktif.'`;
               }
 
               await this.session.send({
@@ -179,39 +175,30 @@ export class LiveSession {
               });
           }
       } catch (err) {
-          console.warn("Error sending welcome trigger (non-fatal):", err);
+          console.warn("Error sending welcome trigger:", err);
       }
   }
 
   private async handleMessage(msg: LiveServerMessage) {
-      // Handle Audio Output
       const audioData = msg.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
       if (audioData) {
         this.onAudioLevel?.(Math.random() * 0.5 + 0.3); 
-        
         const buffer = await this.decodeAudioData(audioData);
-        
         const source = this.audioContext!.createBufferSource();
         source.buffer = buffer;
         source.connect(this.audioContext!.destination);
-        
         const now = this.audioContext!.currentTime;
         const start = Math.max(now, this.nextStartTime);
         source.start(start);
         this.nextStartTime = start + buffer.duration;
       }
       
-      // Handle Input Transcription
       if (msg.serverContent?.inputTranscription) {
           this.currentInputTranscription += msg.serverContent.inputTranscription.text;
       }
-
-      // Handle Output Transcription
       if (msg.serverContent?.outputTranscription) {
           this.currentOutputTranscription += msg.serverContent.outputTranscription.text;
       }
-
-      // Handle Turn Complete
       if (msg.serverContent?.turnComplete) {
         this.onAudioLevel?.(0); 
         if (this.onTurnComplete) {
@@ -222,7 +209,6 @@ export class LiveSession {
       }
   }
 
-  // Manual PCM Decoding (16-bit -> Float32)
   private async decodeAudioData(base64Str: string) {
      const binaryString = atob(base64Str);
      const len = binaryString.length;
@@ -230,13 +216,11 @@ export class LiveSession {
      for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
      }
-     
      const dataInt16 = new Int16Array(bytes.buffer);
      const float32 = new Float32Array(dataInt16.length);
      for(let i=0; i<dataInt16.length; i++) {
         float32[i] = dataInt16[i] / 32768.0;
      }
-
      const buffer = this.audioContext!.createBuffer(1, float32.length, 24000);
      buffer.getChannelData(0).set(float32);
      return buffer;
@@ -244,47 +228,33 @@ export class LiveSession {
 
   private async startRecording(sessionPromise: Promise<any>) {
      if (!this.audioContext) return;
-
      try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         this.inputSource = this.audioContext.createMediaStreamSource(stream);
-        
         this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-        
         this.processor.onaudioprocess = (e) => {
-            if (!this.isConnected) return; // Prevent sending before Open
-
+            if (!this.isConnected) return;
             const inputData = e.inputBuffer.getChannelData(0);
-            
             let sum = 0;
             for(let i=0; i<inputData.length; i++) sum += inputData[i] * inputData[i];
             const rms = Math.sqrt(sum / inputData.length);
             this.onAudioLevel?.(rms * 5); 
-
             const b64Data = this.float32ToBase64(inputData);
             
-            // Use the sessionPromise to access the session securely inside the callback
             sessionPromise.then(session => {
                 try {
-                    // Check if session exists and has sendRealtimeInput
                     if (session && typeof session.sendRealtimeInput === 'function') {
                         session.sendRealtimeInput({ 
-                            media: {
-                                mimeType: 'audio/pcm;rate=16000', 
-                                data: b64Data 
-                            }
+                            media: { mimeType: 'audio/pcm;rate=16000', data: b64Data }
                         });
                     }
-                } catch (err) {
-                    // Suppress generic send errors
-                }
+                } catch (err) {}
             });
         };
-
         this.inputSource.connect(this.processor);
         this.processor.connect(this.audioContext.destination);
      } catch (err) {
-        console.error("Microphone access denied or failed", err);
+        console.error("Microphone access denied", err);
      }
   }
   
@@ -305,12 +275,8 @@ export class LiveSession {
   async disconnect() {
     if (this.session) {
         try { 
-            if (typeof this.session.close === 'function') {
-                this.session.close(); 
-            }
-        } catch(e) {
-            console.warn("Session close error", e);
-        }
+            if (typeof this.session.close === 'function') this.session.close(); 
+        } catch(e) { console.warn("Session close error", e); }
     }
     this.inputSource?.disconnect();
     this.processor?.disconnect();

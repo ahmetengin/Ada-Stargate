@@ -348,7 +348,7 @@ export const marinaExpert = {
 
         // Append Debt Warning if applicable
         if (hasDebt) {
-            welcomeMessage += `\n\n**⚠️ IMPORTANT:** Captain, please report to the **Finance Office** immediately upon docking regarding your account status.`;
+            welcomeMessage += `\n\n**⚠️ IMPORTANT:** Captain, please report to the **Finance Office** immediately upon docking regarding your account status.\n> **Protocol:** **Article H.2** (Right of Retention) Applied.`;
         }
 
         const priority = marinaExpert.calculateTrafficPriority(vesselProfile);
@@ -360,7 +360,7 @@ export const marinaExpert = {
              addTrace(createLog('ada.marina', 'WARNING', `[ATC-APP] No approach assets. Diverting to Sector Zulu.`, 'WORKER'));
              return {
                  success: false,
-                 message: `NEGATIVE. Approach denied. Proceed to **Sector Zulu** (Holding Area). Monitor Ch 14.`,
+                 message: `NEGATIVE. Approach denied. Proceed to **Sector Zulu** (Holding Area). Monitor Ch 14.\n> **Rule:** **Article E.1.9** (Entry requires permission & tender assist).`,
                  actions: []
              };
         }
