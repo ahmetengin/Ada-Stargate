@@ -1,50 +1,32 @@
-# Ada.Marina.WIM – Tenant Constitution (v1 clean start)
+# Ada.Marina.WIM – Tenant Constitution (v1)
 
 ## 1. Identity
 This service represents the tenant: **West Istanbul Marina (WIM)**.
-Claude/Gemini Agents must work ONLY inside this directory unless explicitly instructed.
+It operates under the **Tactical Agentic Coding (TAC)** doctrine.
 
-## 2. Scope (Basic Phase)
-For now, this tenant handles:
-- Berth data model (LOA, beam, draft, zones)
-- Arrival workflow (manual input only for now)
-- Check-in preparation
-- Price configuration baseline
+## 2. Mission
+To automate operational flows (entry/exit, berthing, security, billing) semi-autonomously.
 
-*No integrations, no payments, no AIS ingestion yet.*
+## 3. Source of Truth
+- **Tactical Spec:** `docs/tactical/Ada.marina.WIM-Tactical-Spec.md`
+- **Hard Rules:** `config/marina_wim_rules.yaml`
 
-## 3. Code Style Rules
-- Python 3.11+
-- FastAPI for API layer
-- Pydantic for schemas
-- No external dependencies unless approved
+## 4. Code Rules
+- **Python 3.11+**
+- **FastAPI** for API layer
+- **Pydantic** for schemas (Zero Error)
+- **MCP** for tool exposure
 
-## 4. Safety Rules
-- **Do NOT** generate real AIS, VHF, CAN, NMEA2000 code at this phase.
-- **Do NOT** generate billing or payment logic at this phase.
-- Only create structures, placeholders, and basic logic.
+## 5. Development Protocol
+1.  **Read Spec:** Check `Ada.marina.WIM-Tactical-Spec.md` before new features.
+2.  **Check Rules:** Verify constants against `marina_wim_rules.yaml`.
+3.  **Plan:** Summarize the change.
+4.  **Execute:** Write code.
 
-## 5. Phase Goals
-- Create a clean skeleton
-- Add basic berth model
-- Add basic marina_wim_rules.yaml structure
-- Add placeholder endpoints
-- Add minimal tests
-
-## 6. Changes Allowed
-- Small controlled changes in: `api/`, `schemas/`, `services/`, `config/`
-- Adding files is allowed
-- No destructive edits outside this directory
-
-## 7. Before Coding
-Agent must:
-- Start with “PLAN MODE” every time
-- Summarize what it will do
-- Wait for confirmation
-
-## 8. Policy & RAG Dependencies (The Brain)
-- **Source of Truth (Hard Rules):** `config/marina_wim_rules.yaml`
-- **Source of Context (Soft Rules):** RAG collection `marina_wim_docs` (from `rag/documents/`)
-
-**CRITICAL DIRECTIVE:**
-Before changing pricing, berthing logic, or penalties, the Agent MUST consult `marina_wim_rules.yaml`. Do not hardcode business logic; read it from the config.
+## 6. Directory Structure
+- `api/`: FastAPI routes
+- `schemas/`: Pydantic models
+- `services/`: Business logic (The Agents)
+- `config/`: Configuration files
+- `rag/`: Document ingestion
+- `db/`: Database models

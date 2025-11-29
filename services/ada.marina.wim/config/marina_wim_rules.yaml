@@ -1,7 +1,7 @@
 # Ada.Marina.WIM Rules Configuration
 # Version: 1.0.0
 # Status: Initialization
-# Description: This file is the "Hard Truth" for the WIM Tenant. 
+# Description: This file is the "Hard Truth" for the WIM Tenant based on the Tactical Spec.
 # Agents must read this before making operational decisions.
 
 tenant:
@@ -29,11 +29,19 @@ pricing_policy:
 penalties:
   late_checkout_grace_period_hours: 2
   late_checkout_multiplier: 1.5 # 1.5x daily rate penalty
+  pollution_fine_multiplier: 2.0 # 2x cleaning cost
 
-# Document requirements for Check-in
+# Document requirements for Check-in (Spec Scenario 1)
 required_documents:
   - "Certificate of Registry"
   - "Insurance Policy (P&I + Hull)"
   - "Captain's License"
   - "Crew List"
   - "Passports"
+  - "Transit Log"
+
+# Security & Safety Thresholds (Spec Scenario 3 & 4)
+safety_thresholds:
+  storm_wind_speed_knots: 35
+  critical_debt_amount_eur: 1000
+  unauthorized_park_alert_sec: 300 # 5 minutes grace period
