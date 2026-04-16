@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { UserProfile } from '../types';
-import { TENANT_CONFIG } from '../services/config';
-import { Radio, Shield, Anchor, Wifi, Zap, Battery, Signal, UserCheck, CreditCard, ScanLine, Activity } from 'lucide-react';
+import { UserProfile, TenantConfig } from '../types';
+import { FEDERATION_REGISTRY } from '../services/config'; // Import FEDERATION_REGISTRY
+import { Radio, Shield, Anchor, Wifi, Zap, Battery, Signal, UserCheck, CreditCard, ScanLine, Activity, CheckCircle2 } from 'lucide-react';
 
 interface SidebarProps {
   nodeStates: Record<string, 'connected' | 'working' | 'disconnected'>;
@@ -13,6 +13,8 @@ interface SidebarProps {
   onVhfClick?: (channel: string) => void;
   onScannerClick?: () => void;
   onPulseClick?: () => void;
+  onTenantSwitch: (tenantId: string) => void; // NEW: Callback for tenant switch
+  activeTenantId: string; // NEW: Active tenant ID
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -22,7 +24,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userProfile,
   onRoleChange,
   onScannerClick,
-  onPulseClick
+  onPulseClick,
+  onTenantSwitch, // NEW
+  activeTenantId // NEW
 }) => {
 
   const nodes = [
@@ -40,6 +44,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isCaptain = userProfile.role === 'CAPTAIN';
   const isGuest = userProfile.role === 'GUEST';
 
+  const activeTenant = FEDERATION_REGISTRY.peers.find(p => p.id === activeTenantId);
+  const tenantNetworkName = activeTenant ? activeTenant.network : 'Unknown Network';
+
   return (
     <div className="h-full w-full flex flex-col bg-zinc-50 dark:bg-[#050b14] overflow-y-auto custom-scrollbar">
       {/* Header */}
@@ -50,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div>
                 <h2 className="text-sm font-black tracking-wider">ADA EXPLORER</h2>
-                <div className="text-[9px] text-zinc-500 dark:text-zinc-400 font-mono">{TENANT_CONFIG.network}</div>
+                <div className="text-[9px] text-zinc-500 dark:text-zinc-400 font-mono">{tenantNetworkName}</div>
             </div>
         </div>
       </div>
@@ -196,6 +203,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <RoleButton role="CAPTAIN" current={userProfile.role} onClick={() => onRoleChange('CAPTAIN')} label="CAPTAIN" />
             <RoleButton role="GENERAL_MANAGER" current={userProfile.role} onClick={() => onRoleChange('GENERAL_MANAGER')} label="MANAGER" />
           </div>
+
+          {/* NEW: Tenant Switcher */}
+          <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-6 mb-3 flex items-center gap-2">
+              <Anchor size={12} /> Active Node
+          </div>
+          <div className="space-y-1">
+            {FEDERATION_REGISTRY.peers.map((tenant) => (
+                <TenantButton 
+                    key={tenant.id}
+                    tenantId={tenant.id}
+                    currentTenantId={activeTenantId}
+                    onClick={() => onTenantSwitch(tenant.id)}
+                    label={tenant.name}
+                />
+            ))}
+          </div>
       </div>
     </div>
   );
@@ -212,6 +235,21 @@ const RoleButton = ({ role, current, onClick, label }: any) => (
     >
         {label}
         {current === role && <UserCheck size={12} />}
+    </button>
+);
+
+// NEW: Tenant Button Component
+const TenantButton = ({ tenantId, currentTenantId, onClick, label }: any) => (
+    <button
+        onClick={onClick}
+        className={`w-full text-left px-3 py-2 rounded text-[10px] font-bold uppercase tracking-wider flex justify-between items-center transition-all ${
+            currentTenantId === tenantId 
+            ? 'bg-teal-600 dark:bg-teal-500 text-white shadow-md' 
+            : 'text-zinc-500 hover:bg-zinc-200 dark:hover:bg-white/5'
+        }`}
+    >
+        {label}
+        {currentTenantId === tenantId && <CheckCircle2 size={12} />}
     </button>
 );
 

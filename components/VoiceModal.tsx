@@ -103,7 +103,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
                   <span className="text-[10px] font-mono font-bold">REC</span>
                 </div>
               )}
-             <div className={`w-2 h-2 rounded-full ${status === LiveConnectionState.Connected ? 'bg-green-500 animate-pulse' : status === LiveConnectionState.Error ? 'bg-red-500' : 'bg-amber-500'}`} />
+             <div className={`w-2 h-2 rounded-full ${
+                status === LiveConnectionState.Connected ? 'bg-green-500 animate-pulse' : 
+                (status === LiveConnectionState.Processing || status === LiveConnectionState.Generating) ? 'bg-blue-500 animate-pulse' :
+                status === LiveConnectionState.Error ? 'bg-red-500' : 'bg-amber-500'
+             }`} />
              <span className="text-[10px] font-mono uppercase text-zinc-500">{status}</span>
           </div>
         </div>
@@ -140,9 +144,11 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
                         style={{ transform: `scale(${1 + audioLevel * 3})`, opacity: 0.3 - audioLevel }}></div>
                     
                     {/* Inner Core */}
-                    <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-900 flex items-center justify-center shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-transform duration-75 ${status === LiveConnectionState.Connected ? 'scale-100' : 'scale-90 grayscale'}`}>
+                    <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-900 flex items-center justify-center shadow-[0_0_30px_rgba(79,70,229,0.4)] transition-transform duration-75 ${(status === LiveConnectionState.Connected || status === LiveConnectionState.Processing || status === LiveConnectionState.Generating) ? 'scale-100' : 'scale-90 grayscale'}`}>
                     {status === LiveConnectionState.Connected ? (
                         <Mic className="text-white w-8 h-8" />
+                    ) : (status === LiveConnectionState.Processing || status === LiveConnectionState.Generating) ? (
+                        <Waves className="text-white w-8 h-8 animate-pulse" />
                     ) : (
                         <Activity className="text-white/50 w-8 h-8 animate-spin-slow" />
                     )}
@@ -155,6 +161,8 @@ export const VoiceModal: React.FC<VoiceModalProps> = ({ isOpen, onClose, userPro
            <div className="mt-8 font-mono text-sm text-zinc-400 text-center h-6">
              {status === LiveConnectionState.Connecting && "ESTABLISHING SECURE LINK..."}
              {status === LiveConnectionState.Connected && (audioLevel > 0.05 ? "RECEIVING / TRANSMITTING" : "MONITORING (VOX ACTIVE)...")}
+             {status === LiveConnectionState.Processing && "PROCESSING AUDIO..."}
+             {status === LiveConnectionState.Generating && "GENERATING RESPONSE..."}
              {status === LiveConnectionState.Error && <span className="text-red-500 font-bold flex items-center justify-center gap-2"><AlertTriangle size={14}/> CONNECTION LOST</span>}
            </div>
             

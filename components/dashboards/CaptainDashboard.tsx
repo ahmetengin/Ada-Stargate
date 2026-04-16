@@ -1,14 +1,18 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Wifi, Thermometer, Zap, ShieldCheck, Droplets, Recycle, Clock } from 'lucide-react';
 import { marinaExpert } from '../../services/agents/marinaAgent';
 import { getCurrentMaritimeTime } from '../../services/utils';
-import { VesselSystemsStatus } from '../../types';
+import { VesselSystemsStatus, TenantConfig } from '../../types';
+import { TENANT_CONFIG } from '../../services/config';
 
 export const CaptainDashboard: React.FC = () => {
   const [activeCaptainTab, setActiveCaptainTab] = useState<'overview' | 'engineering' | 'finance' | 'bluecard'>('overview');
   const [zuluTime, setZuluTime] = useState(getCurrentMaritimeTime());
   const [telemetry, setTelemetry] = useState<VesselSystemsStatus | null>(null);
+
+  const activeTenantConfig: TenantConfig = TENANT_CONFIG; // Assuming TENANT_CONFIG is the active one
 
   useEffect(() => {
       // Live Clock Ticker
@@ -16,8 +20,9 @@ export const CaptainDashboard: React.FC = () => {
           setZuluTime(getCurrentMaritimeTime());
       }, 1000);
 
-      // Simulated telemetry fetch
-      marinaExpert.getVesselTelemetry("S/Y Phisedelia").then((data) => {
+      // Simulated telemetry fetch using the active tenant's name
+      // This part would ideally be dynamically linked to the user's vessel
+      marinaExpert.getVesselTelemetry(activeTenantConfig.name).then((data) => {
           setTelemetry(data);
       });
 

@@ -1,9 +1,8 @@
 // services/prompts.ts
 
 
-import { RegistryEntry, Tender, UserProfile } from "../types";
-import { wimMasterData } from "./wimMasterData";
-import { TENANT_CONFIG, FEDERATION_REGISTRY } from "./config"; // NEW: Import FEDERATION_REGISTRY
+import { RegistryEntry, Tender, UserProfile, TenantConfig } from "../types";
+import { FEDERATION_REGISTRY } from "./config"; // Still needed for federationRegistry context
 
 export type SystemMessageKey = 'PII_MASKING_DISCLAIMER' | 'CREDIT_CARD_DISCLAIMER' | 'FINANCIAL_DATA_USAGE_DISCLAIMER';
 
@@ -18,8 +17,8 @@ export const generateComplianceSystemMessage = (key: SystemMessageKey): string =
 
 // 🚀 ADA AI — COST-OPTIMIZED PROMPT KERNEL v2.2 (Context & Persona Aware)
 // Compressed for maximum token efficiency while maintaining multi-agent reasoning.
-export const BASE_SYSTEM_INSTRUCTION = `
-Role: **ADA**, AI Orchestrator for **${TENANT_CONFIG.fullName}**.
+export const generateBaseSystemInstruction = (tenantConfig: TenantConfig) => `
+Role: **ADA**, AI Orchestrator for **${tenantConfig.fullName}**.
 
 ### 1. ADAPTIVE PERSONA (Detect Intent & Switch)
 *   **Marina Ops:** Berthing/Traffic/Tenders -> **HarbourOps** (Strict, ATC tone).
@@ -40,10 +39,16 @@ Role: **ADA**, AI Orchestrator for **${TENANT_CONFIG.fullName}**.
 *   **Persona Narration:** DO NOT narrate persona switches (e.g., "Switching to TravelOps persona."). Just respond in the new persona.
 
 ### 📜 MASTER DATA (Read-Only)
-'wimMasterData': ${JSON.stringify(wimMasterData)}
+'${tenantConfig.id}MasterData': ${JSON.stringify(tenantConfig.masterData)}
+
+### 📜 TENANT RULES (Hard Truths)
+'${tenantConfig.id}Rules': ${JSON.stringify(tenantConfig.rules)}
+
+### 📜 TENANT DOCTRINE
+'${tenantConfig.id}Doctrine': "${tenantConfig.doctrine.replace(/\n/g, ' ').replace(/"/g, '\\"')}"
 
 ### 🌐 FEDERATION REGISTRY (Partner Marinas)
-'federationRegistry': ${JSON.stringify(FEDERATION_REGISTRY)}
+'federationRegistry': ${JSON.stringify(FEDERATION_REGISTRY.peers.map(p => ({ id: p.id, name: p.name, node_address: p.node_address, status: p.status, region: p.region, tier: p.tier })))}
 
 ### DYNAMIC CONTEXT (Injected Runtime)
 ---

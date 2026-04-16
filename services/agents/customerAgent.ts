@@ -1,8 +1,8 @@
 // services/agents/customerAgent.ts
 
 
-import { AgentAction, AgentTraceLog, NodeName, VesselIntelligenceProfile } from '../../types';
-import { wimMasterData } from '../wimMasterData'; // Import for Event Data
+import { AgentAction, AgentTraceLog, NodeName, VesselIntelligenceProfile, TenantConfig } from '../../types';
+// import { wimMasterData } from '../wimMasterData'; // Removed direct import
 
 // Helper to create a log (copied from orchestratorService.ts for local use)
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -15,7 +15,7 @@ const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string,
 });
 
 
-// A simple, low-cost Knowledge Base for General Inquiries
+// A simple, low-cost Knowledge Base for General Inquiries (static, independent of wimMasterData)
 const WIM_INFO_DB: Record<string, string> = {
     'arrival': `**West Istanbul Marina - Arrival Procedure**
 1.  **VHF Contact:** Before arrival, please call **"West Istanbul Marina"** on VHF Channel **72**.
@@ -27,7 +27,6 @@ const WIM_INFO_DB: Record<string, string> = {
     'gym': 'Fitness Center: **West Life Sports Club**. Includes Sauna, Indoor & Outdoor Swimming Pools. Tennis, Basketball, and Volleyball courts available.',
     'taxi': 'Taxi Station: +90 212 555 1234 (Gate A pickup). VIP Chauffeur service also available.',
     'pharmacy': 'Pharmacy: "Deniz Eczanesi" located at West Wall mall. Duty pharmacy list available at Security.',
-    'restaurant': 'Gastronomy: **Poem, Fersah, Calisto, BigChefs, Happy Moon\'s, Ella Italian, Port of Point, Can Samimiyet, The Roof Kingdom** and many more. Visit **Kumsal Istanbul Street** for street food and entertainment.',
     'fuel': 'Fuel Station (Lukoil): 24/7. Duty-free available with 24h notice.',
     'lift': 'Technical: **700 Ton Travel Lift** (Mega Yachts) and **75 Ton Travel Lift** available. 60.000m2 hardstanding area.',
     'parking': 'Parking: Managed by **ISPARK** in strategic partnership with WIM. 550 vehicle capacity. Marina customers receive complimentary exit validation tokens.'
@@ -35,16 +34,16 @@ const WIM_INFO_DB: Record<string, string> = {
 
 export const customerExpert = {
   // Lightweight Processor for General Info
-  handleGeneralInquiry: async (query: string, addTrace: (t: AgentTraceLog) => void): Promise<{ text: string, actions: AgentAction[] }> => {
+  handleGeneralInquiry: async (query: string, addTrace: (t: AgentTraceLog) => void, tenantConfig: TenantConfig): Promise<{ text: string, actions: AgentAction[] }> => {
     
     addTrace(createLog('ada.customer', 'THINKING', `Searching General Info Database for keywords in: "${query}"`, 'WORKER'));
 
     const lowerQuery = query.toLowerCase();
     let response = "";
     
-    // Check for specific menu requests first
-    const knownRestaurants = wimMasterData.services.amenities.restaurants;
-    const menuForVenueMatch = knownRestaurants.find(r => lowerQuery.includes(r.toLowerCase() + ' menu') || lowerQuery.includes(r.toLowerCase() + ' menü'));
+    // Check for specific menu requests first using tenantConfig.masterData
+    const knownRestaurants = tenantConfig.masterData?.services?.amenities?.restaurants || [];
+    const menuForVenueMatch = knownRestaurants.find((r:string) => lowerQuery.includes(r.toLowerCase() + ' menu') || lowerQuery.includes(r.toLowerCase() + ' menü'));
 
     if (menuForVenueMatch) {
         response = `I do not have real-time access to the menu for **${menuForVenueMatch}**. For their current offerings, please contact the restaurant directly. However, I can assist you with making a reservation.`;
@@ -100,9 +99,9 @@ export const customerExpert = {
   },
 
   // Skill: Get Upcoming Events
-  getUpcomingEvents: async (addTrace: (t: AgentTraceLog) => void): Promise<any[]> => {
+  getUpcomingEvents: async (addTrace: (t: AgentTraceLog) => void, tenantConfig: TenantConfig): Promise<any[]> => {
       addTrace(createLog('ada.customer', 'THINKING', `Retrieving Social Calendar from Yacht Club Database...`, 'EXPERT'));
-      return wimMasterData.event_calendar || [];
+      return tenantConfig.masterData?.event_calendar || [];
   },
 
   // Skill: Manage Dining Reservations

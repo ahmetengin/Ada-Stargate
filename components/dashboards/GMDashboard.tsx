@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { RegistryEntry, Tender, UserProfile, CongressEvent, Delegate, AgentTraceLog, VhfLog, AisTarget } from '../../types';
+import { RegistryEntry, Tender, UserProfile, CongressEvent, Delegate, AgentTraceLog, VhfLog, AisTarget, TenantConfig } from '../../types';
 import { facilityExpert } from '../../services/agents/facilityAgent';
 import { congressExpert } from '../../services/agents/congressAgent';
 import { hrExpert } from '../../services/agents/hrAgent';
@@ -30,6 +31,7 @@ interface GMDashboardProps {
   aisTargets?: AisTarget[];
   onOpenReport: () => void;
   onOpenTrace: () => void;
+  activeTenantConfig: TenantConfig; // NEW: Pass activeTenantConfig
 }
 
 export const GMDashboard: React.FC<GMDashboardProps> = ({
@@ -42,7 +44,8 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
   vhfLogs = [],
   aisTargets = [],
   onOpenReport,
-  onOpenTrace
+  onOpenTrace,
+  activeTenantConfig // NEW
 }) => {
   const criticalLogs = logs.filter(log => log.type === 'critical' || log.type === 'alert');
   const [activeGmTab, setActiveGmTab] = useState<'ops' | 'fleet' | 'facility' | 'congress' | 'hr' | 'commercial' | 'analytics' | 'berths' | 'bookings' | 'observer' | 'guest_entry'>('ops');
@@ -107,7 +110,7 @@ export const GMDashboard: React.FC<GMDashboardProps> = ({
             {/* Left: Title & Status (CLEAN - NO ICON) */}
             <div>
                 <h2 className="text-lg font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-wider leading-none">
-                    Command Deck
+                    {activeTenantConfig.name} Command Deck
                 </h2>
                 <div className="flex items-center gap-2 mt-1.5">
                     <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[9px] font-bold text-emerald-600 dark:text-emerald-400">

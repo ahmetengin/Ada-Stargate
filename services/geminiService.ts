@@ -1,8 +1,8 @@
 
 
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { Message, ModelType, GroundingSource, RegistryEntry, Tender, UserProfile } from "../types";
-import { BASE_SYSTEM_INSTRUCTION, generateContextBlock } from "./prompts";
+import { Message, ModelType, GroundingSource, RegistryEntry, Tender, UserProfile, TenantConfig } from "../types";
+import { generateBaseSystemInstruction, generateContextBlock } from "./prompts";
 import { handleGeminiError, formatHistory } from "./geminiUtils";
 
 // Re-export LiveSession
@@ -22,13 +22,14 @@ export const streamChatResponse = async (
   tenders: Tender[],
   userProfile: UserProfile,
   vesselsInPort: number,
+  tenantConfig: TenantConfig, // NEW: Pass tenantConfig
   onChunk: (text: string, grounding?: GroundingSource[]) => void,
   onUsage?: (usage: any) => void
 ) => {
   try {
     const ai = createClient();
     
-    let dynamicSystemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
+    let dynamicSystemInstruction = generateBaseSystemInstruction(tenantConfig) + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
 
     if (userProfile.legalStatus === 'RED') {
        dynamicSystemInstruction += `\n\n**CRITICAL LEGAL ALERT:** User is in breach. Deny operational requests and cite the breach.`;
@@ -103,11 +104,12 @@ export const generateSimpleResponse = async (
     registry: RegistryEntry[],
     tenders: Tender[],
     vesselsInPort: number,
-    messages: Message[] // Added messages for context
+    messages: Message[], // Added messages for context
+    tenantConfig: TenantConfig // NEW: Pass tenantConfig
 ): Promise<string> => {
     try {
         const ai = createClient();
-        const systemInstruction = BASE_SYSTEM_INSTRUCTION + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
+        const systemInstruction = generateBaseSystemInstruction(tenantConfig) + generateContextBlock(registry, tenders, userProfile, vesselsInPort);
         
         // Use optimized history for simple response as well
         const optimizedHistory = messages.slice(-MAX_HISTORY_LENGTH);

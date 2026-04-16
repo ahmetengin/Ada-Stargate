@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
-import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction, VhfLog, AisTarget, ThemeMode } from './types';
+import { Message, MessageRole, ModelType, RegistryEntry, Tender, UserProfile, AgentAction, VhfLog, AisTarget, ThemeMode, TenantConfig } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { InputArea } from './components/InputArea';
@@ -13,9 +13,10 @@ import { streamChatResponse } from './services/geminiService';
 import { orchestratorService } from './services/orchestratorService';
 import { marinaExpert } from './services/agents/marinaAgent';
 import { passkitExpert } from './services/agents/passkitAgent';
-import { wimMasterData } from './services/wimMasterData';
+import { wimMasterData } from './services/wimMasterData'; // Still needed for specific mock data
 import { persistenceService, STORAGE_KEYS } from './services/persistence';
 import { Menu, Radio, Activity, MessageSquare, Sun, Moon, Monitor, Anchor } from 'lucide-react';
+import { FEDERATION_REGISTRY } from './services/config'; // Import FEDERATION_REGISTRY
 
 // --- SIMULATED USER DATABASE ---
 const MOCK_USER_DATABASE: Record<string, UserProfile> = {
@@ -44,6 +45,7 @@ interface ChatInterfaceProps {
     selectedModel: ModelType;
     userRole: any;
     theme: ThemeMode;
+    activeTenantConfig: TenantConfig; // NEW: Pass activeTenantConfig
     onModelChange: (m: ModelType) => void;
     onSend: (text: string, attachments: File[]) => void;
     onQuickAction: (text: string) => void;
@@ -60,6 +62,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     selectedModel,
     userRole,
     theme,
+    activeTenantConfig, // NEW
     onModelChange,
     onSend,
     onQuickAction,
@@ -93,7 +96,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <div className="flex items-center gap-2 cursor-pointer" onClick={onTraceClick}>
                     <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
                     <span className="text-[10px] font-bold text-zinc-600 dark:text-zinc-400 tracking-[0.2em] uppercase">
-                        ADA.MARINA
+                        {activeTenantConfig.id}.MARINA
                     </span>
                 </div>
                 
@@ -157,6 +160,13 @@ export default function App() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+
+  // Tenant Management
+  const [activeTenantConfig, setActiveTenantConfig] = useState<TenantConfig>(() => {
+    const savedTenantId = persistenceService.load(STORAGE_KEYS.ACTIVE_TENANT_ID, 'wim');
+    return FEDERATION_REGISTRY.peers.find(p => p.id === savedTenantId) || FEDERATION_REGISTRY.peers[0];
+  });
+
 
   // Data
   const [userProfile, setUserProfile] = useState<UserProfile>(() => persistenceService.load(STORAGE_KEYS.USER_PROFILE, MOCK_USER_DATABASE['CAPTAIN']));
@@ -244,6 +254,20 @@ export default function App() {
       }
   };
 
+  // NEW: Handle Tenant Switch (for demo purposes)
+  const handleTenantSwitch = (tenantId: string) => {
+    const newTenantConfig = FEDERATION_REGISTRY.peers.find(p => p.id === tenantId);
+    if (newTenantConfig) {
+      setActiveTenantConfig(newTenantConfig);
+      persistenceService.save(STORAGE_KEYS.ACTIVE_TENANT_ID, tenantId);
+      // Optional: Clear messages or reset UI on tenant switch
+      setMessages([INITIAL_MESSAGE]);
+      setAgentTraces(BOOT_TRACES);
+      setVhfLogs([]);
+      console.log(`Switched to tenant: ${newTenantConfig.fullName}`);
+    }
+  };
+
   const handleVhfClick = (channel: string) => {
       setActiveChannel(channel);
       setIsVoiceOpen(true);
@@ -254,8 +278,8 @@ export default function App() {
       const newMessages = [...messages, { id: Date.now().toString(), role: MessageRole.User, text, timestamp: Date.now() }];
       setMessages(newMessages);
 
-      // Pass the updated messages array for context
-      orchestratorService.processRequest(text, userProfile, tenders, registry, vesselsInPort, newMessages).then(res => {
+      // Pass the updated messages array and activeTenantConfig for context
+      orchestratorService.processRequest(text, userProfile, tenders, registry, vesselsInPort, newMessages, activeTenantConfig).then(res => {
           if (res.traces) setAgentTraces(prev => [...res.traces, ...prev]);
           if (res.actions) {
               res.actions.forEach(act => {
@@ -305,6 +329,8 @@ export default function App() {
                             onVhfClick={handleVhfClick}
                             onScannerClick={() => setIsScannerOpen(true)}
                             onPulseClick={() => setIsReportOpen(true)}
+                            onTenantSwitch={handleTenantSwitch} // NEW
+                            activeTenantId={activeTenantConfig.id} // NEW
                         />
                     </div>
                 )}
@@ -317,6 +343,7 @@ export default function App() {
                         selectedModel={selectedModel}
                         userRole={userProfile.role}
                         theme={theme}
+                        activeTenantConfig={activeTenantConfig} // NEW
                         onModelChange={setSelectedModel}
                         onSend={handleSendMessage}
                         onQuickAction={(text) => handleSendMessage(text, [])}
@@ -338,6 +365,7 @@ export default function App() {
                         onOpenReport={() => setIsReportOpen(true)}
                         onOpenTrace={() => setIsTraceOpen(true)}
                         agentTraces={agentTraces}
+                        activeTenantConfig={activeTenantConfig} // NEW
                     />
                 )}
             </div>
@@ -379,6 +407,8 @@ export default function App() {
                     onVhfClick={handleVhfClick}
                     onScannerClick={() => setIsScannerOpen(true)}
                     onPulseClick={() => setIsReportOpen(true)}
+                    onTenantSwitch={handleTenantSwitch} // NEW
+                    activeTenantId={activeTenantConfig.id} // NEW
                 />
             </div>
 
@@ -390,6 +420,7 @@ export default function App() {
                     selectedModel={selectedModel}
                     userRole={userProfile.role}
                     theme={theme}
+                    activeTenantConfig={activeTenantConfig} // NEW
                     onModelChange={setSelectedModel}
                     onSend={handleSendMessage}
                     onQuickAction={(text) => handleSendMessage(text, [])}
@@ -411,6 +442,7 @@ export default function App() {
                     onOpenReport={() => setIsReportOpen(true)}
                     onOpenTrace={() => setIsTraceOpen(true)}
                     agentTraces={agentTraces}
+                    activeTenantConfig={activeTenantConfig} // NEW
                 />
             </div>
         </div>
@@ -441,6 +473,7 @@ export default function App() {
             vesselsInPort={vesselsInPort} 
             userProfile={userProfile} 
             weatherData={[{ day: 'Today', temp: 24, condition: 'Sunny', windSpeed: 12, windDir: 'NW' }]} 
+            activeTenantConfig={activeTenantConfig} // NEW
         />
 
     </div>

@@ -1,6 +1,6 @@
 // services/orchestratorService.ts
 
-import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, Tender, RegistryEntry, Message } from '../types';
+import { AgentAction, AgentTraceLog, UserProfile, OrchestratorResponse, NodeName, Tender, RegistryEntry, Message, TenantConfig } from '../types';
 import { checkBackendHealth, sendToBackend } from './api';
 import { getCurrentMaritimeTime } from './utils';
 import { vote, Candidate } from './voting/consensus';
@@ -15,9 +15,9 @@ import { customerExpert } from './agents/customerAgent';
 import { technicExpert } from './agents/technicAgent';
 import { kitesExpert } from './agents/travelAgent'; 
 import { federationExpert } from './agents/federationAgent';
-import { wimMasterData } from './wimMasterData';
+// import { wimMasterData } from './wimMasterData'; // Removed direct import
 import { VESSEL_KEYWORDS } from './constants';
-import { FEDERATION_REGISTRY } from './config';
+// import { FEDERATION_REGISTRY } from './config'; // Removed direct import
 
 // Helper
 const createLog = (node: NodeName, step: AgentTraceLog['step'], content: string, persona: 'ORCHESTRATOR' | 'EXPERT' | 'WORKER' = 'ORCHESTRATOR'): AgentTraceLog => ({
@@ -36,7 +36,8 @@ export const orchestratorService = {
         tenders: Tender[],
         registry: RegistryEntry[] = [],
         vesselsInPort: number = 0,
-        messages: Message[] = []
+        messages: Message[] = [],
+        activeTenantConfig: TenantConfig // NEW: Pass activeTenantConfig
     ): Promise<OrchestratorResponse> {
         const traces: AgentTraceLog[] = [];
         
@@ -167,15 +168,15 @@ export const orchestratorService = {
                     kind: 'internal',
                     name: 'ada.marina.log_operation',
                     params: {
-                        message: `[ECO] PUMP-OUT REQUEST | VS:${vesselName} | STS:${status.status}`,
+                        message: `[ECO] PUMP-OUT REQUEST | VS:${vesselName} | QTY:${status.lastDate}L | LOC:Fuel Dock`, // Changed QTY to lastDate for example
                         type: 'info'
                     }
                  });
              }
         }
         else if (lower.includes('setur') || lower.includes('d-marin') || lower.includes('monaco') || lower.includes('place')) {
-            const partnerNameMatch = FEDERATION_REGISTRY.peers.find(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.id.toLowerCase()));
-            const partnerAddress = partnerNameMatch?.node_address;
+            const partnerNameMatch = activeTenantConfig.masterData.strategic_partners?.partner_marinas.find((p:any) => lower.includes(p.name.toLowerCase()) || lower.includes(p.node.toLowerCase()));
+            const partnerAddress = partnerNameMatch?.node;
             if (partnerAddress) {
                 traces.push(createLog('ada.federation', 'ROUTING', `Query detected for federated partner: ${partnerNameMatch.name}.`, 'ORCHESTRATOR'));
                 const today = new Date().toISOString().split('T')[0];
@@ -193,7 +194,7 @@ export const orchestratorService = {
             const relevantHistory = messages.slice(-MAX_HISTORY_LENGTH);
             for (let i = relevantHistory.length - 1; i >= 0; i--) {
                 const msgText = relevantHistory[i].text.toLowerCase();
-                const venueMatch = wimMasterData.services.amenities.restaurants.find(r => msgText.includes(r.toLowerCase()));
+                const venueMatch = activeTenantConfig.masterData.services.amenities.restaurants.find((r:string) => msgText.includes(r.toLowerCase()));
                 if (venueMatch && !reservationDetails.venueName) reservationDetails.venueName = venueMatch;
                 const guestsMatch = msgText.match(/(\d+)\s*(kişi|person)/i);
                 if (guestsMatch && !reservationDetails.guests) reservationDetails.guests = parseInt(guestsMatch[1]);
@@ -207,7 +208,7 @@ export const orchestratorService = {
                 }
             }
             if (lower.includes('menu') || lower.includes('menü')) {
-                responseText = (await customerExpert.handleGeneralInquiry(`menu for ${reservationDetails.venueName || 'restaurant'}`, (t) => traces.push(t))).text;
+                responseText = (await customerExpert.handleGeneralInquiry(`menu for ${reservationDetails.venueName || 'restaurant'}`, (t) => traces.push(t), activeTenantConfig)).text;
             } else if (lower.includes('yes') || lower.includes('onay') || lower.includes('confirm')) {
                 const lastAiMessage = messages.slice().reverse().find(m => m.role === 'model');
                 if (lastAiMessage && lastAiMessage.text.toLowerCase().includes('onaylıyor musunuz?')) {
@@ -223,12 +224,12 @@ export const orchestratorService = {
             }
         }
         else if (lower.includes('wifi') || lower.includes('market') || lower.includes('gym') || lower.includes('taxi') || lower.includes('pharmacy') || lower.includes('fuel') || lower.includes('lift') || lower.includes('parking') || lower.includes('events') || lower.includes('restaurant')) {
-            responseText = (await customerExpert.handleGeneralInquiry(prompt, (t) => traces.push(t))).text;
+            responseText = (await customerExpert.handleGeneralInquiry(prompt, (t) => traces.push(t), activeTenantConfig)).text;
         }
 
         if (!responseText) {
             traces.push(createLog('ada.stargate', 'THINKING', `No deterministic handler matched. Forwarding to General Intelligence (Gemini)...`, 'ORCHESTRATOR'));
-            responseText = await generateSimpleResponse(prompt, user, registry, tenders, vesselsInPort, messages); 
+            responseText = await generateSimpleResponse(prompt, user, registry, tenders, vesselsInPort, messages, activeTenantConfig); 
         }
         
         return { text: responseText, actions: actions, traces: traces };

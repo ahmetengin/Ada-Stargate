@@ -1,12 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { RegistryEntry, Tender, VhfLog, UserProfile, VesselSystemsStatus, AgentTraceLog, AisTarget } from '../types';
-import { ExternalLink, Radar, List, Database, Cloud, Globe, Radio, Calendar, Utensils, Wind, Droplets, Battery, Anchor, Navigation } from 'lucide-react';
-import { wimMasterData } from '../services/wimMasterData';
-import { marinaExpert } from '../services/agents/marinaAgent';
+import { RegistryEntry, Tender, VhfLog, UserProfile, AgentTraceLog, AisTarget, TenantConfig } from '../types';
 import { GuestDashboard } from './dashboards/GuestDashboard';
 import { CaptainDashboard } from './dashboards/CaptainDashboard';
 import { GMDashboard } from './dashboards/GMDashboard';
+import { EmergencyDashboard } from './dashboards/EmergencyDashboard';
 
 interface CanvasProps {
   vesselsInPort: number;
@@ -18,6 +16,7 @@ interface CanvasProps {
   onOpenReport?: () => void;
   onOpenTrace?: () => void;
   agentTraces?: AgentTraceLog[];
+  activeTenantConfig: TenantConfig; 
 }
 
 export const Canvas: React.FC<CanvasProps> = ({ 
@@ -29,7 +28,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   userProfile,
   onOpenReport,
   onOpenTrace,
-  agentTraces = []
+  agentTraces = [],
+  activeTenantConfig
 }) => {
   // Live Data Simulation for "Static" fix
   const [occupancyRate, setOccupancyRate] = useState(92);
@@ -46,14 +46,23 @@ export const Canvas: React.FC<CanvasProps> = ({
   }, [registry.length]);
 
   // Extract Critical Logs from Traces for the Dashboard
+  // This logic looks for specific keywords that trigger the "Guardian Protocol"
   const dashboardLogs = agentTraces
-    .filter(t => t.step === 'ERROR' || t.isError || t.content.includes('DENIED') || t.content.includes('ALERT'))
+    .filter(t => t.step === 'ERROR' || t.isError || t.content.includes('DENIED') || t.content.includes('ALERT') || t.content.includes('CODE_RED') || t.content.includes('MAYDAY'))
     .map(t => ({
         timestamp: t.timestamp,
         source: t.node,
         message: t.content,
-        type: 'critical'
+        type: t.content.includes('CODE_RED') || t.content.includes('MAYDAY') ? 'CRITICAL_EMERGENCY' : 'critical'
     }));
+
+  // --- GUARDIAN PROTOCOL (Episode B) ---
+  // If a CODE RED is active, override the dashboard for non-guests to focus purely on the emergency
+  const isEmergency = dashboardLogs.some(l => l.type === 'CRITICAL_EMERGENCY');
+
+  if (isEmergency && userProfile.role !== 'GUEST') {
+      return <EmergencyDashboard />;
+  }
 
   // --- VIEW 1: GUEST (LIFESTYLE DECK) ---
   if (userProfile.role === 'GUEST') {
@@ -79,6 +88,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             aisTargets={aisTargets}
             onOpenReport={onOpenReport || (() => {})}
             onOpenTrace={onOpenTrace || (() => {})}
+            activeTenantConfig={activeTenantConfig}
         />
       </div>
   );

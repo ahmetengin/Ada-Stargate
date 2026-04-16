@@ -1,8 +1,7 @@
 
-
 import React from 'react';
 import { X, Printer, ShieldAlert, Anchor, Briefcase, Sun, Wind, CloudRain, Utensils, ShoppingBag, Activity, AlertTriangle, Navigation, DollarSign, FileText } from 'lucide-react';
-import { RegistryEntry, UserProfile, WeatherForecast } from '../types';
+import { RegistryEntry, UserProfile, WeatherForecast, TenantConfig } from '../types';
 
 interface DailyReportModalProps {
   isOpen: boolean;
@@ -12,6 +11,7 @@ interface DailyReportModalProps {
   vesselsInPort: number;
   userProfile: UserProfile;
   weatherData: WeatherForecast[];
+  activeTenantConfig: TenantConfig;
 }
 
 export const DailyReportModal: React.FC<DailyReportModalProps> = ({ 
@@ -21,12 +21,13 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
   logs, 
   vesselsInPort,
   userProfile,
-  weatherData
+  weatherData,
+  activeTenantConfig
 }) => {
   if (!isOpen) return null;
 
   const today = new Date();
-  const currentWx = weatherData[0];
+  const currentWx = weatherData[0] || { temp: 24, condition: 'Sunny', windSpeed: 12, windDir: 'NW' };
 
   const handlePrint = () => {
     window.print();
@@ -78,7 +79,7 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
 
         {/* Amenities */}
         <div>
-            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Today at WIM</h3>
+            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Today at {activeTenantConfig.name}</h3>
             <div className="space-y-3">
                 <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors cursor-pointer group">
                     <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -130,8 +131,8 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
                     </div>
                 </div>
                 <div className="text-right">
-                    <div className="text-xs font-bold">SEC: MARMARA</div>
-                    <div className="text-xs">WIM APPROACH</div>
+                    <div className="text-xs font-bold">SEC: {activeTenantConfig.region || 'MARMARA'}</div>
+                    <div className="text-xs">{activeTenantConfig.name} APPROACH</div>
                 </div>
             </div>
 
@@ -167,7 +168,7 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
                             <span className="text-zinc-700 dark:text-zinc-300">{typeof log.message === 'string' ? log.message : 'Navigation Notice'}</span>
                         </div>
                     )) : (
-                        <div className="text-xs text-zinc-500 italic py-2">No active navigational warnings in WIM sector.</div>
+                        <div className="text-xs text-zinc-500 italic py-2">No active navigational warnings in {activeTenantConfig.name} sector.</div>
                     )}
                 </div>
             </div>
@@ -320,7 +321,7 @@ export const DailyReportModal: React.FC<DailyReportModalProps> = ({
         <header className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800 flex-shrink-0">
           <div className="flex items-center gap-3">
              <FileText size={16} className="text-indigo-500" />
-             <h2 className="font-bold text-zinc-800 dark:text-zinc-200">Daily Operations Report</h2>
+             <h2 className="font-bold text-zinc-800 dark:text-zinc-200">{activeTenantConfig.name} Daily Operations Report</h2>
           </div>
           <div className="flex items-center gap-2">
             <button 

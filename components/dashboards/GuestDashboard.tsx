@@ -1,16 +1,18 @@
 
+
 import React, { useState } from 'react';
 import { Car, CheckCircle2, Zap, Utensils, Calendar, Wind, PartyPopper, QrCode, MapPin, Scan } from 'lucide-react';
-import { UserProfile } from '../../types';
+import { UserProfile, TenantConfig } from '../../types';
 import { wimMasterData } from '../../services/wimMasterData';
 import { securityExpert } from '../../services/agents/securityAgent';
+import { TENANT_CONFIG } from '../../services/config';
 
 interface GuestDashboardProps {
   userProfile: UserProfile;
 }
 
 export const GuestDashboard: React.FC<GuestDashboardProps> = ({ userProfile }) => {
-  const upcomingEvents = wimMasterData.event_calendar || [];
+  const upcomingEvents = TENANT_CONFIG.masterData.event_calendar || [];
   const [accessStatus, setAccessStatus] = useState<'INSIDE' | 'OUTSIDE'>('OUTSIDE');
   const [lastGate, setLastGate] = useState<string | null>(null);
 

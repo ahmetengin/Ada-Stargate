@@ -1,4 +1,3 @@
-
 // services/persistence.ts
 import { RegistryEntry, Tender, TrafficEntry, UserProfile, VesselIntelligenceProfile, MaintenanceJob, Message } from '../types';
 
@@ -12,7 +11,8 @@ export const STORAGE_KEYS = {
   TENDERS: 'ada_tenders_v1',
   TRAFFIC: 'ada_traffic_queue_v1',
   USER_PROFILE: 'ada_user_profile_v1',
-  THEME: 'theme'
+  THEME: 'theme',
+  ACTIVE_TENANT_ID: 'active_tenant_id', // NEW: To persist the active tenant choice
 };
 
 class PersistenceService {

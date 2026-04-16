@@ -48,6 +48,8 @@ export enum LiveConnectionState {
   Disconnected = 'disconnected',
   Connecting = 'connecting',
   Connected = 'connected',
+  Processing = 'processing',
+  Generating = 'generating',
   Error = 'error'
 }
 
@@ -137,25 +139,6 @@ export interface VesselIntelligenceProfile {
   utilities?: { electricityKwh: number; waterM3: number; lastReading: string; status: 'ACTIVE' | 'DISCONNECTED' };
   outstandingDebt?: number;
   loyaltyScore?: number;
-}
-
-export interface AgentAction {
-  id: string;
-  kind: 'internal' | 'external';
-  name: string;
-  params: any;
-}
-
-export interface VesselSystemsStatus {
-  battery: { serviceBank: number; engineBank: number; status: string };
-  tanks: { fuel: number; freshWater: number; blackWater: number };
-  bilge: { forward: string; aft: string; pumpStatus: string };
-  shorePower: { connected: boolean; voltage: number; amperage: number };
-  comfort?: {
-      climate: { zone: string; setPoint: number; currentTemp: number; mode: string; fanSpeed: string };
-      lighting: { salon: boolean; deck: boolean; underwater: boolean };
-      security: { mode: string; camerasActive: boolean };
-  };
 }
 
 export type NodeName = string | 'ada.stargate'; // Added ada.stargate for consistency
@@ -259,4 +242,32 @@ export interface FederatedBerthAvailability {
   availableBerths: number;
   occupancyRate: number;
   message: string;
+}
+
+// NEW: Consolidated Tenant Configuration
+export interface TenantConfig {
+  id: string;
+  name: string;
+  fullName: string;
+  network: string;
+  node_address: string;
+  status: 'ONLINE' | 'OFFLINE' | 'DEGRADED';
+  api_endpoint?: string;
+  region?: string;
+  tier?: string;
+  mission: string;
+  contextSources: string[];
+  rules: any; // Parsed YAML content (or similar structured data)
+  doctrine: string; // Parsed CLAUDE.md content
+  masterData: any; // Entire wimMasterData.ts or similar for other tenants
+  // Add other specific properties as needed, e.g., for Phisedelia
+  vesselType?: string;
+  flag?: string;
+  operationalLimits?: any;
+  racingRules?: any;
+  systemThresholds?: any;
+  communicationProtocols?: any;
+  requiredDocumentsRace?: string[];
+  sensors?: any;
+  autonomyLevels?: any;
 }
